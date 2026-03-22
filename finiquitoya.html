@@ -1081,6 +1081,28 @@ if (DEMO_MODE) {
 }
 
 /* ─────────────────────────────────────────────
+   STRIPE PAYMENT LINKS
+───────────────────────────────────────────── */
+const STRIPE_LINKS = {
+  mx: { basic: 'https://buy.stripe.com/test_4gM5kD7iZ7sO2XKg3nasg00', premium: 'https://buy.stripe.com/test_dRm28rcDjfZkbugeZjasg01' },
+  co: { basic: 'https://buy.stripe.com/test_28E6oH8n3bJ4aqc9EZasg02', premium: 'https://buy.stripe.com/test_8x26oH5aR3cycykdVfasg03' },
+  ve: { basic: 'https://buy.stripe.com/test_fZueVdgTz28u41O6sNasg04', premium: 'https://buy.stripe.com/test_9B66oH9r7dRc9m86sNasg05' }
+};
+
+// Detect ?unlocked= param after Stripe redirect
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const tier = params.get('unlocked');
+  if (tier === 'basic' || tier === 'premium') {
+    sessionStorage.setItem('fy_unlocked', tier);
+    params.delete('unlocked');
+    params.delete('pais');
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    history.replaceState(null, '', newUrl);
+  }
+})();
+
+/* ─────────────────────────────────────────────
    ESTADO
 ───────────────────────────────────────────── */
 const S = { country: 'mx', termType: 'dismissal', aguinaldoPaid: false, compOpen: false };
@@ -1767,8 +1789,9 @@ function calculate() {
 
   // Breakdown rows
   let rows = '';
+  const unlocked = DEMO_MODE || !!sessionStorage.getItem('fy_unlocked');
   result.items.forEach(item => {
-    if (DEMO_MODE) {
+    if (unlocked) {
       rows += `
         <div class="bt-row">
           <div>
@@ -1801,8 +1824,8 @@ function calculate() {
   document.getElementById('breakdownBody').innerHTML = rows;
 
   // Hide paywall in demo mode
-  document.getElementById('paywallPanel').style.display = DEMO_MODE ? 'none' : '';
-  if (DEMO_MODE) document.getElementById('pdfBtn').classList.remove('hidden');
+  document.getElementById('paywallPanel').style.display = unlocked ? 'none' : '';
+  if (unlocked) document.getElementById('pdfBtn').classList.remove('hidden');
 
   // Store state for PDF generation
   window._pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
@@ -1872,7 +1895,7 @@ function handlePay(tier) {
       <div style="font-size:38px;font-weight:900;color:var(--blue-600);letter-spacing:-1px;margin-bottom:2px">${price}</div>
       <div style="font-size:13px;color:var(--slate-500);margin-bottom:20px">${tier==='basic'?'Pago único':'Pago único · Reporte completo'}</div>
       <ul class="pay-features" style="text-align:left;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">${featuresHtml}</ul>
-      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');alert('Integración de pago en desarrollo. Muy pronto disponible.')">
+      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');const lnk=STRIPE_LINKS[S.country]?.['${tier}'];if(lnk)window.location.href=lnk;">
         Pagar ${price} →
       </button>
       <div style="margin-top:16px;padding:12px 16px;background:var(--violet-50);border:1px solid var(--violet-100);border-radius:var(--r-sm)">
@@ -1887,6 +1910,7 @@ function handlePay(tier) {
 }
 
 function unlockBreakdown() {
+  sessionStorage.setItem('fy_unlocked', 'basic');
   document.querySelectorAll('.bt-calc-locked').forEach(el => {
     el.textContent = el.dataset.calc || '';
     el.className = 'bt-calc';
