@@ -1125,8 +1125,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagó para no contabilizarlo de nuevo.',
     panelNote: 'Según el Art. 84 de la LFT, ciertos pagos regulares forman parte del salario integrado y afectan el cálculo de la indemnización y prima de antigüedad. Incluye solo pagos que recibes de manera regular.',
     law: 'LFT 2024',
-    pricingBasic: '$19 MXN', pricingBasicSub: '~$1 USD · Pago único',
-    pricingPremium: '$99 MXN', pricingPremiumSub: '~$5 USD · Reporte completo',
+    pricingBasic: '$25 MXN', pricingBasicSub: '~$1.25 USD · Pago único',
+    pricingPremium: '$150 MXN', pricingPremiumSub: '~$7.50 USD · Reporte completo',
     payBasicLaw: 'Fundamento legal (LFT)',
     disclaimer: 'Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).',
     infoHtml: '<strong>México · LFT 2024:</strong> Calculamos indemnización constitucional (3 meses), 20 días por año, prima de antigüedad, vacaciones proporcionales, prima vacacional y aguinaldo proporcional.',
@@ -1160,8 +1160,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagó la prima de este periodo para no contabilizarla de nuevo.',
     panelNote: 'Según el CST, ciertos pagos regulares pueden aumentar el salario base para liquidaciones. Incluye solo pagos que recibes de manera regular y constante.',
     law: 'CST',
-    pricingBasic: '$8.000 COP', pricingBasicSub: '~$2 USD · Pago único',
-    pricingPremium: '$39.000 COP', pricingPremiumSub: '~$10 USD · Reporte completo',
+    pricingBasic: '$5.000 COP', pricingBasicSub: '~$1.25 USD · Pago único',
+    pricingPremium: '$30.000 COP', pricingPremiumSub: '~$7.50 USD · Reporte completo',
     payBasicLaw: 'Fundamento legal (CST)',
     disclaimer: 'Esta es una estimación orientativa basada en el Código Sustantivo del Trabajo (CST) de Colombia. Los montos reales pueden variar según convenciones colectivas, tipo de contrato o decisiones del Ministerio del Trabajo. Este cálculo no constituye asesoría legal.',
     infoHtml: '<strong>Colombia · CST:</strong> Calculamos cesantías (+ intereses 12% anual), prima de servicios, vacaciones proporcionales e indemnización por despido sin justa causa según el Art. 64 CST.',
@@ -1195,8 +1195,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagaron las utilidades de este ejercicio para no contabilizarlas de nuevo.',
     panelNote: 'Según el Art. 122 LOTTT, el salario integral incluye alícuotas de utilidades y bono vacacional, y es la base para prestaciones sociales e indemnización.',
     law: 'LOTTT',
-    pricingBasic: '$2 USD', pricingBasicSub: 'Pago único',
-    pricingPremium: '$8 USD', pricingPremiumSub: 'Reporte completo',
+    pricingBasic: '$1.25 USD', pricingBasicSub: 'Pago único',
+    pricingPremium: '$7.50 USD', pricingPremiumSub: 'Reporte completo',
     payBasicLaw: 'Fundamento legal (LOTTT)',
     disclaimer: 'Esta es una estimación orientativa basada en la Ley Orgánica del Trabajo (LOTTT) de Venezuela 2012. Los montos reales pueden variar según el tipo de empresa, contrato colectivo y el método de cálculo aplicado. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboralista.',
     infoHtml: '<strong>Venezuela · LOTTT:</strong> Calculamos prestaciones sociales (Art. 142, mayor entre método retroactivo y trimestral), utilidades, vacaciones, bono vacacional e indemnización por despido injustificado.',
@@ -1898,12 +1898,6 @@ function handlePay(tier) {
       <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');const lnk=STRIPE_LINKS[S.country]?.['${tier}'];if(lnk)window.location.href=lnk;">
         Pagar ${price} →
       </button>
-      <div style="margin-top:16px;padding:12px 16px;background:var(--violet-50);border:1px solid var(--violet-100);border-radius:var(--r-sm)">
-        <p style="font-size:12.5px;color:var(--violet-600);font-weight:600;margin-bottom:6px">🛠 ¿Eres del equipo o quieres probar?</p>
-        <button onclick="unlockBreakdown()" style="background:var(--violet-600);color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
-          Simular pago y ver desglose →
-        </button>
-      </div>
     </div>`;
   document.getElementById('payModal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
