@@ -575,7 +575,8 @@
   #pdf-print-area.pdf-gen-mode {
     background: white; padding: 0; margin: 0;
     width: 816px !important; /* Letter @ 96dpi */
-    position: absolute; left: -9999px; top: 0;
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    overflow: visible;
   }
   #pdf-print-area.pdf-gen-mode .pdf-pg {
     box-shadow: none; width: 816px !important; margin: 0 0 1px 0;
@@ -1985,7 +1986,6 @@ function generatePDF() {
   area.innerHTML = buildPdfHtml(window._pdfState, folio);
   area.classList.add('pdf-gen-mode');
   area.style.display = 'block';
-  area.style.visibility = 'hidden'; // render off-screen without flash
 
   // Let browser render before capturing
   setTimeout(() => {
@@ -2003,7 +2003,6 @@ function generatePDF() {
       .save()
       .then(() => {
         area.style.display = 'none';
-        area.style.visibility = '';
         area.classList.remove('pdf-gen-mode');
         area.innerHTML = '';
         btn.textContent = '📄 Descargar reporte PDF';
