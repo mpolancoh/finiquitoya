@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FiniquitoYa: Calcula lo que te deben</title>
+  <style>
+    :root {
+      --blue-700:  #1d4ed8;
+      --blue-600:  #2563eb;
+      --blue-50:   #eff6ff;
+      --blue-100:  #dbeafe;
+      --green-700: #15803d;
+      --green-600: #16a34a;
+      --green-50:  #f0fdf4;
+      --green-100: #dcfce7;
+      --amber-600: #d97706;
+      --amber-50:  #fffbeb;
+      --amber-100: #fef3c7;
+      --teal-600:  #0d9488;
+      --teal-50:   #f0fdfa;
+      --teal-100:  #ccfbf1;
+      --violet-600:#7c3aed;
+      --violet-50: #f5f3ff;
+      --violet-100:#ede9fe;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50:  #f8fafc;
+      --white:     #ffffff;
+      --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.06);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-800);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    input, button, select { font-family: inherit; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* DEMO BANNER */
+    .demo-banner {
+      background: var(--violet-600); color: white; display: none;
+      text-align: center; padding: 8px 20px;
+      font-size: 13px; font-weight: 700; letter-spacing: .2px;
+    }
+    .demo-banner.show { display: block; }
+
+    /* HEADER */
+    .page-header {
+      background: var(--white);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer; }
+    .logo-mark {
+      width: 32px; height: 32px;
+      background: var(--blue-600);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 16px;
+    }
+    .logo-text { font-size: 18px; font-weight: 800; color: var(--slate-900); letter-spacing: -.5px; }
+    .logo-text span { color: var(--blue-600); }
+    .header-badge {
+      font-size: 12px; font-weight: 600;
+      color: var(--slate-500);
+      background: var(--slate-100);
+      padding: 4px 10px; border-radius: 20px;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* LAYOUT */
+    .main { max-width: 660px; margin: 0 auto; padding: 36px 20px 80px; }
+
+    /* PROGRESS */
+    .progress-wrap { margin-bottom: 28px; }
+    .progress-track { display: flex; align-items: center; margin-bottom: 10px; }
+    .prog-step { display: flex; align-items: center; flex: 1; }
+    .prog-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .25s;
+    }
+    .prog-dot.done   { background: var(--blue-100); color: var(--blue-600); }
+    .prog-dot.active { background: var(--blue-600); color: white; box-shadow: 0 0 0 4px var(--blue-100); }
+    .prog-dot.idle   { background: var(--slate-200); color: var(--slate-400); }
+    .prog-line { flex: 1; height: 2px; background: var(--slate-200); margin: 0 4px; transition: background .25s; }
+    .prog-line.filled { background: var(--blue-600); }
+    .progress-labels { display: flex; }
+    .prog-label { flex: 1; font-size: 11.5px; font-weight: 500; color: var(--slate-400); text-align: center; }
+    .prog-label.active { color: var(--blue-600); font-weight: 700; }
+    .prog-label.done   { color: var(--slate-600); }
+
+    /* CARD */
+    .card {
+      background: var(--white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      padding: 32px;
+      margin-bottom: 12px;
+    }
+    .card-title { font-size: 21px; font-weight: 800; color: var(--slate-900); letter-spacing: -.4px; margin-bottom: 6px; }
+    .card-sub   { font-size: 14px; color: var(--slate-500); line-height: 1.55; margin-bottom: 28px; }
+
+    /* FORM */
+    .field { margin-bottom: 20px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label.lbl { display: block; font-size: 13.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
+    .hint { font-size: 12px; color: var(--slate-400); margin-top: 5px; line-height: 1.45; }
+    .input {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--slate-200); border-radius: var(--r-sm);
+      font-size: 15px; color: var(--slate-900); background: var(--white);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .input:focus { border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+    .input-wrap { position: relative; }
+    .input-prefix {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      font-size: 14px; font-weight: 500; color: var(--slate-400); pointer-events: none;
+    }
+    .input-wrap .input { padding-left: 30px; }
+
+    /* Salary preview */
+    .salary-preview { margin-top: 7px; font-size: 13px; color: var(--slate-500); min-height: 20px; }
+    .salary-preview strong { color: var(--slate-700); font-size: 14px; }
+
+    /* Duration pill */
+    .duration-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--blue-50); color: var(--blue-600);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 13px; font-weight: 600; margin-top: 14px;
+    }
+
+    /* Error */
+    .err-msg { font-size: 12.5px; color: #dc2626; margin-top: 6px; display: none; }
+    .err-msg.show { display: block; }
+
+    /* RADIO CARDS */
+    .radio-grid { display: flex; flex-direction: column; gap: 10px; }
+    .radio-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      border: 1.5px solid var(--slate-200); border-radius: var(--r-sm);
+      cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .radio-card:hover { border-color: var(--blue-600); background: var(--blue-50); }
+    .radio-card.sel   { border-color: var(--blue-600); background: var(--blue-50); }
+    .radio-card input[type="radio"] { margin-top: 3px; accent-color: var(--blue-600); flex-shrink: 0; }
+    .rc-name { font-size: 14px; font-weight: 700; color: var(--slate-900); }
+    .rc-desc { font-size: 12.5px; color: var(--slate-500); margin-top: 2px; line-height: 1.4; }
+
+    /* COUNTRY GRID */
+    .country-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .country-card {
+      border: 1.5px solid var(--slate-200); border-radius: var(--r-sm);
+      padding: 18px 12px; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s; position: relative;
+    }
+    .country-card:not(.disabled):hover { border-color: var(--blue-600); background: var(--blue-50); }
+    .country-card.sel     { border-color: var(--blue-600); background: var(--blue-50); }
+    .country-card.disabled { opacity: .38; cursor: not-allowed; pointer-events: none; }
+    .country-flag  { width: 52px; height: 34px; display: block; margin: 0 auto 10px; border-radius: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.22); overflow: hidden; }
+    .country-name  { font-size: 13px; font-weight: 700; color: var(--slate-800); }
+    .soon-badge {
+      position: absolute; top: 7px; right: 7px;
+      font-size: 9.5px; font-weight: 700;
+      background: var(--slate-200); color: var(--slate-500);
+      padding: 2px 6px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+
+    /* Country info box */
+    .country-info {
+      background: var(--blue-50); border: 1px solid var(--blue-100);
+      border-radius: var(--r-sm); padding: 12px 14px;
+      font-size: 12.5px; color: var(--slate-600); line-height: 1.6;
+      margin-bottom: 20px; display: none;
+    }
+    .country-info.show { display: block; }
+    .country-info strong { color: var(--blue-700); }
+
+    /* SALARY COMPONENTS ACCORDION */
+    .components-trigger {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px;
+      border: 1.5px dashed var(--teal-600); border-radius: var(--r-sm);
+      cursor: pointer; background: var(--teal-50);
+      transition: background .15s; user-select: none;
+    }
+    .components-trigger:hover { background: var(--teal-100); }
+    .ct-left { display: flex; align-items: center; gap: 10px; }
+    .ct-label { font-size: 14px; font-weight: 700; color: var(--teal-600); }
+    .ct-sub   { font-size: 12px; color: var(--slate-400); margin-top: 1px; }
+    .ct-arrow { font-size: 16px; color: var(--teal-600); transition: transform .2s; font-weight: 700; }
+    .ct-arrow.open { transform: rotate(180deg); }
+    .components-panel {
+      border: 1.5px solid var(--teal-100); border-top: none;
+      border-radius: 0 0 var(--r-sm) var(--r-sm);
+      background: var(--white); padding: 16px; display: none;
+    }
+    .components-panel.open { display: block; }
+    .panel-note {
+      font-size: 12px; color: var(--slate-400); line-height: 1.5;
+      margin-bottom: 14px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .comp-grid { display: flex; flex-direction: column; gap: 10px; }
+    .comp-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+    .comp-name { font-size: 13px; font-weight: 600; color: var(--slate-700); }
+    .comp-desc { font-size: 11.5px; color: var(--slate-400); margin-top: 1px; }
+    .comp-input-wrap { position: relative; width: 140px; }
+    .comp-input-wrap .input-prefix { font-size: 13px; }
+    .comp-input { width: 100%; padding: 8px 8px 8px 26px; font-size: 13.5px; }
+    .sdi-summary {
+      margin-top: 14px; padding: 12px 14px;
+      background: var(--teal-50); border: 1px solid var(--teal-100);
+      border-radius: var(--r-sm); display: none;
+    }
+    .sdi-summary.show { display: block; }
+    .sdi-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 4px; }
+    .sdi-row:last-child { margin-bottom: 0; font-weight: 700; font-size: 14px; border-top: 1px solid var(--teal-100); padding-top: 6px; margin-top: 6px; }
+    .sdi-row span:first-child { color: var(--slate-500); }
+    .sdi-row:last-child span:last-child { color: var(--teal-600); }
+
+    /* TOGGLE */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 14px 16px; border: 1.5px solid var(--slate-200); border-radius: var(--r-sm);
+      cursor: pointer; transition: border-color .15s;
+    }
+    .toggle-row:hover { border-color: var(--blue-600); }
+    .tr-label { font-size: 14px; font-weight: 700; color: var(--slate-900); }
+    .tr-desc  { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+    .toggle-pill {
+      width: 46px; height: 26px; background: var(--slate-300);
+      border-radius: 13px; position: relative; flex-shrink: 0; transition: background .2s;
+    }
+    .toggle-pill.on { background: var(--blue-600); }
+    .toggle-pill::after {
+      content: ''; width: 20px; height: 20px; background: white;
+      border-radius: 50%; position: absolute; top: 3px; left: 3px;
+      transition: left .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+    .toggle-pill.on::after { left: 23px; }
+
+    /* BUTTONS */
+    .btn-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--slate-100);
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 24px; border-radius: var(--r-sm);
+      font-size: 14.5px; font-weight: 700; cursor: pointer; transition: background .15s; border: none;
+    }
+    .btn-primary { background: var(--blue-600); color: white; }
+    .btn-primary:hover { background: var(--blue-700); }
+    .btn-ghost   { background: transparent; color: var(--slate-500); padding-left: 0; }
+    .btn-ghost:hover { color: var(--slate-900); }
+    .btn-calc    { background: var(--blue-600); color: white; padding: 13px 28px; font-size: 15px; }
+    .btn-calc:hover { background: var(--blue-700); }
+
+    /* RESULTS HERO */
+    .results-hero {
+      text-align: center; padding-bottom: 28px;
+      border-bottom: 1px solid var(--slate-100); margin-bottom: 24px;
+    }
+    .hero-icon {
+      width: 64px; height: 64px; background: var(--green-50); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 16px;
+    }
+    .hero-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--slate-400); margin-bottom: 8px; }
+    .hero-amount  { font-size: 48px; font-weight: 900; color: var(--green-600); letter-spacing: -2px; line-height: 1; }
+    .hero-amount sup { font-size: 22px; font-weight: 700; letter-spacing: 0; vertical-align: super; }
+    .hero-context { margin-top: 10px; font-size: 13.5px; color: var(--slate-500); }
+    .hero-free-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--green-100); color: var(--green-700);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 12px; font-weight: 700; margin-top: 10px;
+    }
+
+    /* SUMMARY CHIPS */
+    .summary-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--slate-100); border-radius: 20px;
+      padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--slate-600);
+    }
+
+    /* SDI note */
+    .sdi-note {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--teal-50); border: 1px solid var(--teal-100);
+      border-radius: var(--r-sm); padding: 10px 14px;
+      font-size: 12.5px; color: var(--teal-600); margin-bottom: 16px; line-height: 1.5;
+    }
+
+    /* BREAKDOWN TABLE WITH PAYWALL */
+    .breakdown-table { border: 1px solid var(--slate-200); border-radius: var(--r-md); overflow: hidden; margin-bottom: 0; }
+    .bt-header {
+      display: grid; grid-template-columns: 1fr auto;
+      background: var(--slate-50); padding: 10px 18px; border-bottom: 1px solid var(--slate-200);
+    }
+    .bt-col-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--slate-400); }
+    .bt-row {
+      display: grid; grid-template-columns: 1fr auto; gap: 16px;
+      padding: 14px 18px; border-bottom: 1px solid var(--slate-100); align-items: center;
+    }
+    .bt-row:last-child { border-bottom: none; }
+    .bt-row.total-row { background: var(--slate-50); border-top: 2px solid var(--slate-200); }
+    .bt-name  { font-size: 14px; font-weight: 700; color: var(--slate-900); }
+    .bt-calc  { font-size: 12px; color: var(--slate-400); margin-top: 2px; line-height: 1.4; }
+    .bt-law   { font-size: 11px; color: var(--blue-600); margin-top: 3px; font-weight: 600; }
+    .bt-amount { font-size: 14.5px; font-weight: 800; color: var(--slate-900); text-align: right; white-space: nowrap; }
+    .total-row .bt-name   { font-size: 15px; }
+    .total-row .bt-amount { font-size: 17px; color: var(--green-600); }
+
+    /* Locked amount */
+    .amount-locked {
+      filter: blur(5px);
+      user-select: none;
+      pointer-events: none;
+      color: var(--slate-400);
+      font-size: 14.5px;
+      font-weight: 800;
+      white-space: nowrap;
+      position: relative;
+    }
+    .amount-locked-wrap {
+      display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+    }
+    .lock-icon { font-size: 13px; color: var(--slate-400); }
+    .bt-calc-locked { font-size: 12px; color: var(--slate-300); margin-top: 2px; }
+    .bt-law-locked  { font-size: 11px; color: var(--blue-100); margin-top: 3px; font-weight: 600; }
+
+    /* DEMO unlocked */
+    .amount-demo { font-size: 14.5px; font-weight: 800; color: var(--slate-900); white-space: nowrap; }
+
+    /* PAYWALL PANEL */
+    .paywall-panel {
+      border: 1px solid var(--slate-200); border-top: none;
+      border-radius: 0 0 var(--r-md) var(--r-md);
+      background: linear-gradient(to bottom, rgba(248,250,252,0.7), var(--slate-50));
+      padding: 20px 20px 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .paywall-title {
+      font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 4px;
+    }
+    .paywall-sub {
+      font-size: 13px; color: var(--slate-500); margin-bottom: 18px; line-height: 1.5;
+    }
+    .paywall-options {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      max-width: 520px; margin: 0 auto;
+    }
+    .pay-card {
+      border: 1.5px solid var(--slate-200); border-radius: var(--r-md);
+      padding: 18px 16px; background: var(--white); text-align: left;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .pay-card:hover { border-color: var(--blue-600); box-shadow: 0 4px 16px rgba(37,99,235,.12); }
+    .pay-card.featured { border-color: var(--blue-600); background: var(--blue-50); }
+    .pay-price {
+      font-size: 22px; font-weight: 900; color: var(--blue-600); letter-spacing: -.5px; margin-bottom: 1px;
+    }
+    .pay-price-usd { font-size: 11px; color: var(--slate-400); font-weight: 500; margin-bottom: 10px; }
+    .pay-name { font-size: 13px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px; }
+    .pay-features { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .pay-features li {
+      font-size: 12px; color: var(--slate-600); display: flex; align-items: flex-start; gap: 5px;
+    }
+    .pay-features li::before { content: '✓'; color: var(--green-600); font-weight: 800; flex-shrink: 0; }
+    .btn-pay {
+      width: 100%; margin-top: 14px;
+      padding: 10px 16px; border-radius: var(--r-sm);
+      font-size: 13.5px; font-weight: 700; cursor: pointer; border: none;
+      transition: background .15s;
+    }
+    .btn-pay-basic    { background: var(--slate-100); color: var(--slate-800); }
+    .btn-pay-basic:hover { background: var(--slate-200); }
+    .btn-pay-premium  { background: var(--blue-600); color: white; }
+    .btn-pay-premium:hover { background: var(--blue-700); }
+
+    /* LAWYER TIERS */
+    .lawyer-section { margin-top: 12px; }
+    .lawyer-section-title {
+      font-size: 13px; font-weight: 700; color: var(--slate-500);
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px;
+    }
+    .lawyer-tier-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      border: 1px solid var(--violet-100);
+      border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 10px;
+      background: var(--white);
+    }
+    .lawyer-tier-card.highlighted { background: var(--violet-50); border-color: var(--violet-600); }
+    .tier-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+    .tier-body { flex: 1; }
+    .tier-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+    .tier-title { font-size: 14px; font-weight: 800; color: var(--slate-900); }
+    .tier-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+    }
+    .tier-badge.basic   { background: var(--slate-100); color: var(--slate-600); }
+    .tier-badge.mid     { background: var(--amber-100); color: var(--amber-600); }
+    .tier-badge.senior  { background: var(--violet-100); color: var(--violet-600); }
+    .tier-desc { font-size: 12.5px; color: var(--slate-500); line-height: 1.45; margin-bottom: 10px; }
+    .tier-range { font-size: 11.5px; color: var(--slate-400); margin-bottom: 10px; font-weight: 500; }
+    .btn-tier {
+      padding: 9px 18px; border-radius: var(--r-sm); font-size: 13px; font-weight: 700;
+      cursor: pointer; border: none; transition: background .15s; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-tier-basic  { background: var(--slate-800); color: white; }
+    .btn-tier-basic:hover { background: var(--slate-900); }
+    .btn-tier-mid    { background: var(--amber-600); color: white; }
+    .btn-tier-mid:hover { background: #b45309; }
+    .btn-tier-senior { background: var(--violet-600); color: white; }
+    .btn-tier-senior:hover { background: #6d28d9; }
+
+    /* DISCLAIMER */
+    .disclaimer {
+      background: var(--amber-50); border: 1px solid var(--amber-100);
+      border-radius: var(--r-sm); padding: 14px 16px;
+      font-size: 12.5px; color: var(--amber-600); line-height: 1.6;
+      margin-top: 12px; margin-bottom: 0;
+    }
+    .disclaimer strong { font-size: 13px; }
+
+    .recalc-link {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: none; border: none; color: var(--blue-600);
+      font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 20px; padding: 8px 0;
+    }
+    .recalc-link:hover { text-decoration: underline; }
+
+    @media (max-width: 520px) {
+      .card { padding: 22px 18px; }
+      .field-row { grid-template-columns: 1fr; }
+      .hero-amount { font-size: 36px; }
+      .paywall-options { grid-template-columns: 1fr; }
+      .comp-row { grid-template-columns: 1fr; }
+      .comp-input-wrap { width: 100%; }
+      .lawyer-tier-card { flex-direction: column; }
+      .country-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .hidden { display: none !important; }
+
+    /* LANDING HERO */
+    .landing-hero { text-align: center; padding: 12px 8px 28px; }
+    .landing-title {
+      font-size: 32px; font-weight: 900; color: var(--slate-900);
+      letter-spacing: -1px; line-height: 1.15; margin-bottom: 14px;
+    }
+    .landing-title span { color: var(--blue-600); }
+    .landing-sub {
+      font-size: 16px; color: var(--slate-500); line-height: 1.6;
+      max-width: 480px; margin: 0 auto 20px;
+    }
+    .landing-pills { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    .landing-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12.5px; font-weight: 600; color: var(--slate-600);
+      background: var(--white); border: 1px solid var(--slate-200);
+      padding: 5px 12px; border-radius: 20px;
+    }
+    @media (max-width: 520px) {
+      .landing-title { font-size: 24px; }
+      .landing-sub   { font-size: 14px; }
+    }
+
+    /* MODALS */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,.55);
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.hidden { display: none !important; }
+    .modal-box {
+      background: var(--white); border-radius: var(--r-lg);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      padding: 32px; max-width: 520px; width: 100%;
+      position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute; top: 14px; right: 14px;
+      background: var(--slate-100); border: none; border-radius: 50%;
+      width: 30px; height: 30px; font-size: 14px; cursor: pointer;
+      color: var(--slate-500); display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: var(--slate-200); color: var(--slate-900); }
+    .modal-title { font-size: 20px; font-weight: 800; color: var(--slate-900); margin-bottom: 6px; padding-right: 32px; }
+    .modal-sub   { font-size: 14px; color: var(--slate-500); margin-bottom: 24px; line-height: 1.55; }
+
+    /* File drop zone */
+    .file-drop {
+      border: 2px dashed var(--slate-300); border-radius: var(--r-sm);
+      padding: 22px 16px; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .file-drop:hover, .file-drop.dragging { border-color: var(--blue-600); background: var(--blue-50); }
+    .file-drop-icon { font-size: 24px; margin-bottom: 6px; }
+    .file-drop-text { font-size: 13.5px; font-weight: 600; color: var(--slate-700); }
+    .file-drop-hint { font-size: 12px; color: var(--slate-400); margin-top: 4px; }
+    .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .file-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; background: var(--slate-50); border-radius: 6px;
+      font-size: 12.5px; color: var(--slate-700);
+    }
+    .file-remove { background: none; border: none; cursor: pointer; color: var(--slate-400); font-size: 14px; padding: 0 4px; }
+    .file-remove:hover { color: #dc2626; }
+    .form-msg { padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.5; }
+    .form-msg.success { background: var(--green-50); color: var(--green-700); }
+    .form-msg.error   { background: #fef2f2; color: #dc2626; }
+  </style>
+</head>
+
+<body>
+
+<!-- Demo mode banner -->
+<div class="demo-banner" id="demoBanner">
+  🛠 Modo Demo activo: paywall desactivado. Accede via ?demo=1
+</div>
+
+<header class="page-header">
+  <a class="logo" onclick="recalculate(); return false;" href="#">
+    <div class="logo-mark">F</div>
+    <span class="logo-text">Finiquito<span>Ya</span></span>
+  </a>
+  <span class="header-badge" id="headerBadge">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)">
+      <rect width="1" height="2" fill="#006847"/>
+      <rect x="1" width="1" height="2" fill="#fff"/>
+      <rect x="2" width="1" height="2" fill="#CE1126"/>
+    </svg>México · LFT 2024
+  </span>
+</header>
+
+<main class="main">
+
+  <!-- LANDING HERO (visible solo en paso 1) -->
+  <div class="landing-hero" id="landingHero">
+    <h1 class="landing-title">¿Te están pagando<br><span>lo que te corresponde?</span></h1>
+    <p class="landing-sub">Ingresa tus datos y obtén un estimado de lo que la ley te garantiza, sin abogados ni complicaciones.</p>
+    <div class="landing-pills">
+      <span class="landing-pill">✓ Gratis</span>
+      <span class="landing-pill">⏱ 2 minutos</span>
+      <span class="landing-pill" id="landingLawPill">⚖️ Basado en la LFT 2024</span>
+      <span class="landing-pill">🔒 Sin registro</span>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-track">
+      <div class="prog-step"><div class="prog-dot active" id="pd1">1</div></div>
+      <div class="prog-line" id="pl1"></div>
+      <div class="prog-step"><div class="prog-dot idle"   id="pd2">2</div></div>
+      <div class="prog-line" id="pl2"></div>
+      <div class="prog-step"><div class="prog-dot idle"   id="pd3">3</div></div>
+    </div>
+    <div class="progress-labels">
+      <span class="prog-label active" id="lbl1">Situación</span>
+      <span class="prog-label"        id="lbl2">Tu empleo</span>
+      <span class="prog-label"        id="lbl3">Beneficios</span>
+    </div>
+  </div>
+
+  <!-- PASO 1: Pais + Terminacion -->
+  <div class="card" id="step1">
+    <p class="card-title">¿Cuál es tu situación?</p>
+    <p class="card-sub">Selecciona tu país y el tipo de terminación laboral.</p>
+
+    <div class="field">
+      <label class="lbl">País</label>
+      <div class="country-grid">
+        <div class="country-card sel" id="cc-mx" onclick="pickCountry('mx',this)">
+          <!-- México: verde, blanco, rojo vertical -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="1"   height="2" fill="#006847"/>
+            <rect x="1" width="1" height="2" fill="#fff"/>
+            <rect x="2" width="1" height="2" fill="#CE1126"/>
+            <ellipse cx="1.5" cy="1" rx="0.28" ry="0.34" fill="#8B5E3C" opacity=".75"/>
+          </svg>
+          <div class="country-name">México</div>
+        </div>
+        <div class="country-card" id="cc-co" onclick="pickCountry('co',this)">
+          <!-- Colombia: amarillo (mitad), azul, rojo -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="3" height="1"    fill="#FCD116"/>
+            <rect y="1"  width="3" height=".5"  fill="#003087"/>
+            <rect y="1.5" width="3" height=".5" fill="#CE1126"/>
+          </svg>
+          <div class="country-name">Colombia</div>
+        </div>
+        <div class="country-card" id="cc-ve" onclick="pickCountry('ve',this)">
+          <!-- Venezuela: amarillo, azul, rojo + 8 estrellas en arco (franja azul) -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="3" height=".667" fill="#FFD100"/>
+            <rect y=".667" width="3" height=".667" fill="#003DA5"/>
+            <rect y="1.333" width="3" height=".667" fill="#CF142B"/>
+            <circle cx="1.218" cy="1.047" r="0.055" fill="white"/>
+            <circle cx="1.270" cy="0.957" r="0.055" fill="white"/>
+            <circle cx="1.350" cy="0.890" r="0.055" fill="white"/>
+            <circle cx="1.448" cy="0.854" r="0.055" fill="white"/>
+            <circle cx="1.552" cy="0.854" r="0.055" fill="white"/>
+            <circle cx="1.650" cy="0.890" r="0.055" fill="white"/>
+            <circle cx="1.730" cy="0.957" r="0.055" fill="white"/>
+            <circle cx="1.782" cy="1.047" r="0.055" fill="white"/>
+          </svg>
+          <div class="country-name">Venezuela</div>
+        </div>
+        <div class="country-card disabled">
+          <!-- EE.UU.: franjas rojas/blancas + cantón azul -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19 10">
+            <rect width="19" height="10" fill="#fff"/>
+            <rect y="0"    width="19" height="1.43" fill="#B22234"/>
+            <rect y="2.86" width="19" height="1.43" fill="#B22234"/>
+            <rect y="5.71" width="19" height="1.43" fill="#B22234"/>
+            <rect y="8.57" width="19" height="1.43" fill="#B22234"/>
+            <rect y="1.43" width="19" height="1.43" fill="#fff"/>
+            <rect y="4.28" width="19" height="1.43" fill="#fff"/>
+            <rect y="7.14" width="19" height="1.43" fill="#fff"/>
+            <rect width="7.6" height="5.38" fill="#3C3B6E"/>
+          </svg>
+          <div class="country-name">Estados Unidos</div>
+          <span class="soon-badge">Próximo</span>
+        </div>
+      </div>
+
+      <!-- Country info box (updated dynamically) -->
+      <div class="country-info show" id="countryInfo">
+        <strong>México · LFT 2024:</strong> Calculamos indemnización constitucional (3 meses), 20 días por año, prima de antigüedad, vacaciones proporcionales, prima vacacional y aguinaldo proporcional.
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Tipo de terminación</label>
+      <div class="radio-grid" id="terminGrid">
+        <!-- populated dynamically by applyCountryConfig() -->
+        <label class="radio-card sel">
+          <input type="radio" name="tt" value="dismissal" checked onchange="onRadioChange(this)">
+          <div>
+            <div class="rc-name">🚫 Despido injustificado</div>
+            <div class="rc-desc">Me comunicaron que ya no continuaré, sin causa justificada.</div>
+          </div>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="tt" value="resignation" onchange="onRadioChange(this)">
+          <div>
+            <div class="rc-name">✋ Renuncia voluntaria</div>
+            <div class="rc-desc">Yo decidí dejar el trabajo de forma voluntaria.</div>
+          </div>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="tt" value="mutual" onchange="onRadioChange(this)">
+          <div>
+            <div class="rc-name">🤝 Convenio / Mutuo acuerdo</div>
+            <div class="rc-desc">Ambas partes acordaron terminar la relación laboral.</div>
+          </div>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="tt" value="justified" onchange="onRadioChange(this)">
+          <div>
+            <div class="rc-name">📋 Despido justificado</div>
+            <div class="rc-desc">La empresa tiene una causa debidamente acreditada de rescisión conforme a la ley.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <div></div>
+      <button class="btn btn-primary" onclick="next(2)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2: Datos de empleo -->
+  <div class="card hidden" id="step2">
+    <p class="card-title">Datos de tu empleo</p>
+    <p class="card-sub" id="step2Sub">Ingresa los datos de tu relación laboral. Todos los montos en pesos mexicanos (MXN).</p>
+
+    <div class="field">
+      <label class="lbl" id="salaryLbl" for="salary">Salario mensual base (MXN)</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="number" id="salary" class="input" placeholder="15,000" min="1" step="100" oninput="onSalaryChange()">
+      </div>
+      <div class="salary-preview" id="salaryPreview"></div>
+      <p class="hint" id="salaryHint">Tu salario base mensual. Los pagos adicionales (vales, comisiones, etc.) los agregas abajo.</p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="lbl" for="startDate">Fecha de ingreso</label>
+        <input type="date" id="startDate" class="input" onchange="refreshDuration()">
+      </div>
+      <div class="field">
+        <label class="lbl" for="endDate">Fecha de salida</label>
+        <input type="date" id="endDate" class="input" onchange="refreshDuration()">
+      </div>
+    </div>
+    <div id="durationDisplay"></div>
+
+    <!-- Componentes salariales -->
+    <div class="field" style="margin-top:20px;">
+      <div class="components-trigger" onclick="toggleComponents()">
+        <div class="ct-left">
+          <div>
+            <div class="ct-label">+ Agregar pagos regulares adicionales</div>
+            <div class="ct-sub" id="ctSubText">Vales, comisiones, transporte, fondo de ahorro...</div>
+          </div>
+        </div>
+        <span class="ct-arrow" id="ctArrow">▼</span>
+      </div>
+      <div class="components-panel" id="compPanel">
+        <p class="panel-note" id="panelNote">
+          Según el Art. 84 de la LFT, ciertos pagos regulares forman parte del salario integrado y afectan el cálculo de la indemnización y prima de antigüedad. Incluye solo pagos que recibes de manera regular.
+        </p>
+        <div class="comp-grid" id="compGrid">
+          <!-- rendered dynamically by applyCountryConfig() -->
+        </div>
+        <div class="sdi-summary" id="sdiSummary">
+          <div class="sdi-row"><span>Salario base:</span><span id="sdiBase"></span></div>
+          <div class="sdi-row"><span>Componentes adicionales:</span><span id="sdiComps"></span></div>
+          <div class="sdi-row"><span>Salario integrado (mensual):</span><span id="sdiTotal"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <p id="step2Err" class="err-msg"></p>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="showStep(1)">← Atrás</button>
+      <button class="btn btn-primary" onclick="next(3)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 3: Beneficios adicionales -->
+  <div class="card hidden" id="step3">
+    <p class="card-title">Últimos detalles</p>
+    <p class="card-sub" id="step3Sub">Ajusta estos datos para afinar el cálculo.</p>
+
+    <div class="field">
+      <label class="lbl" for="unusedVac">Días de vacaciones acumuladas sin tomar</label>
+      <input type="number" id="unusedVac" class="input" placeholder="0" min="0" step="1" style="max-width:180px">
+      <p class="hint">Días de periodos anteriores que no hayas disfrutado. El periodo actual ya se calcula automáticamente.</p>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="bonuses">Bonos o adeudos pendientes de pago</label>
+      <div class="input-wrap" style="max-width:240px">
+        <span class="input-prefix">$</span>
+        <input type="number" id="bonuses" class="input" placeholder="0" min="0" step="100">
+      </div>
+      <p class="hint" id="bonusesHint">Comisiones, bonos de desempeño u otros pagos que la empresa te adeuda.</p>
+    </div>
+
+    <div class="field">
+      <div class="toggle-row" onclick="toggleAguinaldo()">
+        <div>
+          <div class="tr-label" id="aguinaldoLabel">¿Ya recibiste tu aguinaldo de este año?</div>
+          <div class="tr-desc" id="aguinaldoDesc">Actívalo si ya se te pagó para no contabilizarlo de nuevo.</div>
+        </div>
+        <div class="toggle-pill" id="aguToggle"></div>
+      </div>
+    </div>
+
+    <p id="step3Err" class="err-msg"></p>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="showStep(2)">← Atrás</button>
+      <button class="btn btn-calc" onclick="calculate()">Calcular mi liquidación →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="hidden" id="results">
+
+    <div class="card">
+      <!-- Hero: total gratis -->
+      <div class="results-hero">
+        <div class="hero-icon">💰</div>
+        <p class="hero-eyebrow">Estimado total de tu liquidación</p>
+        <p class="hero-amount" id="heroTotal"></p>
+        <p class="hero-context" id="heroContext"></p>
+        <span class="hero-free-badge">✓ Monto total gratuito</span>
+      </div>
+
+      <div class="summary-chips" id="summaryChips"></div>
+
+      <div class="sdi-note hidden" id="sdiNote"><span id="sdiNoteText"></span></div>
+
+      <!-- Breakdown con paywall -->
+      <div class="breakdown-table">
+        <div class="bt-header">
+          <span class="bt-col-label">Concepto</span>
+          <span class="bt-col-label">Monto</span>
+        </div>
+        <div id="breakdownBody"></div>
+      </div>
+
+      <!-- Paywall panel (hidden in demo mode) -->
+      <div class="paywall-panel" id="paywallPanel">
+        <p class="paywall-title">🔓 Desbloquea el desglose completo</p>
+        <p class="paywall-sub">Conoce el monto estimado de cada concepto, la fórmula de cálculo y el artículo de ley que lo respalda.</p>
+        <div class="paywall-options">
+          <div class="pay-card" onclick="handlePay('basic')">
+            <div class="pay-price" id="payBasicPrice">$19 MXN</div>
+            <div class="pay-price-usd" id="payBasicSub">~$1 USD · Pago único</div>
+            <div class="pay-name">Ver desglose completo</div>
+            <ul class="pay-features">
+              <li>Monto de cada concepto</li>
+              <li>Fórmula de cálculo</li>
+              <li id="payBasicLaw">Fundamento legal (LFT)</li>
+            </ul>
+            <button class="btn-pay btn-pay-basic">Ver montos →</button>
+          </div>
+          <div class="pay-card featured" onclick="handlePay('premium')">
+            <div class="pay-price" id="payPremiumPrice">$99 MXN</div>
+            <div class="pay-price-usd" id="payPremiumSub">~$5 USD · Reporte completo</div>
+            <div class="pay-name">Reporte PDF completo</div>
+            <ul class="pay-features">
+              <li>Todo lo del plan básico</li>
+              <li>PDF profesional descargable</li>
+              <li>Carta de solicitud de pago</li>
+              <li>Guía de negociación</li>
+            </ul>
+            <button class="btn-pay btn-pay-premium">Obtener reporte →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lawyer tiers -->
+    <div class="lawyer-section" id="lawyerSection">
+      <p class="lawyer-section-title">¿Quieres apoyo legal?</p>
+      <div id="lawyerTiersContainer"></div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer" id="resultsDisclaimer">
+      <strong>⚠️ Aviso importante</strong><br>
+      <span id="disclaimerText">Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).</span>
+    </div>
+
+    <button class="recalc-link" onclick="recalculate()">← Hacer un nuevo cálculo</button>
+  </div>
+
+</main>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay hidden" id="payModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('payModal')">✕</button>
+    <p class="modal-title" id="payModalTitle">Desbloquear desglose</p>
+    <p class="modal-sub">Accede al monto exacto de cada concepto, la fórmula de cálculo y su fundamento legal.</p>
+    <div id="payModalBody"></div>
+  </div>
+</div>
+
+<!-- LAWYER CONTACT MODAL -->
+<div class="modal-overlay hidden" id="lawyerModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('lawyerModal')">✕</button>
+    <p class="modal-title">Hablar con un abogado laboral</p>
+    <p class="modal-sub">Completa tu información y un especialista en derecho laboral te contactará a la brevedad.</p>
+    <form id="lawyerForm" onsubmit="submitLawyerForm(event)">
+      <div class="field">
+        <label class="lbl" for="lf_nombre">Nombre completo</label>
+        <input type="text" id="lf_nombre" class="input" placeholder="Juan García" required>
+      </div>
+      <div class="field">
+        <label class="lbl" for="lf_email">Correo electrónico</label>
+        <input type="email" id="lf_email" class="input" placeholder="juan@ejemplo.com" required>
+      </div>
+      <div class="field">
+        <label class="lbl" for="lf_empresa">Empresa (empleador)</label>
+        <input type="text" id="lf_empresa" class="input" placeholder="Nombre de la empresa" required>
+      </div>
+      <div class="field">
+        <label class="lbl" for="lf_desc">Describe tu situación</label>
+        <textarea id="lf_desc" class="input" rows="4" placeholder="Explica brevemente qué ocurrió: motivo de la terminación, fechas relevantes, si ya recibiste algún pago, etc." required style="resize:vertical;min-height:100px"></textarea>
+      </div>
+      <div class="field">
+        <label class="lbl">Documentos relevantes (opcional)</label>
+        <div class="file-drop" id="fileDrop"
+             onclick="document.getElementById('lf_files').click()"
+             ondragover="event.preventDefault();this.classList.add('dragging')"
+             ondragleave="this.classList.remove('dragging')"
+             ondrop="handleFileDrop(event)">
+          <input type="file" id="lf_files" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="handleFileSelect(event)">
+          <div class="file-drop-icon">📎</div>
+          <div class="file-drop-text">Arrastra archivos aquí o haz clic para seleccionar</div>
+          <div class="file-drop-hint">PDF, Word, imágenes · Máximo 5 archivos</div>
+        </div>
+        <div id="fileList" class="file-list"></div>
+      </div>
+      <div id="lawyerFormMsg" class="form-msg hidden"></div>
+      <div style="margin-top:20px">
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px 24px">
+          Enviar solicitud →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   DEMO MODE
+───────────────────────────────────────────── */
+const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
+if (DEMO_MODE) {
+  document.getElementById('demoBanner').classList.add('show');
+}
+
+/* ─────────────────────────────────────────────
+   ESTADO
+───────────────────────────────────────────── */
+const S = { country: 'mx', termType: 'dismissal', aguinaldoPaid: false, compOpen: false };
+const MIN_WAGE_MX = 248.93; // MXN daily, 2024
+const SMMLV_CO    = 1300000; // COP monthly, 2024
+const TRANSPORT_CO = 162000; // COP monthly, 2024
+
+/* ─────────────────────────────────────────────
+   COUNTRY CONFIG
+───────────────────────────────────────────── */
+const COUNTRY_CONFIG = {
+  mx: {
+    name: 'México', currency: 'MXN', locale: 'es-MX',
+    salaryLabel: 'Salario mensual base (MXN)',
+    salaryPlaceholder: '15,000',
+    salaryHint: 'Tu salario base mensual en pesos mexicanos. Los pagos adicionales (vales, comisiones, etc.) los agregas abajo.',
+    step2Sub: 'Ingresa los datos de tu relación laboral. Todos los montos en pesos mexicanos (MXN).',
+    step3Sub: 'Ajusta estos datos para afinar el cálculo.',
+    aguinaldoLabel: '¿Ya recibiste tu aguinaldo de este año?',
+    aguinaldoDesc: 'Actívalo si ya se te pagó para no contabilizarlo de nuevo.',
+    panelNote: 'Según el Art. 84 de la LFT, ciertos pagos regulares forman parte del salario integrado y afectan el cálculo de la indemnización y prima de antigüedad. Incluye solo pagos que recibes de manera regular.',
+    law: 'LFT 2024',
+    pricingBasic: '$19 MXN', pricingBasicSub: '~$1 USD · Pago único',
+    pricingPremium: '$99 MXN', pricingPremiumSub: '~$5 USD · Reporte completo',
+    payBasicLaw: 'Fundamento legal (LFT)',
+    disclaimer: 'Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).',
+    infoHtml: '<strong>México · LFT 2024:</strong> Calculamos indemnización constitucional (3 meses), 20 días por año, prima de antigüedad, vacaciones proporcionales, prima vacacional y aguinaldo proporcional.',
+    headerHtml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)"><rect width="1" height="2" fill="#006847"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE1126"/></svg>México · LFT 2024`,
+    termTypes: [
+      { value:'dismissal',  icon:'🚫', name:'Despido injustificado',    desc:'Me comunicaron que ya no continuaré, sin causa justificada.' },
+      { value:'resignation',icon:'✋', name:'Renuncia voluntaria',       desc:'Yo decidí dejar el trabajo de forma voluntaria.' },
+      { value:'mutual',     icon:'🤝', name:'Convenio / Mutuo acuerdo', desc:'Ambas partes acordaron terminar la relación laboral.' },
+      { value:'justified',  icon:'📋', name:'Despido justificado',       desc:'La empresa tiene una causa debidamente acreditada de rescisión conforme a la ley.' }
+    ],
+    tierThresholds: [50000, 200000],
+    tierCurrency: 'MXN',
+    compLabels: [
+      { id: 'bonos',       name: 'Bonos regulares',         desc: '(los bonos pagados de forma regular forman parte del salario integrado, Art. 84 LFT)' },
+      { id: 'despensa',    name: 'Vales de despensa',       desc: 'Vales o tarjeta de supermercado' },
+      { id: 'transporte',  name: 'Transporte',              desc: 'Apoyo fijo de transporte o gasolina' },
+      { id: 'comisiones',  name: 'Comisiones',              desc: 'Promedio mensual de comisiones' },
+      { id: 'puntualidad', name: 'Bono de puntualidad',     desc: 'Bono fijo mensual por asistencia' },
+      { id: 'ahorro',      name: 'Fondo de ahorro',         desc: 'Aportación mensual de la empresa' },
+      { id: 'otro',        name: 'Otro concepto regular',   desc: 'Cualquier otro pago mensual fijo' }
+    ]
+  },
+  co: {
+    name: 'Colombia', currency: 'COP', locale: 'es-CO',
+    salaryLabel: 'Salario mensual base (COP)',
+    salaryPlaceholder: '2.000.000',
+    salaryHint: 'Tu salario base mensual en pesos colombianos. Si ganas hasta $2.600.000 COP (2 SMMLV), el auxilio de transporte ($162.000) se incluye automáticamente en las cesantías.',
+    step2Sub: 'Ingresa los datos de tu relación laboral. Todos los montos en pesos colombianos (COP).',
+    step3Sub: 'Ajusta estos datos para afinar el cálculo.',
+    aguinaldoLabel: '¿Ya recibiste tu prima de servicios de este semestre?',
+    aguinaldoDesc: 'Actívalo si ya se te pagó la prima de este periodo para no contabilizarla de nuevo.',
+    panelNote: 'Según el CST, ciertos pagos regulares pueden aumentar el salario base para liquidaciones. Incluye solo pagos que recibes de manera regular y constante.',
+    law: 'CST',
+    pricingBasic: '$8.000 COP', pricingBasicSub: '~$2 USD · Pago único',
+    pricingPremium: '$39.000 COP', pricingPremiumSub: '~$10 USD · Reporte completo',
+    payBasicLaw: 'Fundamento legal (CST)',
+    disclaimer: 'Esta es una estimación orientativa basada en el Código Sustantivo del Trabajo (CST) de Colombia. Los montos reales pueden variar según convenciones colectivas, tipo de contrato o decisiones del Ministerio del Trabajo. Este cálculo no constituye asesoría legal.',
+    infoHtml: '<strong>Colombia · CST:</strong> Calculamos cesantías (+ intereses 12% anual), prima de servicios, vacaciones proporcionales e indemnización por despido sin justa causa según el Art. 64 CST.',
+    headerHtml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)"><rect width="3" height="1" fill="#FCD116"/><rect y="1" width="3" height=".5" fill="#003087"/><rect y="1.5" width="3" height=".5" fill="#CE1126"/></svg>Colombia · CST`,
+    termTypes: [
+      { value:'dismissal',  icon:'🚫', name:'Despido sin justa causa',     desc:'El empleador terminó el contrato sin una causa legal válida.' },
+      { value:'resignation',icon:'✋', name:'Renuncia voluntaria',          desc:'Yo decidí terminar el contrato de forma voluntaria.' },
+      { value:'mutual',     icon:'🤝', name:'Terminación mutuo acuerdo',    desc:'Ambas partes acordaron terminar la relación laboral.' },
+      { value:'justified',  icon:'📋', name:'Despido con justa causa',      desc:'El empleador tiene una causa válida de terminación (Art. 62 CST).' }
+    ],
+    tierThresholds: [10000000, 40000000],
+    tierCurrency: 'COP',
+    compLabels: [
+      { id: 'bonos',       name: 'Bonos regulares',              desc: '(los bonos pagados de forma regular y permanente forman parte del salario, Art. 127 CST)' },
+      { id: 'despensa',    name: 'Auxilio de alimentación',      desc: 'Subsidio o bono de alimentación regular' },
+      { id: 'transporte',  name: 'Auxilio de transporte extra',  desc: 'Transporte adicional al legal (el legal se aplica automáticamente)' },
+      { id: 'comisiones',  name: 'Comisiones',                   desc: 'Promedio mensual de comisiones' },
+      { id: 'puntualidad', name: 'Bonificación por puntualidad', desc: 'Bono mensual por asistencia o puntualidad' },
+      { id: 'ahorro',      name: 'Fondo de empleados',           desc: 'Aportación mensual de la empresa' },
+      { id: 'otro',        name: 'Otro concepto regular',        desc: 'Cualquier otro pago mensual constante' }
+    ]
+  },
+  ve: {
+    name: 'Venezuela', currency: 'USD', locale: 'en-US',
+    salaryLabel: 'Salario mensual (USD)',
+    salaryPlaceholder: '400',
+    salaryHint: 'Ingresa tu salario mensual en USD. Dado el contexto económico venezolano, la mayoría de los cálculos se expresan en dólares.',
+    step2Sub: 'Ingresa los datos de tu relación laboral. Montos en USD (la divisa en que recibes tu salario).',
+    step3Sub: 'Ajusta estos datos para afinar el cálculo.',
+    aguinaldoLabel: '¿Ya recibiste tus utilidades de este año?',
+    aguinaldoDesc: 'Actívalo si ya se te pagaron las utilidades de este ejercicio para no contabilizarlas de nuevo.',
+    panelNote: 'Según el Art. 122 LOTTT, el salario integral incluye alícuotas de utilidades y bono vacacional, y es la base para prestaciones sociales e indemnización.',
+    law: 'LOTTT',
+    pricingBasic: '$2 USD', pricingBasicSub: 'Pago único',
+    pricingPremium: '$8 USD', pricingPremiumSub: 'Reporte completo',
+    payBasicLaw: 'Fundamento legal (LOTTT)',
+    disclaimer: 'Esta es una estimación orientativa basada en la Ley Orgánica del Trabajo (LOTTT) de Venezuela 2012. Los montos reales pueden variar según el tipo de empresa, contrato colectivo y el método de cálculo aplicado. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboralista.',
+    infoHtml: '<strong>Venezuela · LOTTT:</strong> Calculamos prestaciones sociales (Art. 142, mayor entre método retroactivo y trimestral), utilidades, vacaciones, bono vacacional e indemnización por despido injustificado.',
+    headerHtml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)"><rect width="3" height=".667" fill="#FFD100"/><rect y=".667" width="3" height=".667" fill="#003DA5"/><rect y="1.333" width="3" height=".667" fill="#CF142B"/><circle cx="1.218" cy="1.047" r="0.055" fill="white"/><circle cx="1.270" cy="0.957" r="0.055" fill="white"/><circle cx="1.350" cy="0.890" r="0.055" fill="white"/><circle cx="1.448" cy="0.854" r="0.055" fill="white"/><circle cx="1.552" cy="0.854" r="0.055" fill="white"/><circle cx="1.650" cy="0.890" r="0.055" fill="white"/><circle cx="1.730" cy="0.957" r="0.055" fill="white"/><circle cx="1.782" cy="1.047" r="0.055" fill="white"/></svg>Venezuela · LOTTT`,
+    termTypes: [
+      { value:'dismissal',  icon:'🚫', name:'Despido injustificado',    desc:'El empleador terminó la relación sin una causa válida conforme a la LOTTT.' },
+      { value:'resignation',icon:'✋', name:'Retiro voluntario',         desc:'Yo decidí terminar la relación de trabajo.' },
+      { value:'mutual',     icon:'🤝', name:'Convenio / Mutuo acuerdo', desc:'Ambas partes acordaron terminar la relación.' },
+      { value:'justified',  icon:'📋', name:'Despido justificado',       desc:'El empleador tiene causa válida conforme al Art. 79 LOTTT.' }
+    ],
+    tierThresholds: [2000, 10000],
+    tierCurrency: 'USD',
+    compLabels: [
+      { id: 'bonos',       name: 'Bonos regulares',                    desc: '(los bonos pagados de forma regular forman parte del salario, Art. 122 LOTTT)' },
+      { id: 'despensa',    name: 'Cestaticket / bono de alimentación', desc: 'Beneficio de alimentación regular (Ley de Alimentación)' },
+      { id: 'transporte',  name: 'Bono de transporte',                 desc: 'Apoyo fijo mensual de transporte' },
+      { id: 'comisiones',  name: 'Comisiones',                         desc: 'Promedio mensual de comisiones' },
+      { id: 'puntualidad', name: 'Bono de asistencia',                 desc: 'Bono mensual por asistencia o puntualidad' },
+      { id: 'ahorro',      name: 'Fondo de ahorro',                    desc: 'Aportación mensual de la empresa' },
+      { id: 'otro',        name: 'Otro concepto regular',              desc: 'Cualquier otro pago mensual fijo' }
+    ]
+  }
+};
+
+/* ─────────────────────────────────────────────
+   APPLY COUNTRY CONFIG
+───────────────────────────────────────────── */
+function applyCountryConfig() {
+  const cfg = COUNTRY_CONFIG[S.country];
+
+  // Header badge
+  document.getElementById('headerBadge').innerHTML = cfg.headerHtml;
+
+  // Landing pill
+  document.getElementById('landingLawPill').textContent = '⚖️ Basado en la ' + cfg.law;
+
+  // Country info box
+  document.getElementById('countryInfo').innerHTML = cfg.infoHtml;
+
+  // Step 2
+  document.getElementById('step2Sub').textContent  = cfg.step2Sub;
+  document.getElementById('salaryLbl').textContent = cfg.salaryLabel;
+  document.getElementById('salary').placeholder    = cfg.salaryPlaceholder;
+  document.getElementById('salaryHint').textContent = cfg.salaryHint;
+  document.getElementById('panelNote').textContent  = cfg.panelNote;
+
+  // Step 3
+  document.getElementById('step3Sub').textContent      = cfg.step3Sub;
+  document.getElementById('aguinaldoLabel').textContent = cfg.aguinaldoLabel;
+  document.getElementById('aguinaldoDesc').textContent  = cfg.aguinaldoDesc;
+
+  // Termination types
+  const grid = document.getElementById('terminGrid');
+  grid.innerHTML = cfg.termTypes.map((t, i) => `
+    <label class="radio-card${i === 0 ? ' sel' : ''}">
+      <input type="radio" name="tt" value="${t.value}" ${i === 0 ? 'checked' : ''} onchange="onRadioChange(this)">
+      <div>
+        <div class="rc-name">${t.icon} ${t.name}</div>
+        <div class="rc-desc">${t.desc}</div>
+      </div>
+    </label>`).join('');
+  S.termType = cfg.termTypes[0].value;
+
+  // Paywall pricing
+  document.getElementById('payBasicPrice').textContent   = cfg.pricingBasic;
+  document.getElementById('payBasicSub').textContent     = cfg.pricingBasicSub;
+  document.getElementById('payPremiumPrice').textContent = cfg.pricingPremium;
+  document.getElementById('payPremiumSub').textContent   = cfg.pricingPremiumSub;
+  document.getElementById('payBasicLaw').textContent     = cfg.payBasicLaw;
+
+  // Disclaimer
+  document.getElementById('disclaimerText').textContent = cfg.disclaimer;
+
+  // Render salary component rows dynamically
+  const compGrid = document.getElementById('compGrid');
+  compGrid.innerHTML = cfg.compLabels.map(c => `
+    <div class="comp-row">
+      <div><div class="comp-name">${c.name}</div><div class="comp-desc">${c.desc}</div></div>
+      <div class="comp-input-wrap"><span class="input-prefix">$</span><input type="number" id="comp_${c.id}" class="input comp-input" placeholder="0" min="0" oninput="refreshSDI()"></div>
+    </div>`).join('');
+
+  // Reset salary preview
+  document.getElementById('salaryPreview').innerHTML = '';
+  refreshSDI();
+}
+
+/* ─────────────────────────────────────────────
+   NAVEGACION
+───────────────────────────────────────────── */
+function next(step) {
+  if (step === 3 && !validateStep2()) return;
+  showStep(step);
+}
+function showStep(n) {
+  [1,2,3].forEach(i => document.getElementById('step'+i).classList.toggle('hidden', i !== n));
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('progressWrap').classList.remove('hidden');
+  document.getElementById('landingHero').classList.toggle('hidden', n !== 1);
+  updateProgress(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function updateProgress(active) {
+  [1,2,3].forEach(i => {
+    const d = document.getElementById('pd'+i), l = document.getElementById('lbl'+i);
+    d.className = 'prog-dot '+(i<active?'done':i===active?'active':'idle');
+    d.textContent = i < active ? '✓' : i;
+    l.className = 'prog-label '+(i<active?'done':i===active?'active':'');
+  });
+  [1,2].forEach(i => {
+    document.getElementById('pl'+i).className = 'prog-line'+(i<active?' filled':'');
+  });
+}
+
+/* ─────────────────────────────────────────────
+   PASO 1
+───────────────────────────────────────────── */
+function pickCountry(code, el) {
+  document.querySelectorAll('.country-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  S.country = code;
+  applyCountryConfig();
+}
+function onRadioChange(input) {
+  S.termType = input.value;
+  document.querySelectorAll('#terminGrid .radio-card').forEach(c =>
+    c.classList.toggle('sel', c.querySelector('input').checked));
+}
+
+/* ─────────────────────────────────────────────
+   PASO 2
+───────────────────────────────────────────── */
+document.getElementById('endDate').value = new Date().toISOString().split('T')[0];
+applyCountryConfig(); // initialize component labels for default country (mx)
+
+function fmtNum(n) {
+  const cfg = COUNTRY_CONFIG[S.country];
+  return new Intl.NumberFormat(cfg.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+function fmtCurrency(n) { return '$' + fmtNum(n); }
+
+function onSalaryChange() {
+  const v = parseFloat(document.getElementById('salary').value);
+  const p = document.getElementById('salaryPreview');
+  const cfg = COUNTRY_CONFIG[S.country];
+  p.innerHTML = v > 0 ? `<strong>${fmtCurrency(v)}</strong> ${cfg.currency}` : '';
+  refreshSDI(); refreshDuration();
+}
+
+function getCompSum() {
+  return Array.from(document.querySelectorAll('#compGrid .comp-input'))
+    .reduce((s, inp) => s + (parseFloat(inp.value) || 0), 0);
+}
+function refreshSDI() {
+  const base  = parseFloat(document.getElementById('salary').value)||0;
+  const comps = getCompSum();
+  const s = document.getElementById('sdiSummary');
+  if (comps > 0 && base > 0) {
+    s.classList.add('show');
+    document.getElementById('sdiBase').textContent  = fmtCurrency(base);
+    document.getElementById('sdiComps').textContent = fmtCurrency(comps);
+    document.getElementById('sdiTotal').textContent = fmtCurrency(base + comps);
+  } else { s.classList.remove('show'); }
+}
+function refreshDuration() {
+  const s = document.getElementById('startDate').value;
+  const e = document.getElementById('endDate').value;
+  const c = document.getElementById('durationDisplay');
+  if (!s || !e) { c.innerHTML = ''; return; }
+  const start = new Date(s), end = new Date(e);
+  if (end <= start) { c.innerHTML = ''; return; }
+  const td = Math.floor((end-start)/86400000);
+  const y=Math.floor(td/365), m=Math.floor((td%365)/30), d=td%30;
+  let t = '';
+  if (y) t += y+(y===1?' año':' años');
+  if (m) t += (t?', ':'')+m+(m===1?' mes':' meses');
+  if (d) t += (t?' y ':'')+d+(d===1?' día':' días');
+  c.innerHTML = `<div class="duration-pill">📅 Tiempo laborado: ${t||'menos de 1 mes'}</div>`;
+}
+function toggleComponents() {
+  S.compOpen = !S.compOpen;
+  document.getElementById('compPanel').classList.toggle('open', S.compOpen);
+  document.getElementById('ctArrow').classList.toggle('open', S.compOpen);
+}
+function validateStep2() {
+  const salary = parseFloat(document.getElementById('salary').value);
+  const s = document.getElementById('startDate').value;
+  const e = document.getElementById('endDate').value;
+  const err = document.getElementById('step2Err');
+  const show = msg => { err.textContent = msg; err.classList.add('show'); return false; };
+  err.classList.remove('show');
+  if (!salary || salary<=0)        return show('Por favor ingresa un salario mensual válido.');
+  if (!s)                          return show('Selecciona tu fecha de ingreso.');
+  if (!e)                          return show('Selecciona tu fecha de salida.');
+  if (new Date(e)<=new Date(s))    return show('La fecha de salida debe ser posterior a la de ingreso.');
+  return true;
+}
+
+/* ─────────────────────────────────────────────
+   PASO 3
+───────────────────────────────────────────── */
+function toggleAguinaldo() {
+  S.aguinaldoPaid = !S.aguinaldoPaid;
+  document.getElementById('aguToggle').classList.toggle('on', S.aguinaldoPaid);
+}
+
+/* ─────────────────────────────────────────────
+   MOTOR DE CALCULO: LFT Mexico 2024
+───────────────────────────────────────────── */
+function vacDaysRate(completedYears) {
+  const y = completedYears;
+  if (y < 1)  return 12;
+  if (y < 2)  return 14;
+  if (y < 3)  return 16;
+  if (y < 4)  return 18;
+  if (y < 9)  return 20;
+  if (y < 14) return 22;
+  if (y < 19) return 24;
+  if (y < 24) return 26;
+  if (y < 29) return 28;
+  if (y < 34) return 30;
+  return 32;
+}
+
+function calculateMexico(d) {
+  const { salary, salaryIntegrated, startDate, endDate,
+          termType, unusedVac, aguinaldoPaid, bonuses } = d;
+
+  const start = new Date(startDate), end = new Date(endDate);
+  const totalDays  = (end - start) / 86400000;
+  const totalYears = totalDays / 365;
+  const completedYears = Math.floor(totalYears);
+
+  const lastAnniv = new Date(start);
+  lastAnniv.setFullYear(lastAnniv.getFullYear() + completedYears);
+  const fracCurrentYear = Math.min((end - lastAnniv) / 86400000 / 365, 1);
+
+  const calYearStart = new Date(end.getFullYear(), 0, 1);
+  const fracCalYear  = Math.min(((end - calYearStart) / 86400000 + 1) / 365, 1);
+
+  const SDB = salary / 30;
+  const SDI = salaryIntegrated / 30;
+  const hasComponents = salaryIntegrated > salary;
+
+  const items = [];
+  let total = 0;
+  const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
+
+  // 1. Indemnizacion constitucional
+  if (termType === 'dismissal' || termType === 'mutual') {
+    add('Indemnización constitucional (3 meses)',
+        `90 días × ${fmtCurrency(SDI)}/día${hasComponents?' (sal. integrado)':''}`,
+        'Art. 123 Const. fracc. XXII; LFT Art. 50',
+        90 * SDI);
+  }
+
+  // 2. 20 dias por año
+  if (termType === 'dismissal' || termType === 'mutual') {
+    add('20 días de salario por año trabajado',
+        `20 × ${fmtCurrency(SDI)}/día${hasComponents?' (sal. integrado)':''} × ${totalYears.toFixed(2)} años`,
+        'LFT Art. 50, fracc. I',
+        20 * SDI * totalYears);
+  }
+
+  // 3. Prima de antiguedad
+  const cappedSDI = Math.min(SDI, 2 * MIN_WAGE_MX);
+  const eligiblePA = termType==='dismissal' || termType==='mutual' ||
+                    (termType==='resignation' && completedYears>=15);
+  if (eligiblePA) {
+    const capNote = SDI > 2*MIN_WAGE_MX ? ` (cap. ${fmtCurrency(cappedSDI)}/día)` : '';
+    add('Prima de antigüedad',
+        `12 días × ${fmtCurrency(cappedSDI)}/día${capNote} × ${totalYears.toFixed(2)} años`,
+        'LFT Art. 162',
+        12 * cappedSDI * totalYears);
+  }
+
+  // 4. Vacaciones proporcionales
+  const vacRate = vacDaysRate(completedYears);
+  const vacPropDays = vacRate * fracCurrentYear;
+  const vacAmt = vacPropDays * SDB;
+  add('Vacaciones proporcionales (año en curso)',
+      `${vacRate} días/año × ${(fracCurrentYear*100).toFixed(0)}% = ${vacPropDays.toFixed(1)} días × ${fmtCurrency(SDB)}/día`,
+      'LFT Art. 76, 79',
+      vacAmt);
+
+  // 4b. Vacaciones pendientes
+  let pendVacAmt = 0;
+  if (unusedVac > 0) {
+    pendVacAmt = unusedVac * SDB;
+    add(`Vacaciones acumuladas sin tomar (${unusedVac} días)`,
+        `${unusedVac} días × ${fmtCurrency(SDB)}/día`,
+        'LFT Art. 79',
+        pendVacAmt);
+  }
+
+  // 5. Prima vacacional
+  const totalVacAmt = vacAmt + pendVacAmt;
+  add('Prima vacacional',
+      `25% de ${fmtCurrency(totalVacAmt)} (total vacaciones)`,
+      'LFT Art. 80',
+      totalVacAmt * 0.25);
+
+  // 6. Aguinaldo proporcional
+  if (!aguinaldoPaid) {
+    add('Aguinaldo proporcional',
+        `15 días × ${fmtCurrency(SDB)}/día × ${(fracCalYear*100).toFixed(0)}% del año`,
+        'LFT Art. 87',
+        15 * SDB * fracCalYear);
+  }
+
+  // 7. Bonos
+  if (bonuses > 0) {
+    add('Bonos / comisiones pendientes', 'Monto indicado por el trabajador', 'LFT Art. 84', bonuses);
+  }
+
+  return { items, total, SDB, SDI, hasComponents };
+}
+
+/* ─────────────────────────────────────────────
+   MOTOR DE CALCULO: Colombia CST
+───────────────────────────────────────────── */
+function calculateColombia(d) {
+  const { salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
+
+  const start = new Date(startDate), end = new Date(endDate);
+  const totalDays  = (end - start) / 86400000;
+  const totalYears = totalDays / 365;
+
+  const hasTransport = salary <= 2 * SMMLV_CO;
+  const salaryForCes = hasTransport ? salary + TRANSPORT_CO : salary;
+  const SDB  = salary / 30;
+
+  const items = [];
+  let total = 0;
+  const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
+
+  // 1. Cesantias (Art. 249 CST)
+  const cesantias = (salaryForCes * totalDays) / 360;
+  add('Cesantías',
+      `${fmtCurrency(salaryForCes)}/mes × ${totalDays.toFixed(0)} días / 360${hasTransport ? ' (incl. aux. transporte $162.000)' : ''}`,
+      'Art. 249 CST',
+      cesantias);
+
+  // 2. Intereses sobre cesantias (12% anual, Ley 52/1975)
+  const intCes = cesantias * 0.12 * (totalDays / 360);
+  add('Intereses sobre cesantías (12% anual)',
+      `${fmtCurrency(cesantias)} × 12% × ${(totalDays/360).toFixed(2)} años`,
+      'Ley 52 de 1975; Art. 99 Ley 50/1990',
+      intCes);
+
+  // 3. Prima de servicios (Art. 306 CST)
+  if (!aguinaldoPaid) {
+    const prima = (salary * totalDays) / 360;
+    add('Prima de servicios',
+        `${fmtCurrency(salary)}/mes × ${totalDays.toFixed(0)} días / 360`,
+        'Art. 306 CST',
+        prima);
+  }
+
+  // 4. Vacaciones proporcionales (Art. 186 CST, 15 dias/año)
+  const vacProp = (SDB) * 15 * totalYears;
+  add('Vacaciones proporcionales',
+      `15 días/año × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDB)}/día`,
+      'Art. 186 CST',
+      vacProp);
+
+  // 4b. Vacaciones pendientes
+  if (unusedVac > 0) {
+    add(`Vacaciones acumuladas sin tomar (${unusedVac} días)`,
+        `${unusedVac} días × ${fmtCurrency(SDB)}/día`,
+        'Art. 186 CST',
+        unusedVac * SDB);
+  }
+
+  // 5. Indemnizacion por despido sin justa causa (Art. 64 CST)
+  if (termType === 'dismissal' || termType === 'mutual') {
+    const is10SMMLV = salary <= 10 * SMMLV_CO;
+    let indem;
+    if (is10SMMLV) {
+      indem = totalYears <= 1
+        ? 30 * totalYears * SDB
+        : (30 + 20 * (totalYears - 1)) * SDB;
+    } else {
+      indem = totalYears <= 1
+        ? 20 * totalYears * SDB
+        : (20 + 15 * (totalYears - 1)) * SDB;
+    }
+    const tierNote = is10SMMLV ? '(sal. ≤ 10 SMMLV)' : '(sal. > 10 SMMLV)';
+    add('Indemnización por despido sin justa causa',
+        is10SMMLV
+          ? `30 días (1er año) + 20 días × ${Math.max(totalYears-1,0).toFixed(2)} años adicionales ${tierNote}`
+          : `20 días (1er año) + 15 días × ${Math.max(totalYears-1,0).toFixed(2)} años adicionales ${tierNote}`,
+        'Art. 64 CST',
+        indem);
+  }
+
+  // 6. Bonos
+  if (bonuses > 0) {
+    add('Otros adeudos pendientes', 'Monto indicado por el trabajador', 'Art. 127 CST', bonuses);
+  }
+
+  return { items, total, SDB, SDI: SDB, hasComponents: false };
+}
+
+/* ─────────────────────────────────────────────
+   MOTOR DE CALCULO: Venezuela LOTTT
+───────────────────────────────────────────── */
+function calculateVenezuela(d) {
+  const { salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
+
+  const start = new Date(startDate), end = new Date(endDate);
+  const totalDays  = (end - start) / 86400000;
+  const totalYears = totalDays / 365;
+  const completedYears = Math.floor(totalYears);
+
+  const lastAnniv = new Date(start);
+  lastAnniv.setFullYear(lastAnniv.getFullYear() + completedYears);
+  const fracCurrentYear = Math.min((end - lastAnniv) / 86400000 / 365, 1);
+
+  const calYearStart = new Date(end.getFullYear(), 0, 1);
+  const fracCalYear  = Math.min(((end - calYearStart) / 86400000 + 1) / 365, 1);
+
+  const SDB = salary / 30;
+
+  // Salario integral (Art. 122 LOTTT): base + alicuota utilidades + alicuota bono vacacional
+  const utilDias   = 30; // minimum (Art. 131)
+  const bonVacDias = 7 + Math.max(completedYears - 1, 0); // Art. 192: 7+1/yr, minimum 7
+  const alicuotaUtil   = (utilDias   / 360) * SDB;
+  const alicuotaBonVac = (bonVacDias / 360) * SDB;
+  const SDI = SDB + alicuotaUtil + alicuotaBonVac; // salario integral diario
+
+  const items = [];
+  let total = 0;
+  const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
+
+  // 1. Prestaciones sociales (Art. 142 LOTTT)
+  // Method A (retroactivo): 30 * years * SDI
+  const methodA = 30 * totalYears * SDI;
+
+  // Method B (trimestral acumulado): 60 days/yr + 2 additional days/yr after year 1
+  let methodB = 0;
+  for (let y = 1; y <= completedYears; y++) {
+    methodB += (60 + 2 * (y - 1)) * SDI;
+  }
+  const fracYear = totalYears - completedYears;
+  if (fracYear > 0) {
+    methodB += (60 + 2 * Math.max(completedYears - 1, 0)) * fracYear * SDI;
+  }
+
+  const prestaciones = Math.max(methodA, methodB);
+  const methodWon = methodA >= methodB ? 'retroactivo (30 días × años)' : 'trimestral acumulado';
+  add('Prestaciones sociales',
+      `Método ${methodWon}: ${methodA >= methodB
+        ? `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día integral`
+        : `acumulado trimestral, ${totalYears.toFixed(2)} años × SDI`}`,
+      'Art. 142 LOTTT',
+      prestaciones);
+
+  // 2. Utilidades (Art. 131 LOTTT) - min 30 days
+  if (!aguinaldoPaid) {
+    add('Utilidades proporcionales',
+        `30 días × ${fmtCurrency(SDB)}/día × ${(fracCalYear*100).toFixed(0)}% del año`,
+        'Art. 131 LOTTT',
+        30 * SDB * fracCalYear);
+  }
+
+  // 3. Vacaciones (Art. 190 LOTTT): 15 days yr1, +1 day/yr after
+  const vacDaysVe = 15 + Math.max(completedYears - 1, 0);
+  const vacAmt    = vacDaysVe * fracCurrentYear * SDB;
+  add('Vacaciones proporcionales',
+      `${vacDaysVe} días/año × ${(fracCurrentYear*100).toFixed(0)}% = ${(vacDaysVe*fracCurrentYear).toFixed(1)} días × ${fmtCurrency(SDB)}/día`,
+      'Art. 190 LOTTT',
+      vacAmt);
+
+  // 3b. Vacaciones pendientes
+  if (unusedVac > 0) {
+    add(`Vacaciones acumuladas sin tomar (${unusedVac} días)`,
+        `${unusedVac} días × ${fmtCurrency(SDB)}/día`,
+        'Art. 190 LOTTT',
+        unusedVac * SDB);
+  }
+
+  // 4. Bono vacacional (Art. 192 LOTTT): 7+1/yr
+  add('Bono vacacional',
+      `${bonVacDias} días × ${(fracCurrentYear*100).toFixed(0)}% × ${fmtCurrency(SDB)}/día`,
+      'Art. 192 LOTTT',
+      bonVacDias * fracCurrentYear * SDB);
+
+  // 5. Indemnizacion (Art. 92 LOTTT): 30 days/yr if unjustified
+  if (termType === 'dismissal' || termType === 'mutual') {
+    add('Indemnización por despido injustificado',
+        `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día (sal. integral)`,
+        'Art. 92 LOTTT',
+        30 * totalYears * SDI);
+  }
+
+  // 6. Bonos
+  if (bonuses > 0) {
+    add('Otros conceptos adeudados', 'Monto indicado por el trabajador', 'Art. 122 LOTTT', bonuses);
+  }
+
+  return { items, total, SDB, SDI, hasComponents: true };
+}
+
+/* ─────────────────────────────────────────────
+   CALCULAR Y MOSTRAR
+───────────────────────────────────────────── */
+function calculate() {
+  const salary    = parseFloat(document.getElementById('salary').value) || 0;
+  const comps     = getCompSum();
+  const startDate = document.getElementById('startDate').value;
+  const endDate   = document.getElementById('endDate').value;
+  const unusedVac = parseInt(document.getElementById('unusedVac').value) || 0;
+  const bonuses   = parseFloat(document.getElementById('bonuses').value) || 0;
+  const tt        = document.querySelector('input[name="tt"]:checked');
+  const termType  = tt ? tt.value : 'dismissal';
+
+  if (!salary || !startDate || !endDate) {
+    document.getElementById('step3Err').textContent = 'Faltan datos del paso anterior.';
+    document.getElementById('step3Err').classList.add('show');
+    return;
+  }
+
+  // Route to the right engine
+  let result;
+  if (S.country === 'mx') {
+    result = calculateMexico({
+      salary, salaryIntegrated: salary + comps,
+      startDate, endDate, termType,
+      unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
+    });
+  } else if (S.country === 'co') {
+    result = calculateColombia({
+      salary, startDate, endDate, termType,
+      unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
+    });
+  } else if (S.country === 've') {
+    result = calculateVenezuela({
+      salary, startDate, endDate, termType,
+      unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
+    });
+  }
+
+  [1,2,3].forEach(i => document.getElementById('step'+i).classList.add('hidden'));
+  document.getElementById('progressWrap').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+
+  const cfg = COUNTRY_CONFIG[S.country];
+
+  // Hero
+  document.getElementById('heroTotal').innerHTML = `<sup>${cfg.currency} $</sup>${fmtNum(result.total)}`;
+  const labels = {};
+  cfg.termTypes.forEach(t => { labels[t.value] = t.name; });
+  document.getElementById('heroContext').textContent =
+    `${labels[termType] || termType} · ${cfg.law}`;
+
+  // Chips
+  const start = new Date(startDate), end = new Date(endDate);
+  const td = Math.floor((end-start)/86400000);
+  const y=Math.floor(td/365), m=Math.floor((td%365)/30);
+  let tenure = (y?(y+(y===1?' año':' años')):'') + (m?(y?', ':'')+m+(m===1?' mes':' meses'):'') || 'Menos de 1 mes';
+  document.getElementById('summaryChips').innerHTML =
+    `<div class="chip">📅 ${tenure} de servicio</div>
+     <div class="chip">💵 ${fmtCurrency(salary)}/mes base</div>
+     ${comps>0?`<div class="chip">💼 +${fmtCurrency(comps)}/mes componentes</div>`:''}
+     <div class="chip">📋 ${labels[termType] || termType}</div>`;
+
+  // SDI note
+  const sdiNote = document.getElementById('sdiNote');
+  if (result.hasComponents) {
+    sdiNote.classList.remove('hidden');
+    document.getElementById('sdiNoteText').textContent =
+      `💼 Salario integrado: ${fmtCurrency(result.SDI*30)}/mes (${fmtCurrency(result.SDI)}/día), ` +
+      `usado en los conceptos que lo requieren. ` +
+      `Salario base: ${fmtCurrency(result.SDB*30)}/mes, usado en vacaciones y aguinaldo / utilidades.`;
+  } else { sdiNote.classList.add('hidden'); }
+
+  // Breakdown rows
+  let rows = '';
+  result.items.forEach(item => {
+    if (DEMO_MODE) {
+      rows += `
+        <div class="bt-row">
+          <div>
+            <div class="bt-name">${item.name}</div>
+            <div class="bt-calc">${item.calc}</div>
+            <div class="bt-law">${item.law}</div>
+          </div>
+          <div class="amount-demo">${fmtCurrency(item.amount)}</div>
+        </div>`;
+    } else {
+      rows += `
+        <div class="bt-row">
+          <div>
+            <div class="bt-name">${item.name}</div>
+            <div class="bt-calc-locked" data-calc="${escAttr(item.calc)}">••• •••••••• •••</div>
+            <div class="bt-law-locked"  data-law="${escAttr(item.law)}">••• ••••••••</div>
+          </div>
+          <div class="amount-locked-wrap">
+            <span class="lock-icon">🔒</span>
+            <span class="amount-locked">${fmtCurrency(item.amount)}</span>
+          </div>
+        </div>`;
+    }
+  });
+  rows += `
+    <div class="bt-row total-row">
+      <div class="bt-name">Total estimado</div>
+      <div class="bt-amount">${fmtCurrency(result.total)}</div>
+    </div>`;
+  document.getElementById('breakdownBody').innerHTML = rows;
+
+  // Hide paywall in demo mode
+  document.getElementById('paywallPanel').style.display = DEMO_MODE ? 'none' : '';
+
+  // Lawyer tiers
+  renderLawyerTiers(result.total, cfg);
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ─────────────────────────────────────────────
+   LAWYER TIERS
+───────────────────────────────────────────── */
+function renderLawyerTiers(total, cfg) {
+  const container = document.getElementById('lawyerTiersContainer');
+  container.innerHTML = `
+    <div class="lawyer-tier-card highlighted">
+      <div class="tier-icon">⚖️</div>
+      <div class="tier-body">
+        <div class="tier-header">
+          <span class="tier-title">Abogado especialista laboral</span>
+          <span class="tier-badge mid">Recomendado</span>
+        </div>
+        <p class="tier-desc">Un especialista en derecho laboral de ${cfg.name} revisará tu caso, te explicará tus opciones y te representará ante tu empleador. Te contactaremos directamente.</p>
+        <button class="btn-tier btn-tier-mid" onclick="openLawyerModal(${Math.round(total)})">
+          Hablar con un especialista →
+        </button>
+      </div>
+    </div>`;
+}
+
+function openLawyerModal(totalAmt) {
+  window._lawyerTotal = totalAmt;
+  // Clear form
+  ['lf_nombre','lf_email','lf_empresa','lf_desc'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fileList').innerHTML = '';
+  window._selectedFiles = [];
+  const msg = document.getElementById('lawyerFormMsg');
+  msg.className = 'form-msg hidden';
+  msg.textContent = '';
+  document.getElementById('lawyerModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+/* ─────────────────────────────────────────────
+   PAYWALL + RECALCULATE
+───────────────────────────────────────────── */
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function handlePay(tier) {
+  const cfg = COUNTRY_CONFIG[S.country];
+  const price = tier === 'basic' ? cfg.pricingBasic : cfg.pricingPremium;
+  const title = tier === 'basic' ? 'Ver desglose completo' : 'Obtener reporte PDF';
+  const features = tier === 'basic'
+    ? ['Monto de cada concepto','Fórmula de cálculo','Fundamento legal']
+    : ['Todo lo del plan básico','PDF profesional descargable','Carta de solicitud de pago','Guía de negociación'];
+
+  const featuresHtml = features.map(f => `<li>${f}</li>`).join('');
+
+  document.getElementById('payModalTitle').textContent = title;
+  document.getElementById('payModalBody').innerHTML = `
+    <div style="text-align:center;padding:4px 0 20px">
+      <div style="font-size:38px;font-weight:900;color:var(--blue-600);letter-spacing:-1px;margin-bottom:2px">${price}</div>
+      <div style="font-size:13px;color:var(--slate-500);margin-bottom:20px">${tier==='basic'?'Pago único':'Pago único · Reporte completo'}</div>
+      <ul class="pay-features" style="text-align:left;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">${featuresHtml}</ul>
+      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');alert('Integración de pago en desarrollo. Muy pronto disponible.')">
+        Pagar ${price} →
+      </button>
+      <div style="margin-top:16px;padding:12px 16px;background:var(--violet-50);border:1px solid var(--violet-100);border-radius:var(--r-sm)">
+        <p style="font-size:12.5px;color:var(--violet-600);font-weight:600;margin-bottom:6px">🛠 ¿Eres del equipo o quieres probar?</p>
+        <button onclick="unlockBreakdown()" style="background:var(--violet-600);color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+          Simular pago y ver desglose →
+        </button>
+      </div>
+    </div>`;
+  document.getElementById('payModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function unlockBreakdown() {
+  document.querySelectorAll('.bt-calc-locked').forEach(el => {
+    el.textContent = el.dataset.calc || '';
+    el.className = 'bt-calc';
+  });
+  document.querySelectorAll('.bt-law-locked').forEach(el => {
+    el.textContent = el.dataset.law || '';
+    el.className = 'bt-law';
+  });
+  document.querySelectorAll('.amount-locked-wrap').forEach(wrap => {
+    const amtEl = wrap.querySelector('.amount-locked');
+    if (amtEl) {
+      const amt = amtEl.textContent;
+      const newEl = document.createElement('div');
+      newEl.className = 'amount-demo';
+      newEl.textContent = amt;
+      wrap.replaceWith(newEl);
+    }
+  });
+  document.getElementById('paywallPanel').style.display = 'none';
+  closeModal('payModal');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function submitLawyerForm(e) {
+  e.preventDefault();
+  const cfg = COUNTRY_CONFIG[S.country];
+  const nombre  = document.getElementById('lf_nombre').value.trim();
+  const email   = document.getElementById('lf_email').value.trim();
+  const empresa = document.getElementById('lf_empresa').value.trim();
+  const desc    = document.getElementById('lf_desc').value.trim();
+  const total   = window._lawyerTotal || 0;
+
+  const salary    = parseFloat(document.getElementById('salary').value) || 0;
+  const startDate = document.getElementById('startDate').value;
+  const endDate   = document.getElementById('endDate').value;
+  const tt        = document.querySelector('input[name="tt"]:checked');
+  const termType  = tt ? tt.value : '';
+
+  const subject = encodeURIComponent(
+    `FiniquitoYa - Consulta laboral ${cfg.name} (${fmtCurrency(total)} ${cfg.currency}) - ${nombre}`
+  );
+  const mailBody = encodeURIComponent(
+    `Solicitud de asesoría laboral a través de FiniquitoYa\n\n` +
+    `Trabajador: ${nombre}\n` +
+    `Correo: ${email}\n` +
+    `País: ${cfg.name}\n` +
+    `Empleador: ${empresa}\n` +
+    `Tipo de terminación: ${termType}\n` +
+    `Salario mensual: ${fmtCurrency(salary)} ${cfg.currency}\n` +
+    `Inicio: ${startDate} · Fin: ${endDate}\n` +
+    `Estimado de liquidación: ${fmtCurrency(total)} ${cfg.currency}\n\n` +
+    `Descripción:\n${desc}\n\n` +
+    (window._selectedFiles && window._selectedFiles.length
+      ? `Archivos adjuntos mencionados: ${window._selectedFiles.map(f=>f.name).join(', ')}\n\n`
+      : '') +
+    `FiniquitoYa`
+  );
+
+  const msgEl = document.getElementById('lawyerFormMsg');
+  msgEl.textContent = '¡Listo! Abriendo tu cliente de correo para enviar la solicitud...';
+  msgEl.className = 'form-msg success';
+
+  setTimeout(() => {
+    window.location.href = `mailto:abogado@finiquitoya.com?subject=${subject}&body=${mailBody}`;
+  }, 800);
+}
+
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  addFiles(files);
+}
+function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('fileDrop').classList.remove('dragging');
+  addFiles(Array.from(e.dataTransfer.files));
+}
+function addFiles(newFiles) {
+  if (!window._selectedFiles) window._selectedFiles = [];
+  newFiles.forEach(f => {
+    if (window._selectedFiles.length < 5) window._selectedFiles.push(f);
+  });
+  renderFileList();
+}
+function removeFile(idx) {
+  window._selectedFiles.splice(idx, 1);
+  renderFileList();
+}
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = (window._selectedFiles || []).map((f, i) => `
+    <div class="file-item">
+      <span>📄 ${f.name} <span style="color:var(--slate-400)">(${(f.size/1024).toFixed(0)} KB)</span></span>
+      <button type="button" class="file-remove" onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+}
+function recalculate() {
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('progressWrap').classList.remove('hidden');
+  document.getElementById('landingHero').classList.remove('hidden');
+  showStep(1);
+}
+</script>
+</body>
+</html>
