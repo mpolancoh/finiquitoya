@@ -2269,6 +2269,7 @@ function buildPdfDocDef(state, folio) {
   }));
 
   // ── Repeating header (table-based so fillColor works) ──
+  // Layout paddingTop/Bottom controls actual spacing — cell `margin` is overridden by layout fns
   const docHeader = () => ({
     margin: [0, 0, 0, 0],
     table: {
@@ -2278,11 +2279,10 @@ function buildPdfDocDef(state, folio) {
           stack: [
             { text: [{ text: 'Finiquito', bold: true, color: '#ffffff', fontSize: 14 },
                      { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }],
-              margin: [0,0,0,2] },
+              margin: [0,0,0,3] },
             { text: 'finiquitoya.vercel.app', fontSize: 7.5, color: '#8baed4' }
           ],
-          fillColor: NAVY,
-          margin: [40, 18, 8, 12]
+          fillColor: NAVY
         },
         {
           stack: [
@@ -2291,15 +2291,16 @@ function buildPdfDocDef(state, folio) {
             { text: `Folio ${folio}  |  ${cfg.name} · ${cfg.law}  |  ${reportDate}`,
               fontSize: 8, color: '#8baed4', alignment: 'right', margin: [0,3,0,0] }
           ],
-          fillColor: NAVY,
-          margin: [8, 18, 40, 12]
+          fillColor: NAVY
         }
       ]]
     },
     layout: {
       hLineWidth: () => 0, vLineWidth: () => 0,
-      paddingLeft: () => 0, paddingRight: () => 0,
-      paddingTop: () => 0, paddingBottom: () => 0
+      paddingLeft: (i) => i === 0 ? 40 : 8,
+      paddingRight: (i) => i === 0 ? 8 : 40,
+      paddingTop: () => 14,
+      paddingBottom: () => 12
     }
   });
 
@@ -2348,7 +2349,7 @@ function buildPdfDocDef(state, folio) {
 
   return {
     pageSize: 'LETTER',
-    pageMargins: [40, 80, 40, 48],
+    pageMargins: [40, 60, 40, 36],
 
     header: docHeader,
 
