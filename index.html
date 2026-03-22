@@ -946,8 +946,8 @@ if (DEMO_MODE) {
 ───────────────────────────────────────────── */
 const S = { country: 'mx', termType: 'dismissal', aguinaldoPaid: false, compOpen: false };
 const MIN_WAGE_MX = 248.93; // MXN daily, 2024
-const SMMLV_CO    = 1300000; // COP monthly, 2024
-const TRANSPORT_CO = 162000; // COP monthly, 2024
+const SMMLV_CO    = 1423500; // COP monthly, 2025 (Decreto 2706 de 2024)
+const TRANSPORT_CO = 174786; // COP monthly, 2025 (Decreto 2707 de 2024)
 
 /* ─────────────────────────────────────────────
    COUNTRY CONFIG
@@ -992,7 +992,7 @@ const COUNTRY_CONFIG = {
     name: 'Colombia', currency: 'COP', locale: 'es-CO',
     salaryLabel: 'Salario mensual base (COP)',
     salaryPlaceholder: '2.000.000',
-    salaryHint: 'Tu salario base mensual en pesos colombianos. Si ganas hasta $2.600.000 COP (2 SMMLV), el auxilio de transporte ($162.000) se incluye automáticamente en las cesantías.',
+    salaryHint: 'Tu salario base mensual en pesos colombianos. Si ganas hasta $2.847.000 COP (2 SMMLV 2025), el auxilio de transporte ($174.786) se incluye automáticamente en las cesantías.',
     step2Sub: 'Ingresa los datos de tu relación laboral. Todos los montos en pesos colombianos (COP).',
     step3Sub: 'Ajusta estos datos para afinar el cálculo.',
     aguinaldoLabel: '¿Ya recibiste tu prima de servicios de este semestre?',
@@ -1273,7 +1273,7 @@ function calculateMexico(d) {
   const fracCurrentYear = Math.min((end - lastAnniv) / 86400000 / 365, 1);
 
   const calYearStart = new Date(end.getFullYear(), 0, 1);
-  const fracCalYear  = Math.min(((end - calYearStart) / 86400000 + 1) / 365, 1);
+  const fracCalYear  = Math.min((end - calYearStart) / 86400000 / 365, 1);
 
   const SDB = salary / 30;
   const SDI = salaryIntegrated / 30;
@@ -1455,7 +1455,7 @@ function calculateVenezuela(d) {
   const fracCurrentYear = Math.min((end - lastAnniv) / 86400000 / 365, 1);
 
   const calYearStart = new Date(end.getFullYear(), 0, 1);
-  const fracCalYear  = Math.min(((end - calYearStart) / 86400000 + 1) / 365, 1);
+  const fracCalYear  = Math.min((end - calYearStart) / 86400000 / 365, 1);
 
   const SDB = salary / 30;
 
@@ -1576,6 +1576,12 @@ function calculate() {
       salary, startDate, endDate, termType,
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
+  }
+
+  if (!result) {
+    document.getElementById('step3Err').textContent = 'País no reconocido. Por favor recarga la página.';
+    document.getElementById('step3Err').classList.add('show');
+    return;
   }
 
   [1,2,3].forEach(i => document.getElementById('step'+i).classList.add('hidden'));
