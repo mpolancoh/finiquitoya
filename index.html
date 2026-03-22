@@ -753,19 +753,36 @@
           <div class="country-name">Venezuela</div>
         </div>
         <div class="country-card disabled">
-          <!-- EE.UU.: franjas rojas/blancas + cantón azul -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19 10">
-            <rect width="19" height="10" fill="#fff"/>
-            <rect y="0"    width="19" height="1.43" fill="#B22234"/>
-            <rect y="2.86" width="19" height="1.43" fill="#B22234"/>
-            <rect y="5.71" width="19" height="1.43" fill="#B22234"/>
-            <rect y="8.57" width="19" height="1.43" fill="#B22234"/>
-            <rect y="1.43" width="19" height="1.43" fill="#fff"/>
-            <rect y="4.28" width="19" height="1.43" fill="#fff"/>
-            <rect y="7.14" width="19" height="1.43" fill="#fff"/>
-            <rect width="7.6" height="5.38" fill="#3C3B6E"/>
+          <!-- Chile: rojo/blanco con cantón azul -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="3" height="1" fill="#D52B1E"/>
+            <rect y="0" width="3" height="1" fill="#fff"/>
+            <rect y="1" width="3" height="1" fill="#D52B1E"/>
+            <rect width="1" height="1" fill="#0039A6"/>
+            <polygon points="0.5,0.18 0.59,0.45 0.85,0.45 0.64,0.62 0.72,0.88 0.5,0.72 0.28,0.88 0.36,0.62 0.15,0.45 0.41,0.45" fill="#fff" transform="scale(0.55) translate(0.4,0.15)"/>
           </svg>
-          <div class="country-name">Estados Unidos</div>
+          <div class="country-name">Chile</div>
+          <span class="soon-badge">Próximo</span>
+        </div>
+        <div class="country-card disabled">
+          <!-- Argentina: celeste/blanco/celeste con sol -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="3" height="2" fill="#fff"/>
+            <rect width="3" height="0.667" fill="#74ACDF"/>
+            <rect y="1.333" width="3" height="0.667" fill="#74ACDF"/>
+            <circle cx="1.5" cy="1" r="0.2" fill="#F6B40E"/>
+          </svg>
+          <div class="country-name">Argentina</div>
+          <span class="soon-badge">Próximo</span>
+        </div>
+        <div class="country-card disabled">
+          <!-- Perú: rojo/blanco/rojo vertical -->
+          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+            <rect width="3" height="2" fill="#fff"/>
+            <rect width="1" height="2" fill="#D91023"/>
+            <rect x="2" width="1" height="2" fill="#D91023"/>
+          </svg>
+          <div class="country-name">Perú</div>
           <span class="soon-badge">Próximo</span>
         </div>
       </div>
@@ -815,6 +832,7 @@
       <div></div>
       <button class="btn btn-primary" onclick="next(2)">Continuar →</button>
     </div>
+    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- PASO 2: Datos de empleo -->
@@ -826,7 +844,7 @@
       <label class="lbl" id="salaryLbl" for="salary">Salario mensual base (MXN)</label>
       <div class="input-wrap">
         <span class="input-prefix">$</span>
-        <input type="number" id="salary" class="input" placeholder="15,000" min="1" step="100" oninput="onSalaryChange()">
+        <input type="text" inputmode="numeric" id="salary" class="input" placeholder="15,000" oninput="onSalaryChange()" onblur="formatSalaryOnBlur()">
       </div>
       <div class="salary-preview" id="salaryPreview"></div>
       <p class="hint" id="salaryHint">Tu salario base mensual. Los pagos adicionales (vales, comisiones, etc.) los agregas abajo.</p>
@@ -876,6 +894,7 @@
       <button class="btn btn-ghost" onclick="showStep(1)">← Atrás</button>
       <button class="btn btn-primary" onclick="next(3)">Continuar →</button>
     </div>
+    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- PASO 3: Beneficios adicionales -->
@@ -914,6 +933,7 @@
       <button class="btn btn-ghost" onclick="showStep(2)">← Atrás</button>
       <button class="btn btn-calc" onclick="calculate()">Calcular mi liquidación →</button>
     </div>
+    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- RESULTS -->
@@ -974,11 +994,7 @@
       </div>
     </div>
 
-    <!-- Lawyer tiers -->
-    <div class="lawyer-section" id="lawyerSection">
-      <p class="lawyer-section-title">¿Quieres apoyo legal?</p>
-      <div id="lawyerTiersContainer"></div>
-    </div>
+    <button class="btn-pdf hidden" id="pdfBtn" onclick="generatePDF()">📄 Descargar reporte PDF</button>
 
     <!-- Disclaimer -->
     <div class="disclaimer" id="resultsDisclaimer">
@@ -986,7 +1002,12 @@
       <span id="disclaimerText">Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).</span>
     </div>
 
-    <button class="btn-pdf hidden" id="pdfBtn" onclick="generatePDF()">📄 Descargar reporte PDF</button>
+    <!-- Lawyer tiers -->
+    <div class="lawyer-section" id="lawyerSection">
+      <p class="lawyer-section-title">¿Quieres apoyo legal?</p>
+      <div id="lawyerTiersContainer"></div>
+    </div>
+
     <button class="recalc-link" onclick="recalculate()">← Hacer un nuevo cálculo</button>
   </div>
 
@@ -1293,8 +1314,16 @@ function fmtNum(n) {
 }
 function fmtCurrency(n) { return '$' + fmtNum(n); }
 
+function getSalaryVal() {
+  return parseFloat((document.getElementById('salary').value || '').replace(/,/g,'')) || 0;
+}
+function formatSalaryOnBlur() {
+  const el = document.getElementById('salary');
+  const v = parseFloat(el.value.replace(/,/g,''));
+  if (v > 0) el.value = v.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+}
 function onSalaryChange() {
-  const v = parseFloat(document.getElementById('salary').value);
+  const v = getSalaryVal();
   const p = document.getElementById('salaryPreview');
   const cfg = COUNTRY_CONFIG[S.country];
   p.innerHTML = v > 0 ? `<strong>${fmtCurrency(v)}</strong> ${cfg.currency}` : '';
@@ -1306,7 +1335,7 @@ function getCompSum() {
     .reduce((s, inp) => s + (parseFloat(inp.value) || 0), 0);
 }
 function refreshSDI() {
-  const base  = parseFloat(document.getElementById('salary').value)||0;
+  const base  = getSalaryVal();
   const comps = getCompSum();
   const s = document.getElementById('sdiSummary');
   if (comps > 0 && base > 0) {
@@ -1337,7 +1366,7 @@ function toggleComponents() {
   document.getElementById('ctArrow').classList.toggle('open', S.compOpen);
 }
 function validateStep2() {
-  const salary = parseFloat(document.getElementById('salary').value);
+  const salary = getSalaryVal();
   const s = document.getElementById('startDate').value;
   const e = document.getElementById('endDate').value;
   const err = document.getElementById('step2Err');
@@ -1660,7 +1689,7 @@ function calculateVenezuela(d) {
    CALCULAR Y MOSTRAR
 ───────────────────────────────────────────── */
 function calculate() {
-  const salary    = parseFloat(document.getElementById('salary').value) || 0;
+  const salary    = getSalaryVal();
   const comps     = getCompSum();
   const startDate = document.getElementById('startDate').value;
   const endDate   = document.getElementById('endDate').value;
@@ -1894,7 +1923,7 @@ function submitLawyerForm(e) {
   const desc    = document.getElementById('lf_desc').value.trim();
   const total   = window._lawyerTotal || 0;
 
-  const salary    = parseFloat(document.getElementById('salary').value) || 0;
+  const salary    = getSalaryVal();
   const startDate = document.getElementById('startDate').value;
   const endDate   = document.getElementById('endDate').value;
   const tt        = document.querySelector('input[name="tt"]:checked');
@@ -1981,34 +2010,23 @@ function generatePDF() {
   btn.disabled = true;
 
   const folio = genFolio();
-  const area  = document.getElementById('pdf-print-area');
-  area.innerHTML = buildPdfHtml(window._pdfState, folio);
-  area.classList.add('pdf-gen-mode');
-  area.style.display = 'block';
+  const htmlContent = buildPdfHtml(window._pdfState, folio);
 
-  // Let browser render before capturing (500ms gives paint time)
-  setTimeout(() => {
-    html2pdf()
-      .set({
-        margin:     [0, 0, 0, 0],
-        filename:   `FiniquitoYa-${folio}.pdf`,
-        image:      { type: 'jpeg', quality: 0.97 },
-        html2canvas: { scale: 2, useCORS: true, logging: false,
-                       scrollX: 0, scrollY: 0,
-                       windowWidth: 816, width: 816 },
-        jsPDF:      { unit: 'mm', format: 'letter', orientation: 'portrait' },
-        pagebreak:  { before: '.pdf-pg2', mode: ['css', 'legacy'] }
-      })
-      .from(area)
-      .save()
-      .then(() => {
-        area.style.display = 'none';
-        area.classList.remove('pdf-gen-mode');
-        area.innerHTML = '';
-        btn.textContent = '📄 Descargar reporte PDF';
-        btn.disabled = false;
-      });
-  }, 500);
+  html2pdf()
+    .set({
+      margin:     [0, 0, 0, 0],
+      filename:   `FiniquitoYa-${folio}.pdf`,
+      image:      { type: 'jpeg', quality: 0.97 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF:      { unit: 'mm', format: 'letter', orientation: 'portrait' },
+      pagebreak:  { before: '.pdf-pg2', mode: ['css', 'legacy'] }
+    })
+    .from(htmlContent)
+    .save()
+    .then(() => {
+      btn.textContent = '📄 Descargar reporte PDF';
+      btn.disabled = false;
+    });
 }
 
 function buildPdfHtml(state, folio) {
@@ -2108,7 +2126,84 @@ function buildPdfHtml(state, folio) {
       </div>
     </div>`;
 
-  return `
+  const pdfCss = `<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,"Times New Roman",serif;color:#1e293b;background:#fff;margin:0;padding:0}
+.pdf-pg{background:#fff;width:816px;overflow:hidden}
+.pdf-hdr{background:#1e3a8a}
+.pdf-hdr-top{display:flex;justify-content:space-between;align-items:center;padding:24px 40px 20px;border-bottom:1px solid rgba(255,255,255,.12)}
+.pdf-brand{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.pdf-brand span{color:#93c5fd}
+.pdf-brand-url{font-size:10px;color:rgba(255,255,255,.45);font-weight:400;margin-top:2px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-doc-id{text-align:right;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.doc-type{font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.1em}
+.doc-meta{font-size:10.5px;color:rgba(255,255,255,.55);margin-top:4px;line-height:1.6}
+.pdf-memo{padding:16px 40px 18px;display:grid;grid-template-columns:repeat(4,1fr)}
+.memo-f{padding-right:16px}
+.memo-f:first-child{padding-left:0}
+.memo-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin-bottom:3px}
+.memo-val{font-size:11.5px;font-weight:600;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-hero{background:#f0f4ff;border-bottom:2px solid #1e3a8a;padding:24px 40px;display:flex;justify-content:space-between;align-items:center}
+.pdf-hero-lbl{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.1em;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin-bottom:6px}
+.pdf-hero-total{font-size:44px;font-weight:300;color:#1e3a8a;letter-spacing:-1.5px;line-height:1}
+.pdf-hero-total sup{font-size:16px;font-weight:400;vertical-align:super}
+.ccod{font-size:14px;font-weight:600;color:#3b82f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.05em;margin-left:6px}
+.pdf-hero-sub{font-size:11.5px;color:#64748b;margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-hero-chips{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.pdf-chip{display:inline-block;background:#fff;border:1px solid #dbeafe;border-radius:3px;padding:3px 10px;font-size:10.5px;font-weight:500;color:#334155;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap}
+.pdf-chip.accent{background:#1e3a8a;color:#fff;border-color:#1e3a8a;font-weight:600}
+.pdf-body{padding:24px 36px}
+.pdf-sec{margin-bottom:24px}
+.pdf-sec:last-child{margin-bottom:0}
+.pdf-sh{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;font-weight:800;color:#1e3a8a;text-transform:uppercase;letter-spacing:.14em;padding-bottom:8px;border-bottom:2px solid #1e3a8a;margin-bottom:18px}
+.pdf-dgrid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #e2e8f0;border-radius:4px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-dcell{padding:10px 14px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+.pdf-dcell:nth-child(3n){border-right:none}
+.pdf-dcell:nth-last-child(-n+3){border-bottom:none}
+.pdf-dcell-lbl{font-size:9.5px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.pdf-dcell-val{font-size:12.5px;font-weight:600;color:#1e293b}
+.pdf-dcell-val.blue{color:#1d4ed8}
+.concept-blk{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9}
+.concept-blk:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.concept-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;gap:12px}
+.concept-ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:11.5px;font-weight:700;color:#1e293b;flex:1}
+.concept-law{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9.5px;font-weight:700;color:#1d4ed8;background:#dbeafe;border-radius:3px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
+.concept-body{font-size:10.5px;line-height:1.6;color:#475569}
+.concept-body p{margin-bottom:6px}
+.concept-body p:last-child{margin-bottom:0}
+.concept-body strong{color:#1e293b;font-weight:600}
+.calc-ln{display:block;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #3b82f6;padding:4px 10px;font-family:monospace;font-size:10px;color:#334155;margin-top:5px}
+.rights-list{display:flex;flex-direction:column;gap:7px}
+.right-item{display:flex;gap:10px;align-items:flex-start}
+.right-num{width:18px;height:18px;min-width:18px;background:#1e3a8a;color:#fff;border-radius:2px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin-top:1px}
+.right-txt{font-size:10.5px;line-height:1.6;color:#475569}
+.right-txt strong{display:block;color:#1e293b;font-size:11px;margin-bottom:1px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-bktbl{width:100%;border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:11.5px;border:1px solid #e2e8f0}
+.pdf-bktbl thead tr{background:#1e3a8a}
+.pdf-bktbl thead th{padding:10px 14px;color:#fff;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:left}
+.pdf-bktbl thead th:last-child{text-align:right}
+.pdf-bktbl tbody tr{border-bottom:1px solid #f1f5f9}
+.pdf-bktbl tbody tr:nth-child(even){background:#f8fafc}
+.pdf-bktbl td{padding:10px 14px;vertical-align:middle}
+.td-con{font-weight:600;color:#1e293b}
+.td-fml{font-size:10.5px;color:#64748b;font-family:monospace;margin-top:1px}
+.td-law{display:inline-block;font-size:9px;font-weight:700;color:#1d4ed8;background:#dbeafe;border-radius:2px;padding:1px 5px}
+.td-amt{text-align:right;font-weight:700;color:#1e293b;white-space:nowrap;font-size:12.5px}
+.tbl-total{background:#1e3a8a!important;border-bottom:none!important}
+.tbl-total td{padding:13px 14px}
+.tbl-total .td-con{color:#fff;font-size:13px}
+.tbl-total .td-amt{color:#fff;font-size:16px;text-align:right}
+.pdf-disc{background:#fefce8;border-top:2px solid #ca8a04;padding:20px 40px}
+.pdf-disc-ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9.5px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.pdf-disc-txt{font-size:10px;color:#78350f;line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pdf-disc-txt p{margin-bottom:6px}
+.pdf-disc-txt p:last-child{margin-bottom:0}
+.pdf-ftr{background:#f8fafc;border-top:1px solid #e2e8f0;padding:10px 40px;display:flex;justify-content:space-between;align-items:center}
+.pdf-ftr-l{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9.5px;color:#94a3b8}
+.pdf-ftr-r{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9.5px;font-weight:700;color:#cbd5e1}
+</style>`;
+
+  return pdfCss + `
   <!-- PAGE 1 -->
   <div class="pdf-pg">
     <div class="pdf-hdr">
