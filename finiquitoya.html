@@ -2262,7 +2262,7 @@ function buildPdfDocDef(state, folio) {
           { text: item.name, bold: true, fontSize: 10, color: SLATE8 },
         ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
       { stack: [
-          { text: item.calc, fontSize: 9, color: SLATE5, font: 'Courier' }
+          { text: item.calc, fontSize: 9, color: SLATE5 }
         ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
       { stack: [
           { text: item.law, fontSize: 8, bold: true, color: '#1d4ed8' }
@@ -2288,8 +2288,9 @@ function buildPdfDocDef(state, folio) {
 
   // ── Repeating header (table-based so fillColor works) ──
   // Layout paddingTop/Bottom controls actual spacing — cell `margin` is overridden by layout fns
+  // margin: [-40,0,-40,0] extends the table past the page margins so fillColor fills edge-to-edge
   const docHeader = () => ({
-    margin: [0, 0, 0, 0],
+    margin: [-40, 0, -40, 0],
     table: {
       widths: ['*', '*'],
       body: [[
@@ -2298,7 +2299,7 @@ function buildPdfDocDef(state, folio) {
             { text: [{ text: 'Finiquito', bold: true, color: '#ffffff', fontSize: 14 },
                      { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }],
               margin: [0,0,0,3] },
-            { text: 'finiquitoya.vercel.app', fontSize: 7.5, color: '#8baed4' }
+            { text: 'finiquitoya.app', fontSize: 7.5, color: '#8baed4' }
           ],
           fillColor: NAVY
         },
@@ -2367,7 +2368,7 @@ function buildPdfDocDef(state, folio) {
 
   return {
     pageSize: 'LETTER',
-    pageMargins: [40, 60, 40, 36],
+    pageMargins: [40, 55, 40, 32],
 
     header: docHeader,
 
@@ -2405,6 +2406,7 @@ function buildPdfDocDef(state, folio) {
       {
         table: {
           widths: ['38%', '30%', '16%', '16%'],
+          headerRows: 1,
           body: bkTableBody
         },
         layout: {
