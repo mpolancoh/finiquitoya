@@ -571,11 +571,10 @@
     background: #fff; width: 760px; margin: 0 auto 48px;
     box-shadow: 0 10px 40px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
   }
-  /* Mode for html2pdf download — fixed Letter width, flat, no shadow */
+  /* Mode for html2pdf download — Letter width, normal flow (position:static so html2canvas can render it) */
   #pdf-print-area.pdf-gen-mode {
     background: white; padding: 0; margin: 0;
     width: 816px !important; /* Letter @ 96dpi */
-    position: fixed; top: 0; left: 0; z-index: 9999;
     overflow: visible;
   }
   #pdf-print-area.pdf-gen-mode .pdf-pg {
@@ -1987,7 +1986,7 @@ function generatePDF() {
   area.classList.add('pdf-gen-mode');
   area.style.display = 'block';
 
-  // Let browser render before capturing
+  // Let browser render before capturing (500ms gives paint time)
   setTimeout(() => {
     html2pdf()
       .set({
@@ -1995,6 +1994,7 @@ function generatePDF() {
         filename:   `FiniquitoYa-${folio}.pdf`,
         image:      { type: 'jpeg', quality: 0.97 },
         html2canvas: { scale: 2, useCORS: true, logging: false,
+                       scrollX: 0, scrollY: 0,
                        windowWidth: 816, width: 816 },
         jsPDF:      { unit: 'mm', format: 'letter', orientation: 'portrait' },
         pagebreak:  { before: '.pdf-pg2', mode: ['css', 'legacy'] }
@@ -2008,7 +2008,7 @@ function generatePDF() {
         btn.textContent = '📄 Descargar reporte PDF';
         btn.disabled = false;
       });
-  }, 200);
+  }, 500);
 }
 
 function buildPdfHtml(state, folio) {
