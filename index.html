@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FiniquitoYa: Calcula lo que te deben</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --blue-700:  #1d4ed8;
@@ -569,6 +570,13 @@
   #pdf-print-area .pdf-pg {
     background: #fff; width: 760px; margin: 0 auto 48px;
     box-shadow: 0 10px 40px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
+  }
+  /* Mode for html2pdf download — flat, no shadow, no outer padding */
+  #pdf-print-area.pdf-gen-mode {
+    background: white; padding: 0;
+  }
+  #pdf-print-area.pdf-gen-mode .pdf-pg {
+    box-shadow: none; width: 100%; margin: 0;
   }
   #pdf-print-area .pdf-hdr { background: #1e3a8a; }
   #pdf-print-area .pdf-hdr-top {
@@ -1965,14 +1973,44 @@ function genFolio() {
 
 function generatePDF() {
   if (!window._pdfState) { alert('Realiza el cálculo primero.'); return; }
-  document.getElementById('pdf-print-area').innerHTML = buildPdfHtml(window._pdfState);
-  setTimeout(() => window.print(), 120);
+
+  const btn = document.getElementById('pdfBtn');
+  btn.textContent = '⏳ Generando PDF...';
+  btn.disabled = true;
+
+  const folio = genFolio();
+  const area  = document.getElementById('pdf-print-area');
+  area.innerHTML = buildPdfHtml(window._pdfState, folio);
+  area.classList.add('pdf-gen-mode');
+  area.style.display = 'block';
+
+  // Let browser render before capturing
+  setTimeout(() => {
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: `FiniquitoYa-${folio}.pdf`,
+        image:      { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:  { before: '.pdf-pg2' }
+      })
+      .from(area)
+      .save()
+      .then(() => {
+        area.style.display = 'none';
+        area.classList.remove('pdf-gen-mode');
+        area.innerHTML = '';
+        btn.textContent = '📄 Descargar reporte PDF';
+        btn.disabled = false;
+      });
+  }, 200);
 }
 
-function buildPdfHtml(state) {
+function buildPdfHtml(state, folio) {
   const { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result } = state;
-  const cfg   = COUNTRY_CONFIG[S.country];
-  const folio = genFolio();
+  const cfg = COUNTRY_CONFIG[S.country];
+  if (!folio) folio = genFolio();
 
   const start = new Date(startDate + 'T12:00:00');
   const end   = new Date(endDate   + 'T12:00:00');
