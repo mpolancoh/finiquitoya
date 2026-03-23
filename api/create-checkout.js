@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Invalid JSON body' });
   }
 
-  const { tier = 'basic', country = 'mx', inputs = {}, result = {} } = body || {};
+  const { tier = 'basic', country = 'mx', email = '', inputs = {}, result = {} } = body || {};
 
   // Validate
   const config = COUNTRY_CONFIG[country];
@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
   const uuid = crypto.randomUUID();
 
   // Save calc data to Google Sheets "Calculos" tab
-  const calcData = { tier, country, inputs, result };
+  const calcData = { tier, country, email, inputs, result };
   try {
     await saveCalc(uuid, calcData);
   } catch (err) {
@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
       client_reference_id: uuid,   // ← this links the session to our calc data
       success_url: successUrl,
       cancel_url:  cancelUrl,
-      // Pre-fill customer email if we have it (not available here, but could be added)
+      ...(email ? { customer_email: email } : {})
     });
   } catch (err) {
     console.error('Stripe session creation failed:', err.message);
