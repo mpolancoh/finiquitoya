@@ -9,8 +9,7 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { getTransactionByUUID, completeTransaction } = require('./lib/sheets');
-const { generatePDF }     = require('./lib/pdf');
-const { sendCustomerEmail, sendAdminNotification } = require('./lib/email');
+const { sendAdminNotification } = require('./lib/email');
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -72,17 +71,8 @@ module.exports = async (req, res) => {
 
   const { tier = 'basic', country = 'mx', result = {} } = calcData;
 
-  // ── 3. Generate PDF ───────────────────────────────────────────────────────
-  let pdfBuffer = null;
-  try {
-    pdfBuffer = await generatePDF(calcData);
-  } catch (err) {
-    console.error('generatePDF failed:', err.message);
-  }
-
-  // ── 4–5. Emails + update Sheets row (in parallel) ────────────────────────
+  // ── 3. Admin notification + update Sheets row (PDF/customer email sent by browser via /api/send-report)
   const results = await Promise.allSettled([
-    sendCustomerEmail(customerEmail, calcData, pdfBuffer),
     sendAdminNotification({ email: customerEmail, pais: country, tier, monto, moneda, sessionId: session.id }),
     uuid
       ? completeTransaction(uuid, { fecha, monto, moneda, sessionId: session.id, email: customerEmail, pais: country, tier, totalCalculado: result.total || '' })
@@ -90,7 +80,7 @@ module.exports = async (req, res) => {
   ]);
 
   results.forEach((r, i) => {
-    const labels = ['sendCustomerEmail', 'sendAdminNotification', 'completeTransaction'];
+    const labels = ['sendAdminNotification', 'completeTransaction'];
     if (r.status === 'rejected') {
       console.error(`${labels[i]} failed:`, r.reason?.message || r.reason);
     }
