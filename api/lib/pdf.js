@@ -8,7 +8,7 @@
 //   result: { total, items: [{label, value, breakdown?}], SDI, hasComponents }
 // }
 
-const PdfPrinter = require('pdfmake/build/pdfmake');
+const PdfPrinter = require('pdfmake/src/printer');
 const vfsFonts   = require('pdfmake/build/vfs_fonts');
 
 const printer = new PdfPrinter({
