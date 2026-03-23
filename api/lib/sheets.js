@@ -25,10 +25,9 @@ const SHEET_ID = process.env.GOOGLE_SHEETS_ID;
 async function saveCalc(uuid, calcData) {
   const sheets = getSheetsClient();
   const fecha = new Date().toISOString();
-  // Store the full calc object as JSON in column E
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: 'Calculos!A:E',
+    range: 'Calculos!A:F',
     valueInputOption: 'RAW',
     requestBody: {
       values: [[
@@ -36,7 +35,8 @@ async function saveCalc(uuid, calcData) {
         fecha,
         calcData.country || '',
         calcData.tier || '',
-        JSON.stringify(calcData)
+        JSON.stringify(calcData),
+        calcData.email || ''   // ← email en columna F para fácil filtrado
       ]]
     }
   });
