@@ -1,95 +1,127 @@
-// Google Sheets helpers
-// - saveCalc(uuid, data)       → saves calc data to "Calculos" tab before payment
-// - getCalcByUUID(uuid)        → retrieves calc data from "Calculos" tab in webhook
-// - appendSale(data)           → saves completed sale to "Ventas" tab with analytics
+// Google Sheets helpers — single "Transacciones" tab
+//
+// Each payment creates one row. Flow:
+//   1. createTransaction(uuid, calcData)       ← called from create-checkout (status = "pending")
+//   2. getTransactionByUUID(uuid)              ← called from webhook to retrieve calc data
+//   3. completeTransaction(uuid, paymentData)  ← called from webhook to fill in payment columns
+//
+// Tab: Transacciones
+// Cols: A=UUID  B=Email  C=FechaCreacion  D=Pais  E=Tier  F=TotalCalculado
+//       G=CalcDataJSON  H=Status  I=FechaPago  J=Monto  K=Moneda  L=SessionID
 
 const { google } = require('googleapis');
 
 function getAuth() {
-  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   return new google.auth.GoogleAuth({
-    credentials,
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
   });
 }
 
 function getSheetsClient() {
-  const auth = getAuth();
-  return google.sheets({ version: 'v4', auth });
+  return google.sheets({ version: 'v4', auth: getAuth() });
 }
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID;
+const TAB      = 'Transacciones';
 
-// ── Save calculation before redirect to Stripe ───────────────────────────────
-// Saves to "Calculos" tab: [uuid, timestamp, country, tier, calcDataJSON]
-async function saveCalc(uuid, calcData) {
+// ── 1. Save pending row when user clicks Pay ──────────────────────────────────
+async function createTransaction(uuid, calcData) {
   const sheets = getSheetsClient();
-  const fecha = new Date().toISOString();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: 'Calculos!A:F',
+    range: `${TAB}!A:L`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [[
         uuid,
-        fecha,
-        calcData.country || '',
-        calcData.tier || '',
+        calcData.email         || '',
+        new Date().toISOString(),
+        calcData.country       || '',
+        calcData.tier          || '',
+        calcData.result?.total || '',
         JSON.stringify(calcData),
-        calcData.email || ''   // ← email en columna F para fácil filtrado
+        'pending',             // H — updated to "paid" by webhook
+        '',                    // I — FechaPago
+        '',                    // J — Monto
+        '',                    // K — Moneda
+        ''                     // L — SessionID
       ]]
     }
   });
 }
 
-// ── Retrieve calculation by UUID ──────────────────────────────────────────────
-// Scans "Calculos" tab for a row where column A = uuid
-async function getCalcByUUID(uuid) {
+// ── 2. Find a row by UUID and return its calcData JSON ────────────────────────
+async function getTransactionByUUID(uuid) {
   const sheets = getSheetsClient();
-  const response = await sheets.spreadsheets.values.get({
+  const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'Calculos!A:E'
+    range: `${TAB}!A:G`
   });
-  const rows = response.data.values || [];
-  // Skip header row if present (first row may be "UUID", "Fecha", etc.)
+  const rows = res.data.values || [];
   for (const row of rows) {
     if (row[0] === uuid) {
-      try {
-        return JSON.parse(row[4]); // column E = full JSON
-      } catch (e) {
-        return null;
-      }
+      try { return JSON.parse(row[6]); } catch { return null; }
     }
   }
   return null;
 }
 
-// ── Append completed sale to Ventas tab ───────────────────────────────────────
-// Columns: fecha, email, pais, tier, monto, moneda, sessionId,
-//          salario, fechaInicio, fechaFin, tipoSalida, totalCalculado
-async function appendSale(data) {
+// ── 3. Find row by UUID and fill in the payment columns ───────────────────────
+async function completeTransaction(uuid, paymentData) {
   const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
+
+  // Find the row number (1-based) where column A = uuid
+  const colA = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'Ventas!A:L',
-    valueInputOption: 'RAW',
-    requestBody: {
-      values: [[
-        data.fecha,
-        data.email,
-        data.pais,
-        data.tier,
-        data.monto,
-        data.moneda,
-        data.sessionId,
-        data.salario || '',
-        data.fechaInicio || '',
-        data.fechaFin || '',
-        data.tipoSalida || '',
-        data.totalCalculado || ''
-      ]]
-    }
+    range: `${TAB}!A:A`
   });
+  const rows    = colA.data.values || [];
+  let   rowNum  = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][0] === uuid) { rowNum = i + 1; break; }
+  }
+
+  if (rowNum) {
+    // Update columns H–L in that row
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${TAB}!H${rowNum}:L${rowNum}`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          'paid',
+          paymentData.fecha,
+          paymentData.monto,
+          paymentData.moneda,
+          paymentData.sessionId
+        ]]
+      }
+    });
+  } else {
+    // UUID not found (edge case) — append complete row
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `${TAB}!A:L`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          uuid,
+          paymentData.email          || '',
+          paymentData.fecha,
+          paymentData.pais           || '',
+          paymentData.tier           || '',
+          paymentData.totalCalculado || '',
+          '',
+          'paid',
+          paymentData.fecha,
+          paymentData.monto,
+          paymentData.moneda,
+          paymentData.sessionId
+        ]]
+      }
+    });
+  }
 }
 
-module.exports = { saveCalc, getCalcByUUID, appendSale };
+module.exports = { createTransaction, getTransactionByUUID, completeTransaction };
