@@ -2017,18 +2017,22 @@ function handlePay(tier) {
 
   document.getElementById('payModalTitle').textContent = title;
   document.getElementById('payModalBody').innerHTML = `
-    <div style="text-align:center;padding:4px 0 20px">
-      <div style="font-size:38px;font-weight:900;color:var(--blue-600);letter-spacing:-1px;margin-bottom:2px">${price}</div>
-      <div style="font-size:13px;color:var(--slate-500);margin-bottom:20px">${tier==='basic'?'Pago único':'Pago único · Reporte completo'}</div>
-      <ul class="pay-features" style="text-align:left;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">${featuresHtml}</ul>
-      <div style="margin-bottom:16px;text-align:left;max-width:320px;margin-left:auto;margin-right:auto">
-        <label style="font-size:12px;color:var(--slate-500);display:block;margin-bottom:6px">Tu correo electrónico</label>
-        <input id="payEmailInput" type="email" placeholder="correo@ejemplo.com"
-          style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;outline:none"
-          onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#cbd5e1'">
-        <p style="font-size:11px;color:var(--slate-400);margin:4px 0 0 0">Te enviamos el reporte a este correo</p>
+    <div style="max-width:340px;margin:0 auto;padding:4px 0 20px">
+      <div style="background:#f1f5f9;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;color:var(--slate-500);margin-bottom:2px">${tier==='basic'?'Desglose completo':'Reporte PDF completo'}</div>
+          <div style="font-size:12px;color:var(--slate-400)">${tier==='basic'?'Con fundamento legal':'Con carta de negociación'}</div>
+        </div>
+        <div style="font-size:28px;font-weight:900;color:var(--blue-700)">${price}</div>
       </div>
-      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="startPayment('${tier}');">
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;color:var(--slate-500);display:block;margin-bottom:6px;font-weight:600">¿A dónde enviamos el reporte?</label>
+        <input id="payEmailInput" type="email" placeholder="tu@correo.com"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s"
+          onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#cbd5e1'">
+        <p style="font-size:11px;color:var(--slate-400);margin:5px 0 0 0">Te mandamos el PDF a este correo al confirmar el pago</p>
+      </div>
+      <button class="btn btn-calc" style="width:100%;justify-content:center;font-size:15px;padding:13px" onclick="startPayment('${tier}');">
         Pagar ${price} →
       </button>
     </div>`;
