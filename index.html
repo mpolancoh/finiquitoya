@@ -445,7 +445,7 @@
     .btn-tier-senior { background: var(--violet-600); color: white; }
     .btn-tier-senior:hover { background: #6d28d9; }
 
-    /* DISCLAIMER */
+    /* DISCLAIMER - kept for PDF only */
     .disclaimer {
       background: var(--amber-50); border: 1px solid var(--amber-100);
       border-radius: var(--r-sm); padding: 14px 16px;
@@ -833,7 +833,6 @@
       <div></div>
       <button class="btn btn-primary" onclick="next(2)">Continuar →</button>
     </div>
-    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- PASO 2: Datos de empleo -->
@@ -895,7 +894,6 @@
       <button class="btn btn-ghost" onclick="showStep(1)">← Atrás</button>
       <button class="btn btn-primary" onclick="next(3)">Continuar →</button>
     </div>
-    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- PASO 3: Beneficios adicionales -->
@@ -934,7 +932,6 @@
       <button class="btn btn-ghost" onclick="showStep(2)">← Atrás</button>
       <button class="btn btn-calc" onclick="calculate()">Calcular mi liquidación →</button>
     </div>
-    <p style="font-size:11px;color:var(--slate-400);text-align:center;margin-top:16px">Calculadora orientativa · No constituye asesoría legal</p>
   </div>
 
   <!-- RESULTS -->
@@ -1015,12 +1012,6 @@
     </div>
 
     <button class="btn-pdf hidden" id="pdfBtn" onclick="generatePDF()">📄 Descargar reporte PDF</button>
-
-    <!-- Disclaimer -->
-    <div class="disclaimer" id="resultsDisclaimer">
-      <strong>⚠️ Aviso importante</strong><br>
-      <span id="disclaimerText">Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).</span>
-    </div>
 
     <!-- Lawyer tiers -->
     <div class="lawyer-section" id="lawyerSection">
@@ -1346,8 +1337,7 @@ function applyCountryConfig() {
   document.getElementById('upgradePremiumPrice').textContent = cfg.pricingPremium;
   document.getElementById('upgradePremiumSub').textContent   = cfg.pricingPremiumSub;
 
-  // Disclaimer
-  document.getElementById('disclaimerText').textContent = cfg.disclaimer;
+  // (disclaimer now lives in the page footer, not per-country)
 
   // Render salary component rows dynamically
   const compGrid = document.getElementById('compGrid');
@@ -3217,5 +3207,33 @@ function recalculate() {
 }
 </script>
 <div id="pdf-print-area"></div>
+
+<!-- ── SITE FOOTER ─────────────────────────────────────────────────────────── -->
+<footer style="background:#f1f5f9;border-top:1px solid #e2e8f0;padding:40px 24px 32px;margin-top:48px">
+  <div style="max-width:640px;margin:0 auto">
+    <p style="font-size:13px;font-weight:600;color:#475569;margin:0 0 10px 0">Sobre FiniquitoYa</p>
+    <p style="font-size:12px;color:#64748b;line-height:1.8;margin:0 0 16px 0">
+      FiniquitoYa es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
+      a entender sus derechos y estimar el monto de su liquidación con base en la legislación vigente
+      de cada país. Nuestro objetivo es poner información clara y accesible al alcance de cualquier
+      persona, de modo que ningún trabajador tenga que enfrentarse solo a la terminación de su
+      relación laboral sin conocer lo que le corresponde por ley.
+    </p>
+    <p style="font-size:12px;color:#64748b;line-height:1.8;margin:0 0 24px 0">
+      <strong style="color:#475569">Aviso legal.</strong>
+      Los cálculos generados por esta herramienta son estimaciones de carácter orientativo basadas
+      en los datos ingresados por el usuario y en la legislación laboral vigente al momento de la
+      consulta. FiniquitoYa no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
+      resultado, reporte ni comunicación generada por esta plataforma constituye asesoría jurídica,
+      opinión legal ni representación legal, y su uso no crea una relación abogado-cliente. Los
+      montos reales pueden variar según convenios colectivos, condiciones específicas del contrato,
+      acuerdos previos u otras circunstancias no consideradas en el cálculo. Para cualquier disputa
+      formal o decisión legal, le recomendamos consultar con un abogado laboral certificado o
+      acudir a los organismos públicos de defensa del trabajador en su país.
+    </p>
+    <p style="font-size:11px;color:#94a3b8;margin:0">© FiniquitoYa · finiquitoya.app</p>
+  </div>
+</footer>
+
 </body>
 </html>
