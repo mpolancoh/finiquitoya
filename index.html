@@ -1122,7 +1122,7 @@ const STRIPE_LINKS = {
   }
 })();
 
-async function goToStripe(tier) {
+async function goToStripe(tier, email) {
   // 1. Collect current form inputs
   const salary    = document.getElementById('salary').value;
   const startDate = document.getElementById('startDate').value;
@@ -1146,6 +1146,7 @@ async function goToStripe(tier) {
   const calcPayload = {
     tier,
     country: S.country,
+    email: email || '',
     inputs: {
       salary, startDate, endDate, termType, unusedVac, bonuses,
       aguinaldoPaid: S.aguinaldoPaid, comps
@@ -2020,7 +2021,14 @@ function handlePay(tier) {
       <div style="font-size:38px;font-weight:900;color:var(--blue-600);letter-spacing:-1px;margin-bottom:2px">${price}</div>
       <div style="font-size:13px;color:var(--slate-500);margin-bottom:20px">${tier==='basic'?'Pago único':'Pago único · Reporte completo'}</div>
       <ul class="pay-features" style="text-align:left;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">${featuresHtml}</ul>
-      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');goToStripe('${tier}');">
+      <div style="margin-bottom:16px;text-align:left;max-width:320px;margin-left:auto;margin-right:auto">
+        <label style="font-size:12px;color:var(--slate-500);display:block;margin-bottom:6px">Tu correo electrónico</label>
+        <input id="payEmailInput" type="email" placeholder="correo@ejemplo.com"
+          style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;outline:none"
+          onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#cbd5e1'">
+        <p style="font-size:11px;color:var(--slate-400);margin:4px 0 0 0">Te enviamos el reporte a este correo</p>
+      </div>
+      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="startPayment('${tier}');">
         Pagar ${price} →
       </button>
     </div>`;
@@ -2052,6 +2060,21 @@ function unlockBreakdown() {
   document.getElementById('upgradePanel').style.display = 'none';
   document.getElementById('pdfBtn').classList.remove('hidden');
   closeModal('payModal');
+}
+
+function startPayment(tier) {
+  const emailInput = document.getElementById('payEmailInput');
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (emailInput) {
+      emailInput.style.borderColor = '#ef4444';
+      emailInput.placeholder = 'Ingresa tu correo';
+      emailInput.focus();
+    }
+    return;
+  }
+  closeModal('payModal');
+  goToStripe(tier, email);
 }
 
 function closeModal(id) {
