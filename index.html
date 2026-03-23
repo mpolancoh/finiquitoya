@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FiniquitoYa: Calcula lo que te deben</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
   <style>
     :root {
       --blue-700:  #1d4ed8;
@@ -994,6 +995,25 @@
       </div>
     </div>
 
+    <!-- Shown after basic payment: upgrade to premium -->
+    <div class="paywall-panel" id="upgradePanel" style="display:none">
+      <p class="paywall-title">📄 Obtén el reporte PDF completo</p>
+      <p class="paywall-sub">Ya tienes el desglose completo. Descarga ahora el reporte profesional con carta de solicitud de pago y guía de negociación.</p>
+      <div class="paywall-options" style="justify-content:center">
+        <div class="pay-card featured" onclick="handlePay('premium')">
+          <div class="pay-price" id="upgradePremiumPrice">$150 MXN</div>
+          <div class="pay-price-usd" id="upgradePremiumSub">~$7.50 USD · Reporte completo</div>
+          <div class="pay-name">Reporte PDF completo</div>
+          <ul class="pay-features">
+            <li>PDF profesional descargable</li>
+            <li>Carta de solicitud de pago</li>
+            <li>Guía de negociación</li>
+          </ul>
+          <button class="btn-pay btn-pay-premium">Obtener reporte →</button>
+        </div>
+      </div>
+    </div>
+
     <button class="btn-pdf hidden" id="pdfBtn" onclick="generatePDF()">📄 Descargar reporte PDF</button>
 
     <!-- Disclaimer -->
@@ -1080,6 +1100,50 @@ if (DEMO_MODE) {
 }
 
 /* ─────────────────────────────────────────────
+   STRIPE PAYMENT LINKS
+───────────────────────────────────────────── */
+const STRIPE_LINKS = {
+  mx: { basic: 'https://buy.stripe.com/test_4gM5kD7iZ7sO2XKg3nasg00', premium: 'https://buy.stripe.com/test_dRm28rcDjfZkbugeZjasg01' },
+  co: { basic: 'https://buy.stripe.com/test_28E6oH8n3bJ4aqc9EZasg02', premium: 'https://buy.stripe.com/test_8x26oH5aR3cycykdVfasg03' },
+  ve: { basic: 'https://buy.stripe.com/test_fZueVdgTz28u41O6sNasg04', premium: 'https://buy.stripe.com/test_9B66oH9r7dRc9m86sNasg05' }
+};
+
+// Detect ?unlocked= param after Stripe redirect
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const tier = params.get('unlocked');
+  if (tier === 'basic' || tier === 'premium') {
+    sessionStorage.setItem('fy_unlocked', tier);
+    window._fy_justPaid = true;
+    params.delete('unlocked');
+    params.delete('pais');
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    history.replaceState(null, '', newUrl);
+  }
+})();
+
+function goToStripe(tier) {
+  // Save form state so we can restore it after payment redirect
+  try {
+    const state = {
+      country: S.country,
+      salary: document.getElementById('salary').value,
+      startDate: document.getElementById('startDate').value,
+      endDate: document.getElementById('endDate').value,
+      unusedVac: document.getElementById('unusedVac').value,
+      bonuses: (document.getElementById('bonuses').value || '0'),
+      termType: (document.querySelector('input[name="tt"]:checked') || {}).value || 'dismissal',
+      aguinaldoPaid: S.aguinaldoPaid,
+      comps: Array.from(document.querySelectorAll('#compGrid .comp-input'))
+               .map(i => ({ id: i.id.replace('comp_', ''), v: i.value }))
+    };
+    sessionStorage.setItem('fy_saved_state', JSON.stringify(state));
+  } catch(e) {}
+  const lnk = STRIPE_LINKS[S.country]?.[tier];
+  if (lnk) window.location.href = lnk;
+}
+
+/* ─────────────────────────────────────────────
    ESTADO
 ───────────────────────────────────────────── */
 const S = { country: 'mx', termType: 'dismissal', aguinaldoPaid: false, compOpen: false };
@@ -1102,8 +1166,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagó para no contabilizarlo de nuevo.',
     panelNote: 'Según el Art. 84 de la LFT, ciertos pagos regulares forman parte del salario integrado y afectan el cálculo de la indemnización y prima de antigüedad. Incluye solo pagos que recibes de manera regular.',
     law: 'LFT 2024',
-    pricingBasic: '$19 MXN', pricingBasicSub: '~$1 USD · Pago único',
-    pricingPremium: '$99 MXN', pricingPremiumSub: '~$5 USD · Reporte completo',
+    pricingBasic: '$25 MXN', pricingBasicSub: '~$1.25 USD · Pago único',
+    pricingPremium: '$150 MXN', pricingPremiumSub: '~$7.50 USD · Reporte completo',
     payBasicLaw: 'Fundamento legal (LFT)',
     disclaimer: 'Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).',
     infoHtml: '<strong>México · LFT 2024:</strong> Calculamos indemnización constitucional (3 meses), 20 días por año, prima de antigüedad, vacaciones proporcionales, prima vacacional y aguinaldo proporcional.',
@@ -1137,8 +1201,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagó la prima de este periodo para no contabilizarla de nuevo.',
     panelNote: 'Según el CST, ciertos pagos regulares pueden aumentar el salario base para liquidaciones. Incluye solo pagos que recibes de manera regular y constante.',
     law: 'CST',
-    pricingBasic: '$8.000 COP', pricingBasicSub: '~$2 USD · Pago único',
-    pricingPremium: '$39.000 COP', pricingPremiumSub: '~$10 USD · Reporte completo',
+    pricingBasic: '$5.000 COP', pricingBasicSub: '~$1.25 USD · Pago único',
+    pricingPremium: '$30.000 COP', pricingPremiumSub: '~$7.50 USD · Reporte completo',
     payBasicLaw: 'Fundamento legal (CST)',
     disclaimer: 'Esta es una estimación orientativa basada en el Código Sustantivo del Trabajo (CST) de Colombia. Los montos reales pueden variar según convenciones colectivas, tipo de contrato o decisiones del Ministerio del Trabajo. Este cálculo no constituye asesoría legal.',
     infoHtml: '<strong>Colombia · CST:</strong> Calculamos cesantías (+ intereses 12% anual), prima de servicios, vacaciones proporcionales e indemnización por despido sin justa causa según el Art. 64 CST.',
@@ -1172,8 +1236,8 @@ const COUNTRY_CONFIG = {
     aguinaldoDesc: 'Actívalo si ya se te pagaron las utilidades de este ejercicio para no contabilizarlas de nuevo.',
     panelNote: 'Según el Art. 122 LOTTT, el salario integral incluye alícuotas de utilidades y bono vacacional, y es la base para prestaciones sociales e indemnización.',
     law: 'LOTTT',
-    pricingBasic: '$2 USD', pricingBasicSub: 'Pago único',
-    pricingPremium: '$8 USD', pricingPremiumSub: 'Reporte completo',
+    pricingBasic: '$1.25 USD', pricingBasicSub: 'Pago único',
+    pricingPremium: '$7.50 USD', pricingPremiumSub: 'Reporte completo',
     payBasicLaw: 'Fundamento legal (LOTTT)',
     disclaimer: 'Esta es una estimación orientativa basada en la Ley Orgánica del Trabajo (LOTTT) de Venezuela 2012. Los montos reales pueden variar según el tipo de empresa, contrato colectivo y el método de cálculo aplicado. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboralista.',
     infoHtml: '<strong>Venezuela · LOTTT:</strong> Calculamos prestaciones sociales (Art. 142, mayor entre método retroactivo y trimestral), utilidades, vacaciones, bono vacacional e indemnización por despido injustificado.',
@@ -1238,11 +1302,13 @@ function applyCountryConfig() {
   S.termType = cfg.termTypes[0].value;
 
   // Paywall pricing
-  document.getElementById('payBasicPrice').textContent   = cfg.pricingBasic;
-  document.getElementById('payBasicSub').textContent     = cfg.pricingBasicSub;
-  document.getElementById('payPremiumPrice').textContent = cfg.pricingPremium;
-  document.getElementById('payPremiumSub').textContent   = cfg.pricingPremiumSub;
-  document.getElementById('payBasicLaw').textContent     = cfg.payBasicLaw;
+  document.getElementById('payBasicPrice').textContent      = cfg.pricingBasic;
+  document.getElementById('payBasicSub').textContent        = cfg.pricingBasicSub;
+  document.getElementById('payPremiumPrice').textContent    = cfg.pricingPremium;
+  document.getElementById('payPremiumSub').textContent      = cfg.pricingPremiumSub;
+  document.getElementById('payBasicLaw').textContent        = cfg.payBasicLaw;
+  document.getElementById('upgradePremiumPrice').textContent = cfg.pricingPremium;
+  document.getElementById('upgradePremiumSub').textContent   = cfg.pricingPremiumSub;
 
   // Disclaimer
   document.getElementById('disclaimerText').textContent = cfg.disclaimer;
@@ -1307,6 +1373,50 @@ function onRadioChange(input) {
 ───────────────────────────────────────────── */
 document.getElementById('endDate').value = new Date().toISOString().split('T')[0];
 applyCountryConfig(); // initialize component labels for default country (mx)
+
+// Restore state after returning from Stripe payment
+(function() {
+  // Trigger if we just came back from Stripe (?unlocked= detected) OR if we already have unlock + saved state
+  if (!window._fy_justPaid && !(sessionStorage.getItem('fy_unlocked') && sessionStorage.getItem('fy_saved_state'))) return;
+  const saved = sessionStorage.getItem('fy_saved_state');
+  if (!saved) return;
+  try {
+    const r = JSON.parse(saved);
+    sessionStorage.removeItem('fy_saved_state');
+    // Switch country if needed
+    if (r.country && r.country !== S.country) {
+      const card = document.getElementById('cc-' + r.country);
+      if (card) pickCountry(r.country, card);
+    }
+    // Restore form inputs
+    document.getElementById('salary').value = r.salary || '';
+    document.getElementById('startDate').value = r.startDate || '';
+    document.getElementById('endDate').value = r.endDate || '';
+    document.getElementById('unusedVac').value = r.unusedVac || 0;
+    const bonEl = document.getElementById('bonuses');
+    if (bonEl) bonEl.value = r.bonuses || 0;
+    // Restore term type radio
+    if (r.termType) {
+      const ttInput = document.querySelector('input[name="tt"][value="' + r.termType + '"]');
+      if (ttInput) { ttInput.checked = true; onRadioChange(ttInput); }
+    }
+    // Restore aguinaldo toggle
+    if (r.aguinaldoPaid !== undefined && r.aguinaldoPaid !== S.aguinaldoPaid) {
+      S.aguinaldoPaid = r.aguinaldoPaid;
+      const tog = document.getElementById('aguToggle');
+      if (tog) tog.classList.toggle('on', r.aguinaldoPaid);
+    }
+    // Restore component inputs
+    if (Array.isArray(r.comps)) {
+      r.comps.forEach(c => {
+        const el = document.getElementById('comp_' + c.id);
+        if (el) el.value = c.v;
+      });
+    }
+    // Auto-calculate to show fully unlocked results
+    calculate();
+  } catch(e) {}
+})();
 
 function fmtNum(n) {
   const cfg = COUNTRY_CONFIG[S.country];
@@ -1766,8 +1876,10 @@ function calculate() {
 
   // Breakdown rows
   let rows = '';
+  const unlockedTier = DEMO_MODE ? 'premium' : (sessionStorage.getItem('fy_unlocked') || '');
+  const unlocked = unlockedTier === 'basic' || unlockedTier === 'premium';
   result.items.forEach(item => {
-    if (DEMO_MODE) {
+    if (unlocked) {
       rows += `
         <div class="bt-row">
           <div>
@@ -1799,9 +1911,12 @@ function calculate() {
     </div>`;
   document.getElementById('breakdownBody').innerHTML = rows;
 
-  // Hide paywall in demo mode
-  document.getElementById('paywallPanel').style.display = DEMO_MODE ? 'none' : '';
-  if (DEMO_MODE) document.getElementById('pdfBtn').classList.remove('hidden');
+  // Show/hide paywall, upgrade panel, and PDF button based on tier
+  document.getElementById('paywallPanel').style.display  = unlocked ? 'none' : '';
+  document.getElementById('upgradePanel').style.display  = unlockedTier === 'basic' ? '' : 'none';
+  const pdfBtn = document.getElementById('pdfBtn');
+  if (unlockedTier === 'premium') pdfBtn.classList.remove('hidden');
+  else pdfBtn.classList.add('hidden');
 
   // Store state for PDF generation
   window._pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
@@ -1871,21 +1986,16 @@ function handlePay(tier) {
       <div style="font-size:38px;font-weight:900;color:var(--blue-600);letter-spacing:-1px;margin-bottom:2px">${price}</div>
       <div style="font-size:13px;color:var(--slate-500);margin-bottom:20px">${tier==='basic'?'Pago único':'Pago único · Reporte completo'}</div>
       <ul class="pay-features" style="text-align:left;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">${featuresHtml}</ul>
-      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');alert('Integración de pago en desarrollo. Muy pronto disponible.')">
+      <button class="btn btn-calc" style="width:100%;max-width:320px;justify-content:center" onclick="closeModal('payModal');goToStripe('${tier}');">
         Pagar ${price} →
       </button>
-      <div style="margin-top:16px;padding:12px 16px;background:var(--violet-50);border:1px solid var(--violet-100);border-radius:var(--r-sm)">
-        <p style="font-size:12.5px;color:var(--violet-600);font-weight:600;margin-bottom:6px">🛠 ¿Eres del equipo o quieres probar?</p>
-        <button onclick="unlockBreakdown()" style="background:var(--violet-600);color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
-          Simular pago y ver desglose →
-        </button>
-      </div>
     </div>`;
   document.getElementById('payModal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
 function unlockBreakdown() {
+  sessionStorage.setItem('fy_unlocked', 'basic');
   document.querySelectorAll('.bt-calc-locked').forEach(el => {
     el.textContent = el.dataset.calc || '';
     el.className = 'bt-calc';
@@ -1905,6 +2015,7 @@ function unlockBreakdown() {
     }
   });
   document.getElementById('paywallPanel').style.display = 'none';
+  document.getElementById('upgradePanel').style.display = 'none';
   document.getElementById('pdfBtn').classList.remove('hidden');
   closeModal('payModal');
 }
@@ -2002,31 +2113,463 @@ function genFolio() {
   return `FY-${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(Math.floor(Math.random()*9000+1000))}`;
 }
 
+// ── pdfmake helpers ────────────────────────────────────────────────────────
+
+// Convert HTML with <strong> tags into a pdfmake rich-text array
+// Returns a string (no bold needed) or array of inline text objects (when <strong> present)
+// Safe to use as the value of pdfmake's `text` property
+function htmlToPdfText(html) {
+  if (!html) return '';
+  const parts = html.split(/(<strong>.*?<\/strong>)/g);
+  if (parts.length === 1) return html; // plain string
+  return parts
+    .filter(p => p !== '')
+    .map(p => {
+      const m = p.match(/^<strong>(.*?)<\/strong>$/);
+      return m ? { text: m[1], bold: true } : p;
+    });
+}
+
+// Plain-data version of getRightsHtml
+function getRightsData(country) {
+  const data = {
+    mx: [
+      { title: 'Derecho a recibir el pago de forma inmediata',
+        text: 'El artículo 89 de la LFT establece que el salario debe pagarse directamente al trabajador. La jurisprudencia laboral ha interpretado que el patrón debe liquidar los adeudos al momento de la separación o a la brevedad posible. El retraso injustificado en el pago puede generar salarios caídos adicionales a cargo del patrón.' },
+      { title: 'Derecho a recibir aviso de rescisión por escrito',
+        text: 'El artículo 47 de la LFT exige que el patrón entregue al trabajador un aviso escrito precisando la fecha y causa de la rescisión. La falta de este aviso puede ser invocada por el trabajador como evidencia de despido injustificado ante la autoridad laboral.' },
+      { title: 'Derecho a la conciliación prejudicial gratuita (PROFEDET / CFCRL)',
+        text: 'Antes de acudir a un tribunal, el trabajador puede presentar su caso ante el Centro Federal de Conciliación y Registro Laboral (CFCRL) o ante la PROFEDET, ambos servicios completamente gratuitos. Este proceso puede resolver la disputa en semanas sin necesidad de litigio formal.' },
+      { title: 'Derecho a acudir a los Tribunales Laborales',
+        text: 'Si la conciliación fracasa, el trabajador puede demandar ante los Tribunales Laborales. En caso de despido injustificado comprobado, puede optar entre la reinstalación o el pago de la indemnización, más los salarios caídos generados desde la fecha del despido.' },
+      { title: 'Plazo de prescripción: un año',
+        text: 'El artículo 516 de la LFT establece que las acciones de trabajo prescriben en un año a partir del día siguiente a la separación. Es fundamental no dejar transcurrir este plazo: una vez vencido, el trabajador pierde el derecho legal de reclamar los conceptos adeudados.' },
+      { title: 'Derecho a conservar y solicitar documentación',
+        text: 'El trabajador tiene derecho a solicitar copias de su contrato, recibos de nómina, constancias de semanas cotizadas ante el IMSS y cualquier documento firmado durante la relación laboral. El patrón tiene la obligación de entregar constancia de trabajo al término de la relación.' },
+    ],
+    co: [
+      { title: 'Derecho a la liquidación final del contrato',
+        text: 'El empleador tiene la obligación legal de entregar al trabajador la liquidación completa de todas sus acreencias laborales en el momento de la terminación. El incumplimiento da lugar a la sanción moratoria del artículo 65 del CST: un día de salario por cada día de retardo.' },
+      { title: 'Derecho a carta de terminación del contrato',
+        text: 'El empleador debe entregar comunicación escrita en la que conste la fecha y, en caso de justa causa, las causales invocadas. La ausencia de carta con causa puede ser utilizada por el trabajador como prueba de despido sin justa causa ante la jurisdicción laboral ordinaria.' },
+      { title: 'Derecho a la conciliación laboral gratuita (Ministerio del Trabajo)',
+        text: 'El trabajador puede acudir al Ministerio del Trabajo o a los Inspectores de Trabajo para solicitar una conciliación laboral gratuita antes de iniciar cualquier proceso judicial. No se requiere abogado para ser iniciada y el proceso es expedito.' },
+      { title: 'Derecho a acudir a los Juzgados Laborales',
+        text: 'Si la conciliación fracasa, el trabajador puede instaurar demanda ante el Juzgado Laboral del Circuito competente. El juez puede ordenar el pago de la indemnización, los salarios y prestaciones adeudados, y sanciones moratorias por retardo.' },
+      { title: 'Plazo de prescripción: tres años',
+        text: 'El artículo 488 del Código Sustantivo del Trabajo establece que las acciones derivadas del contrato de trabajo prescriben en tres años a partir de que la obligación sea exigible. Es importante actuar dentro de este plazo para no perder el derecho de reclamar.' },
+      { title: 'Derecho al certificado laboral y documentos de soporte',
+        text: 'El artículo 57 del CST obliga al empleador a expedir al trabajador una certificación que indique el tiempo servido, la naturaleza del trabajo y el salario. El trabajador tiene también derecho a copia de los últimos comprobantes de pago de aportes a seguridad social (PILA).' },
+    ],
+    ve: [
+      { title: 'Derecho al pago inmediato de prestaciones sociales',
+        text: 'El artículo 142 de la LOTTT establece que al finalizar la relación laboral, el empleador debe pagar de inmediato las prestaciones sociales. El retraso genera intereses de mora calculados a la tasa activa del Banco Central de Venezuela, conforme al artículo 143 de la LOTTT.' },
+      { title: 'Participación del Inspector del Trabajo',
+        text: 'El Inspector del Trabajo tiene facultades para supervisar y sancionar incumplimientos laborales. El trabajador puede acudir a la Inspectoría del Trabajo de su jurisdicción para denunciar el incumplimiento en el pago de prestaciones sociales y demás conceptos laborales.' },
+      { title: 'Derecho a la conciliación ante la Inspectoría del Trabajo',
+        text: 'Antes de acudir al tribunal, el trabajador puede solicitar un procedimiento de conciliación y mediación laboral ante la Inspectoría del Trabajo. Este proceso es gratuito y puede resolver la disputa de forma ágil sin necesidad de litigio formal.' },
+      { title: 'Derecho a acudir a los Tribunales Laborales',
+        text: 'La Ley Orgánica Procesal del Trabajo (LOPTRA) regula el procedimiento laboral. El trabajador puede presentar demanda ante el Juzgado de Sustanciación, Mediación y Ejecución del Trabajo competente para reclamar los conceptos no pagados.' },
+      { title: 'Prescripción: 10 años para prestaciones, 1 año para otros conceptos',
+        text: 'El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años. Los demás créditos laborales prescriben al año a partir de la terminación. Dada la diferencia de plazos, es fundamental identificar cada concepto y actuar con prontitud.' },
+      { title: 'Derecho a documentación y constancia de trabajo',
+        text: 'Al finalizar la relación, el empleador está obligado a entregar constancia de trabajo con cargo, fechas y salario devengado. El trabajador tiene también derecho a copia de los recibos de pago y de los reportes al IVSS (Instituto Venezolano de los Seguros Sociales).' },
+    ]
+  };
+  return data[country] || data.mx;
+}
+
+// Plain-text version of getDisclaimerHtml
+function getDisclaimerText(country) {
+  const auth = {
+    mx: 'la Procuraduría Federal de la Defensa del Trabajo (PROFEDET) ofrece servicios de asesoría y conciliación sin costo en todo el territorio nacional.',
+    co: 'el Ministerio del Trabajo ofrece servicios de inspección y conciliación laboral gratuitos en todo el país.',
+    ve: 'el Ministerio del Poder Popular para el Proceso Social de Trabajo ofrece orientación y servicios de inspectoría laboral gratuitos.'
+  }[country] || '';
+  return [
+    { label: 'Naturaleza del documento.', text: 'Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.' },
+    { label: 'Alcance de los cálculos.', text: 'Las estimaciones se basan en la legislación vigente al momento de la generación y en los datos proporcionados por el usuario. No consideran convenios colectivos, cláusulas contractuales específicas, acuerdos previos, resoluciones judiciales, ni circunstancias no declaradas. Los montos reales pueden diferir significativamente.' },
+    { label: 'Recomendación.', text: 'Para asesoría legal específica, consulte con un abogado laboral certificado. Para orientación gratuita, ' + auth },
+  ];
+}
+
+// Build full pdfmake document definition
+function buildPdfDocDef(state, folio) {
+  const { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result } = state;
+  const cfg = COUNTRY_CONFIG[S.country];
+  if (!folio) folio = genFolio();
+
+  const start = new Date(startDate + 'T12:00:00');
+  const end   = new Date(endDate   + 'T12:00:00');
+  const totalDays      = (end - start) / 86400000;
+  const totalYears     = totalDays / 365;
+  const completedYears = Math.floor(totalYears);
+  const lastAnniv      = new Date(start);
+  lastAnniv.setFullYear(lastAnniv.getFullYear() + completedYears);
+  const fracCurrentYear = Math.min((end - lastAnniv) / 86400000 / 365, 1);
+  const calYearStart    = new Date(end.getFullYear(), 0, 1);
+  const fracCalYear     = Math.min((end - calYearStart) / 86400000 / 365, 1);
+
+  const SDB = result.SDB, SDI = result.SDI;
+  const tD = Math.floor(totalDays);
+  const tY = Math.floor(tD/365), tM = Math.floor((tD%365)/30);
+  const tenureStr = (tY ? tY+(tY===1?' año':' años') : '') +
+                   (tM ? (tY?', ':'')+tM+(tM===1?' mes':' meses') : '') || 'Menos de 1 mes';
+
+  const termLabels = {};
+  cfg.termTypes.forEach(t => { termLabels[t.value] = t.name; });
+  const termLabel = termLabels[termType] || termType;
+
+  const now = new Date();
+  const reportDate = fmtDateLong(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`);
+
+  const ctx = {
+    salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
+    fracCurrentYear, fracCalYear, startDate, endDate, termType,
+    hasTransport: S.country === 'co' && salary <= 2 * SMMLV_CO,
+    hasComponents: result.hasComponents, bonuses, unusedVac
+  };
+
+  // Colors
+  const NAVY  = '#1e3a8a';
+  const LTBLUE = '#dbeafe';
+  const SLATE5 = '#64748b';
+  const SLATE8 = '#1e293b';
+  const SLATE4 = '#94a3b8';
+  const AMBER_BG = '#fefce8';
+  const AMBER_BD = '#ca8a04';
+  const AMBER_DK = '#92400e';
+  const AMBER_TXT = '#78350f';
+
+  // ── Section heading helper ──
+  const secHead = (num, title) => ({
+    text: `${num}. ${title.toUpperCase()}`,
+    fontSize: 8, bold: true, color: NAVY,
+    decoration: 'underline', decorationColor: NAVY,
+    margin: [0, 0, 0, 8]
+  });
+
+  // ── I. Data grid ──
+  const gridData = buildPdfDataGrid(S.country, ctx, cfg);
+  const gridRows = [[], []];
+  gridData.forEach((c, i) => gridRows[Math.floor(i/3)].push(c));
+  const gridTable = {
+    table: {
+      widths: ['*', '*', '*'],
+      body: gridRows.map(row =>
+        row.map(c => ({
+          stack: [
+            { text: c.label.toUpperCase(), fontSize: 7.5, color: SLATE4, bold: true, margin: [0,0,0,1] },
+            { text: c.value, fontSize: 11, bold: true, color: c.blue ? '#1d4ed8' : SLATE8 }
+          ],
+          fillColor: '#f8fafc',
+          margin: [8, 8, 8, 8]
+        }))
+      )
+    },
+    layout: {
+      hLineWidth: () => 0.5, vLineWidth: () => 0.5,
+      hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+      paddingLeft: () => 0, paddingRight: () => 0,
+      paddingTop: () => 0, paddingBottom: () => 0
+    }
+  };
+
+  // ── II. Concepts ──
+  const conceptContent = [];
+  result.items.forEach((item, idx) => {
+    const nar = getConceptNarrative(S.country, item.name, item, ctx);
+    conceptContent.push({
+      margin: [0, 0, 0, 12],
+      stack: [
+        // Header row: title + law badge
+        {
+          columns: [
+            { text: `${idx+1}. ${item.name}`, bold: true, fontSize: 11, color: SLATE8, width: '*' },
+            { text: item.law, fontSize: 8.5, bold: true, color: '#1d4ed8',
+              alignment: 'right', width: 'auto' }
+          ],
+          margin: [0, 0, 0, 4]
+        },
+        // p1
+        ...(nar.p1 ? [{ text: htmlToPdfText(nar.p1), fontSize: 9.5, color: '#475569', lineHeight: 1.5, margin: [0,0,0,4] }] : []),
+        // p2
+        ...(nar.p2 ? [{ text: htmlToPdfText(nar.p2), fontSize: 9.5, color: '#475569', lineHeight: 1.5, margin: [0,0,0,4] }] : []),
+        // calc line (use table cell for fillColor support)
+        {
+          table: { widths: ['*'], body: [[{
+            text: nar.calcLine || item.calc,
+            fontSize: 9, color: '#334155',
+            fillColor: '#f8fafc',
+            margin: [6, 4, 6, 4]
+          }]] },
+          layout: { hLineWidth: () => 0.5, vLineWidth: (i) => i === 0 ? 3 : 0,
+            hLineColor: () => '#e2e8f0', vLineColor: () => '#3b82f6',
+            paddingLeft: () => 0, paddingRight: () => 0,
+            paddingTop: () => 0, paddingBottom: () => 0 },
+          margin: [0, 2, 0, 0]
+        },
+        // separator
+        { canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#f1f5f9' }], margin: [0,4,0,0] }
+      ]
+    });
+  });
+
+  // ── III. Workers' rights ──
+  const rightsData = getRightsData(S.country);
+  const rightsContent = rightsData.map((r, i) => ({
+    margin: [0, 0, 0, 8],
+    table: {
+      widths: [20, '*'],
+      body: [[
+        { text: String(i+1), fontSize: 8, bold: true, color: '#ffffff',
+          fillColor: NAVY, alignment: 'center',
+          margin: [0, 3, 0, 3] },
+        {
+          stack: [
+            { text: r.title, bold: true, fontSize: 10, color: SLATE8, margin: [0,0,0,2] },
+            { text: r.text, fontSize: 9.5, color: '#475569', lineHeight: 1.5 }
+          ],
+          margin: [6, 2, 0, 2]
+        }
+      ]]
+    },
+    layout: {
+      hLineWidth: () => 0, vLineWidth: () => 0,
+      paddingLeft: () => 0, paddingRight: () => 0,
+      paddingTop: () => 0, paddingBottom: () => 0
+    }
+  }));
+
+  // ── IV. Breakdown table ──
+  const bkTableBody = [
+    [
+      { text: 'CONCEPTO', style: 'thCell' },
+      { text: 'FÓRMULA APLICADA', style: 'thCell' },
+      { text: 'FUNDAMENTO', style: 'thCell' },
+      { text: `MONTO (${cfg.currency})`, style: 'thCell', alignment: 'right' }
+    ],
+    ...result.items.map((item, i) => [
+      { stack: [
+          { text: item.name, bold: true, fontSize: 10, color: SLATE8 },
+        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
+      { stack: [
+          { text: item.calc, fontSize: 9, color: SLATE5 }
+        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
+      { stack: [
+          { text: item.law, fontSize: 8, bold: true, color: '#1d4ed8' }
+        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
+      { text: fmtCurrency(item.amount), bold: true, fontSize: 11, color: SLATE8,
+        alignment: 'right', fillColor: i%2===1 ? '#f8fafc' : '#ffffff' }
+    ]),
+    [
+      { text: 'Total estimado de liquidación', bold: true, fontSize: 12, color: '#ffffff',
+        colSpan: 3, fillColor: NAVY, margin: [0,4,0,4] },
+      {}, {},
+      { text: fmtCurrency(result.total), bold: true, fontSize: 14, color: '#ffffff',
+        alignment: 'right', fillColor: NAVY, margin: [0,4,0,4] }
+    ]
+  ];
+
+  // ── V. Disclaimer ──
+  const disclaimerParagraphs = getDisclaimerText(S.country);
+  const disclaimerContent = disclaimerParagraphs.map(d => ({
+    text: [{ text: d.label + ' ', bold: true, color: AMBER_DK }, { text: d.text, color: AMBER_TXT }],
+    fontSize: 9, lineHeight: 1.55, margin: [0, 0, 0, 6]
+  }));
+
+  // ── Repeating header (table-based so fillColor works) ──
+  // Layout paddingTop/Bottom controls actual spacing — cell `margin` is overridden by layout fns
+  // margin: [-40,0,-40,0] extends the table past the page margins so fillColor fills edge-to-edge
+  const docHeader = () => ({
+    margin: [-40, 0, -40, 0],
+    table: {
+      widths: ['*', '*'],
+      body: [[
+        {
+          stack: [
+            { text: [{ text: 'Finiquito', bold: true, color: '#ffffff', fontSize: 14 },
+                     { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }],
+              margin: [0,0,0,3] },
+            { text: 'finiquitoya.app', fontSize: 7.5, color: '#8baed4' }
+          ],
+          fillColor: NAVY
+        },
+        {
+          stack: [
+            { text: 'ANÁLISIS DE LIQUIDACIÓN LABORAL', fontSize: 7.5, bold: true,
+              color: '#93c5fd', alignment: 'right' },
+            { text: `Folio ${folio}  |  ${cfg.name} · ${cfg.law}  |  ${reportDate}`,
+              fontSize: 8, color: '#8baed4', alignment: 'right', margin: [0,3,0,0] }
+          ],
+          fillColor: NAVY
+        }
+      ]]
+    },
+    layout: {
+      hLineWidth: () => 0, vLineWidth: () => 0,
+      paddingLeft: (i) => i === 0 ? 52 : 8,
+      paddingRight: (i) => i === 0 ? 8 : 52,
+      paddingTop: () => 14,
+      paddingBottom: () => 12
+    }
+  });
+
+  // ── Hero section (page 1 only) ──
+  const heroSection = {
+    margin: [0, 0, 0, 16],
+    table: {
+      widths: ['*', 'auto'],
+      body: [[
+        {
+          stack: [
+            { text: 'Total estimado de liquidación', fontSize: 8.5, color: SLATE5,
+              bold: true, margin: [0,0,0,4] },
+            { text: [
+                { text: `${cfg.currency} $`, fontSize: 13, color: NAVY },
+                { text: fmtNum(result.total) + ' ', fontSize: 36, bold: false, color: NAVY },
+                { text: cfg.currency, fontSize: 12, bold: true, color: '#3b82f6' }
+              ]
+            },
+            { text: `Estimación orientativa · ${cfg.law}`, fontSize: 10, color: SLATE5, margin: [0,4,0,0] }
+          ],
+          fillColor: '#f0f4ff',
+          margin: [16, 14, 16, 14]
+        },
+        {
+          stack: [
+            { text: termLabel, fontSize: 9.5, bold: true, color: NAVY,
+              margin: [0,0,0,4], alignment: 'right' },
+            { text: `Salario base: ${fmtCurrency(salary)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] },
+            ...(comps > 0 ? [{ text: `Sal. integrado: ${fmtCurrency(salary+comps)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] }] : []),
+            { text: `${tenureStr} de servicio`, fontSize: 9.5, color: SLATE5, alignment: 'right' }
+          ],
+          fillColor: '#f0f4ff',
+          margin: [16, 14, 16, 14]
+        }
+      ]]
+    },
+    layout: {
+      hLineWidth: (i) => i === 0 || i === 2 ? 0.5 : 0,
+      vLineWidth: () => 0.5,
+      hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+      paddingLeft: () => 0, paddingRight: () => 0,
+      paddingTop: () => 0, paddingBottom: () => 0
+    }
+  };
+
+  return {
+    pageSize: 'LETTER',
+    pageMargins: [40, 55, 40, 32],
+
+    header: docHeader,
+
+    footer: (currentPage, pageCount) => ({
+      margin: [40, 8, 40, 0],
+      columns: [
+        { text: `FiniquitoYa · Análisis de Liquidación · Folio ${folio}`, fontSize: 8, color: SLATE4 },
+        { text: `Página ${currentPage} de ${pageCount}`, fontSize: 8, color: '#cbd5e1',
+          alignment: 'right', bold: true }
+      ]
+    }),
+
+    content: [
+      // Hero
+      heroSection,
+
+      // I. Case data
+      secHead('I', 'Datos del caso'),
+      gridTable,
+      { text: '', margin: [0, 0, 0, 16] },
+
+      // II. Concept analysis
+      secHead('II', 'Análisis por concepto'),
+      ...conceptContent,
+      { text: '', margin: [0, 0, 0, 4] },
+
+      // III. Workers' rights
+      { text: '', pageBreak: 'before' },
+      secHead('III', 'Derechos del trabajador ante la terminación'),
+      ...rightsContent,
+      { text: '', margin: [0, 0, 0, 8] },
+
+      // IV. Breakdown table
+      secHead('IV', 'Cuadro de liquidación'),
+      {
+        table: {
+          widths: ['38%', '30%', '16%', '16%'],
+          headerRows: 1,
+          body: bkTableBody
+        },
+        layout: {
+          hLineWidth: () => 0.5, vLineWidth: () => 0,
+          hLineColor: () => '#f1f5f9',
+          paddingLeft: (i) => i===0 ? 10 : 10,
+          paddingRight: () => 10,
+          paddingTop: () => 8,
+          paddingBottom: () => 8
+        }
+      },
+      { text: '', margin: [0, 0, 0, 16] },
+
+      // V. Disclaimer (table for fillColor support)
+      {
+        margin: [-40, 0, -40, 0],
+        table: {
+          widths: ['*'],
+          body: [[{
+            stack: [
+              { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
+                fontSize: 8.5, bold: true, color: AMBER_DK, margin: [0, 0, 0, 8] },
+              ...disclaimerContent
+            ],
+            fillColor: AMBER_BG,
+            margin: [40, 16, 40, 16]
+          }]]
+        },
+        layout: {
+          hLineWidth: (i) => i === 0 ? 1 : 0,
+          vLineWidth: () => 0,
+          hLineColor: () => AMBER_BD,
+          paddingLeft: () => 0, paddingRight: () => 0,
+          paddingTop: () => 0, paddingBottom: () => 0
+        }
+      }
+    ],
+
+    styles: {
+      thCell: {
+        fontSize: 8.5, bold: true, color: '#ffffff', fillColor: NAVY
+      }
+    },
+
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10,
+      color: SLATE8,
+      lineHeight: 1.3
+    }
+  };
+}
+
 function generatePDF() {
   if (!window._pdfState) { alert('Realiza el cálculo primero.'); return; }
-
   const btn = document.getElementById('pdfBtn');
   btn.textContent = '⏳ Generando PDF...';
   btn.disabled = true;
-
   const folio = genFolio();
-  const htmlContent = buildPdfHtml(window._pdfState, folio);
-
-  html2pdf()
-    .set({
-      margin:     [0, 0, 0, 0],
-      filename:   `FiniquitoYa-${folio}.pdf`,
-      image:      { type: 'jpeg', quality: 0.97 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF:      { unit: 'mm', format: 'letter', orientation: 'portrait' },
-      pagebreak:  { before: '.pdf-pg2', mode: ['css', 'legacy'] }
-    })
-    .from(htmlContent)
-    .save()
-    .then(() => {
+  try {
+    const docDef = buildPdfDocDef(window._pdfState, folio);
+    pdfMake.createPdf(docDef).download(`FiniquitoYa-${folio}.pdf`, function() {
       btn.textContent = '📄 Descargar reporte PDF';
       btn.disabled = false;
     });
+  } catch(e) {
+    console.error('PDF error:', e);
+    btn.textContent = '📄 Descargar reporte PDF';
+    btn.disabled = false;
+    alert('Error al generar el PDF. Por favor intenta de nuevo.');
+  }
 }
 
 function buildPdfHtml(state, folio) {
@@ -2571,6 +3114,8 @@ function getDisclaimerHtml(country) {
 }
 
 function recalculate() {
+  sessionStorage.removeItem('fy_unlocked');
+  sessionStorage.removeItem('fy_saved_state');
   document.getElementById('results').classList.add('hidden');
   document.getElementById('progressWrap').classList.remove('hidden');
   document.getElementById('landingHero').classList.remove('hidden');
