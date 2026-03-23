@@ -2,6 +2,7 @@
   "dependencies": {
     "stripe": "^14.0.0",
     "sib-api-v3-sdk": "^8.5.0",
-    "googleapis": "^140.0.0"
+    "googleapis": "^140.0.0",
+    "pdfmake": "^0.2.10"
   }
 }
