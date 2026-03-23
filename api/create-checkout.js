@@ -13,7 +13,7 @@
 
 const stripe          = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { COUNTRY_CONFIG } = require('./lib/config');
-const { saveCalc }    = require('./lib/sheets');
+const { createTransaction } = require('./lib/sheets');
 const crypto          = require('crypto');
 
 module.exports = async (req, res) => {
@@ -38,13 +38,12 @@ module.exports = async (req, res) => {
   // Generate UUID to link this calc to the Stripe session
   const uuid = crypto.randomUUID();
 
-  // Save calc data to Google Sheets "Calculos" tab
+  // Save transaction to Google Sheets (status = "pending" until payment confirmed)
   const calcData = { tier, country, email, inputs, result };
   try {
-    await saveCalc(uuid, calcData);
+    await createTransaction(uuid, calcData);
   } catch (err) {
-    // Don't block the checkout if sheets fails — log and continue
-    console.error('saveCalc failed:', err.message);
+    console.error('createTransaction failed:', err.message);
   }
 
   // Build success/cancel URLs
