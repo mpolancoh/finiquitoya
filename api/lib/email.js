@@ -128,9 +128,8 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   if (!process.env.BREVO_API_KEY || !toEmail) return;
 
   const { country = 'mx', tier = 'premium', result = {} } = calcData;
-  const total    = result.total || 0;
-  const tierLabel = tier === 'premium' ? 'Premium' : 'Básico';
-  const pdfName   = `liquidacion_${country}_${tier}.pdf`;
+  const total   = result.total || 0;
+  const pdfName = `reporte_liquidacion_${country}.pdf`;
 
   const isPremium = tier === 'premium';
   const api = getBrevoApi();
@@ -151,7 +150,7 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   const emailBody = {
     sender: { name: 'FiniquitoYa', email: 'noreply@finiquitoya.app' },
     to: [{ email: toEmail }],
-    subject: `Tu reporte FiniquitoYa ${tierLabel} — ${fmtCurrency(total, country)}`,
+    subject: `Tu reporte de liquidación — ${fmtCurrency(total, country)}`,
     htmlContent: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1e293b">
 
@@ -162,28 +161,13 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
 
         <h2 style="color:#1e3a8a;font-size:18px">Tu reporte está listo ✓</h2>
 
-        <p style="color:#475569">Gracias por tu compra. Tu reporte de liquidación <strong>${tierLabel}</strong> se adjunta a este correo como archivo PDF.</p>
+        <p style="color:#475569">Gracias por tu compra. Tu reporte de liquidación se adjunta a este correo como archivo PDF.</p>
 
         <div style="background:#dbeafe;border-radius:8px;padding:16px 20px;margin:20px 0">
           <p style="margin:0;font-size:13px;color:#1e40af"><strong>Tu liquidación estimada:</strong></p>
           <p style="margin:8px 0 0 0;font-size:26px;font-weight:bold;color:#1e3a8a">${fmtCurrency(total, country)}</p>
           <p style="margin:4px 0 0 0;font-size:11px;color:#64748b">Estimación basada en los datos proporcionados · no constituye asesoría legal</p>
         </div>
-
-        ${isPremium ? `
-        <div style="margin:20px 0">
-          <h3 style="color:#1e3a8a;font-size:15px;margin-bottom:8px">¿Qué incluye tu reporte Premium?</h3>
-          <ul style="color:#475569;font-size:13px;padding-left:20px;margin:0">
-            <li style="margin-bottom:4px">Desglose detallado de todos los conceptos</li>
-            <li style="margin-bottom:4px">Guía de negociación con tu empleador</li>
-            <li style="margin-bottom:4px">Carta lista para enviar a tu empresa (ver abajo)</li>
-          </ul>
-        </div>
-        ` : `
-        <div style="margin:20px 0;padding:16px;background:#fef9c3;border-radius:8px;border:1px solid #fde047">
-          <p style="margin:0;font-size:13px;color:#92400e">¿Quieres el reporte PDF completo con carta de negociación? Visita <a href="https://finiquitoya.app" style="color:#1d4ed8">finiquitoya.app</a> para actualizar a Premium.</p>
-        </div>
-        `}
 
         ${employerLetterSection}
 
@@ -196,12 +180,8 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
     `
   };
 
-  // Attach PDF only for premium (or always — it's already generated)
   if (pdfBuffer) {
-    emailBody.attachment = [{
-      content: pdfBuffer.toString('base64'),
-      name:    pdfName
-    }];
+    emailBody.attachment = [{ content: pdfBuffer.toString('base64'), name: pdfName }];
   }
 
   await api.sendTransacEmail(emailBody);
