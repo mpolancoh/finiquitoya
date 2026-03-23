@@ -1122,25 +1122,59 @@ const STRIPE_LINKS = {
   }
 })();
 
-function goToStripe(tier) {
-  // Save form state so we can restore it after payment redirect
+async function goToStripe(tier) {
+  // 1. Collect current form inputs
+  const salary    = document.getElementById('salary').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate   = document.getElementById('endDate').value;
+  const unusedVac = document.getElementById('unusedVac').value;
+  const bonuses   = (document.getElementById('bonuses').value || '0');
+  const termType  = (document.querySelector('input[name="tt"]:checked') || {}).value || 'dismissal';
+  const comps     = Array.from(document.querySelectorAll('#compGrid .comp-input'))
+                      .map(i => ({ id: i.id.replace('comp_', ''), v: i.value }));
+
+  // 2. Save form state so we can restore it after payment redirect
   try {
-    const state = {
-      country: S.country,
-      salary: document.getElementById('salary').value,
-      startDate: document.getElementById('startDate').value,
-      endDate: document.getElementById('endDate').value,
-      unusedVac: document.getElementById('unusedVac').value,
-      bonuses: (document.getElementById('bonuses').value || '0'),
-      termType: (document.querySelector('input[name="tt"]:checked') || {}).value || 'dismissal',
-      aguinaldoPaid: S.aguinaldoPaid,
-      comps: Array.from(document.querySelectorAll('#compGrid .comp-input'))
-               .map(i => ({ id: i.id.replace('comp_', ''), v: i.value }))
-    };
-    sessionStorage.setItem('fy_saved_state', JSON.stringify(state));
+    sessionStorage.setItem('fy_saved_state', JSON.stringify({
+      country: S.country, salary, startDate, endDate, unusedVac,
+      bonuses, termType, aguinaldoPaid: S.aguinaldoPaid, comps
+    }));
   } catch(e) {}
-  const lnk = STRIPE_LINKS[S.country]?.[tier];
-  if (lnk) window.location.href = lnk;
+
+  // 3. Build the calc data payload to send to the server
+  //    window._pdfState holds the last calculated result (set in renderResults)
+  const calcPayload = {
+    tier,
+    country: S.country,
+    inputs: {
+      salary, startDate, endDate, termType, unusedVac, bonuses,
+      aguinaldoPaid: S.aguinaldoPaid, comps
+    },
+    result: window._pdfState ? window._pdfState.result : {}
+  };
+
+  // 4. Show a loading indicator on the pay button
+  const btn = document.querySelector('#payModal .btn-calc');
+  if (btn) { btn.textContent = '⏳ Redirigiendo...'; btn.disabled = true; }
+
+  // 5. Call /api/create-checkout and redirect to the Stripe URL it returns
+  try {
+    const response = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(calcPayload)
+    });
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || 'No URL returned');
+    }
+  } catch (err) {
+    console.error('create-checkout failed:', err);
+    if (btn) { btn.textContent = 'Error. Intenta de nuevo'; btn.disabled = false; }
+    alert('Hubo un problema al iniciar el pago. Por favor intenta de nuevo.');
+  }
 }
 
 /* ─────────────────────────────────────────────
