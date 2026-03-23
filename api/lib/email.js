@@ -1,7 +1,10 @@
 // Email templates and sending helpers using Brevo (sib-api-v3-sdk)
 //
-// sendCustomerEmail(toEmail, calcData, pdfBuffer) — sends PDF to customer
-// sendAdminNotification(data)                     — sends sale alert to admin
+// sendCustomerEmail(toEmail, calcData, pdfBuffer) — sends report to customer
+//   Basic:   breakdown table in email body, no PDF attachment
+//   Premium: cover note + PDF attachment + employer letter
+//
+// sendAdminNotification(data) — sends sale alert to admin
 
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 
@@ -11,12 +14,24 @@ const COUNTRY_LABELS = {
   ve: 'Venezuela'
 };
 
+const COUNTRY_CURRENCY = {
+  mx: 'MXN',
+  co: 'COP',
+  ve: 'USD'
+};
+
+const LAW_LABELS = {
+  mx: 'Ley Federal del Trabajo (LFT)',
+  co: 'Código Sustantivo del Trabajo (CST)',
+  ve: 'LOTTT'
+};
+
 const TERM_TYPE_LABELS = {
   dismissal:    'Despido injustificado',
   resignation:  'Renuncia voluntaria',
-  justified:    'Despido justificado',
-  mutual:       'Mutuo acuerdo',
-  constructive: 'Renuncia por causas imputables al patrón'
+  justified:    'Despido con justa causa',
+  mutual:       'Terminación por mutuo acuerdo',
+  constructive: 'Renuncia por causas imputables al empleador'
 };
 
 function getBrevoApi() {
@@ -26,8 +41,7 @@ function getBrevoApi() {
 }
 
 function fmtCurrency(value, country) {
-  const symbols = { mx: 'MXN', co: 'COP', ve: 'USD' };
-  const symbol = symbols[country] || '';
+  const symbol = COUNTRY_CURRENCY[country] || '';
   const formatted = Number(value || 0).toLocaleString('es-MX', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -35,152 +49,357 @@ function fmtCurrency(value, country) {
   return `${formatted} ${symbol}`;
 }
 
-// ── Employer letter templates by country ─────────────────────────────────────
+// ── Breakdown table (for Basic email) ────────────────────────────────────────
+// Mirrors the visual style of the in-app breakdown table using inline styles.
+
+function buildBreakdownTable(items, total, country) {
+  if (!items || !items.length) return '';
+
+  const currency = COUNTRY_CURRENCY[country] || '';
+
+  const rowsBg = ['#ffffff', '#f0f6ff'];
+  let rows = items.map((item, i) => `
+    <tr style="background:${rowsBg[i % 2]}">
+      <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;vertical-align:top">
+        <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:2px">${item.name}</div>
+        <div style="font-size:11px;color:#64748b;margin-bottom:2px">${item.calc || ''}</div>
+        <div style="font-size:10px;color:#94a3b8">${item.law || ''}</div>
+      </td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;white-space:nowrap">
+        <span style="font-size:13px;font-weight:700;color:#1d4ed8">${Number(item.amount||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-family:sans-serif;margin:20px 0">
+      <thead>
+        <tr style="background:#1d4ed8">
+          <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:#ffffff">Concepto</th>
+          <th style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:#ffffff">Monto (${currency})</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr style="background:#dbeafe">
+          <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#1e3a8a">TOTAL ESTIMADO</td>
+          <td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:900;color:#1e3a8a;white-space:nowrap">
+            ${Number(total||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Employer letter (Premium only, by country) ────────────────────────────────
 
 function buildEmployerLetter(calcData) {
   const { country = 'mx', inputs = {}, result = {} } = calcData;
   const total     = result.total || 0;
   const termLabel = TERM_TYPE_LABELS[inputs.termType] || inputs.termType || 'separación laboral';
-  const countryLabel = COUNTRY_LABELS[country] || country;
+  const currency  = COUNTRY_CURRENCY[country] || '';
+
+  const totalFormatted = `${Number(total).toLocaleString('es-MX', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  })} ${currency}`;
 
   const templates = {
     mx: `
-      <p>[Ciudad], [Fecha]</p>
-      <br>
-      <p><strong>[Nombre del trabajador]</strong><br>
-      C.P. [Código postal], México</p>
-      <br>
-      <p>Por medio de la presente, yo <strong>[Tu nombre completo]</strong>, con número de empleado <strong>[Número de empleado]</strong>, me dirijo a ustedes de manera respetuosa para solicitar el pago completo de mi liquidación correspondiente a mi relación laboral que concluyó el <strong>[Fecha de salida]</strong> por motivo de <strong>${termLabel}</strong>, conforme a lo establecido en la Ley Federal del Trabajo.</p>
-      <br>
-      <p>De acuerdo con el cálculo realizado conforme a los artículos 76, 87, 162 y demás aplicables de la Ley Federal del Trabajo, el monto total de mi liquidación es de:</p>
-      <br>
-      <p style="text-align:center;font-size:20px;font-weight:bold;color:#1e3a8a">${fmtCurrency(total, country)}</p>
-      <br>
-      <p>Dicho monto incluye los conceptos de partes proporcionales de aguinaldo, vacaciones, prima vacacional, y demás prestaciones de ley que me corresponden. Se adjunta el reporte detallado de liquidación generado mediante FiniquitoYa.</p>
-      <br>
-      <p>Solicito respetuosamente que procedan a realizar el pago dentro de los próximos <strong>5 días hábiles</strong>. De no recibir respuesta en dicho plazo, me veré en la necesidad de acudir a las instancias legales correspondientes ante la Junta de Conciliación y Arbitraje.</p>
-      <br>
-      <p>Quedo en espera de su pronta respuesta.</p>
-      <br>
-      <p>Atentamente,</p>
-      <br>
-      <p><strong>[Tu nombre completo]</strong><br>
-      [Tu teléfono]<br>
-      [Tu correo electrónico]</p>
+      <p style="margin:0 0 12px 0">[Ciudad], [Fecha]</p>
+
+      <p style="margin:0 0 12px 0">
+        <strong>[Nombre del responsable de Recursos Humanos o representante legal]</strong><br>
+        <strong>[Nombre de la empresa]</strong><br>
+        México
+      </p>
+
+      <p style="margin:0 0 12px 0">Estimado(a) señor(a):</p>
+
+      <p style="margin:0 0 12px 0">
+        Por medio de la presente me dirijo a usted de manera respetuosa. Mi nombre es <strong>[Tu nombre completo]</strong>
+        y laboré en esta empresa desde el <strong>[Fecha de ingreso]</strong> hasta el <strong>[Fecha de salida]</strong>,
+        fecha en que se dio por concluida la relación laboral por motivo de <strong>${termLabel}</strong>.
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        Conforme a los derechos que me asisten según la Ley Federal del Trabajo (LFT), y con base en el cálculo
+        detallado que adjunto a este correo, el monto total de mi liquidación asciende a:
+      </p>
+
+      <p style="margin:0 0 12px 0;font-size:18px;font-weight:bold">
+        ${totalFormatted}
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        Este monto contempla los conceptos que me corresponden por ley, incluyendo partes proporcionales de aguinaldo,
+        vacaciones, prima vacacional, prima de antigüedad e indemnización, según corresponda al tipo de separación.
+        El reporte detallado con cada concepto y su fundamento legal se adjunta a este correo.
+      </p>
+
+      <p style="margin:0 0 6px 0"><strong>Próximos pasos que les propongo:</strong></p>
+      <ol style="margin:0 0 12px 0;padding-left:20px;line-height:1.8">
+        <li>Revisen el reporte adjunto y confirmen los datos de la relación laboral.</li>
+        <li>Acordemos la forma y fecha de pago a la brevedad posible para evitar inconvenientes mayores.</li>
+        <li>Si hay algún concepto en discusión, estoy dispuesto(a) a dialogar y llegar a un acuerdo justo.</li>
+        <li>De no lograrse un acuerdo, me veré en la necesidad de acudir a las instancias legales correspondientes,
+            incluyendo la Junta de Conciliación y Arbitraje o la PROFEDET.</li>
+      </ol>
+
+      <p style="margin:0 0 12px 0">
+        Confío en que podemos resolver esto de manera directa y amistosa. Quedo a su disposición para cualquier
+        aclaración que requieran.
+      </p>
+
+      <p style="margin:0 0 6px 0">Atentamente,</p>
+      <ul style="margin:0;padding-left:0;list-style:none;line-height:1.9">
+        <li><strong>[Tu nombre completo]</strong></li>
+        <li>CURP / No. de empleado: [Tu CURP o número de empleado]</li>
+        <li>Teléfono: [Tu teléfono]</li>
+        <li>Correo: [Tu correo electrónico]</li>
+      </ul>
     `,
+
     co: `
-      <p>[Ciudad], [Fecha]</p>
-      <br>
-      <p><strong>Recursos Humanos / Representante Legal</strong><br>
-      <strong>[Nombre de la empresa]</strong><br>
-      Colombia</p>
-      <br>
-      <p>Respetados señores:</p>
-      <br>
-      <p>Yo, <strong>[Tu nombre completo]</strong>, identificado(a) con cédula de ciudadanía No. <strong>[Tu número de cédula]</strong>, quien laboré en esta empresa desde <strong>[Fecha de ingreso]</strong> hasta el <strong>[Fecha de salida]</strong>, mediante el presente escrito solicito el pago de mi liquidación de prestaciones sociales y demás acreencias laborales, conforme a lo establecido en el Código Sustantivo del Trabajo.</p>
-      <br>
-      <p>El monto total calculado de acuerdo con la normatividad colombiana vigente es de:</p>
-      <br>
-      <p style="text-align:center;font-size:20px;font-weight:bold;color:#1e3a8a">${fmtCurrency(total, country)}</p>
-      <br>
-      <p>Este valor comprende cesantías, intereses sobre cesantías, prima de servicios, vacaciones proporcionales y demás conceptos que me corresponden por ley. Se adjunta el reporte detallado.</p>
-      <br>
-      <p>Solicito comedidamente que el pago sea realizado dentro de los próximos <strong>5 días hábiles</strong>. De lo contrario, acudiré al Ministerio del Trabajo o a la justicia ordinaria laboral para hacer valer mis derechos.</p>
-      <br>
-      <p>Cordialmente,</p>
-      <br>
-      <p><strong>[Tu nombre completo]</strong><br>
-      C.C. [Tu número de cédula]<br>
-      [Tu teléfono] · [Tu correo electrónico]</p>
+      <p style="margin:0 0 12px 0">[Ciudad], [Fecha]</p>
+
+      <p style="margin:0 0 12px 0">
+        <strong>Recursos Humanos / Representante Legal</strong><br>
+        <strong>[Nombre de la empresa]</strong><br>
+        Colombia
+      </p>
+
+      <p style="margin:0 0 12px 0">Respetados señores:</p>
+
+      <p style="margin:0 0 12px 0">
+        Mi nombre es <strong>[Tu nombre completo]</strong>, identificado(a) con cédula de ciudadanía
+        No. <strong>[Tu número de cédula]</strong>. Laboré en esta empresa desde el
+        <strong>[Fecha de ingreso]</strong> hasta el <strong>[Fecha de salida]</strong>,
+        fecha en la que se dio por terminada la relación laboral por <strong>${termLabel}</strong>.
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        Con base en el Código Sustantivo del Trabajo y en el cálculo detallado que adjunto, el monto
+        total de mis acreencias laborales es de:
+      </p>
+
+      <p style="margin:0 0 12px 0;font-size:18px;font-weight:bold">
+        ${totalFormatted}
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        Este valor comprende cesantías, intereses sobre cesantías, prima de servicios, vacaciones proporcionales
+        e indemnización por despido, según corresponda. Todos los conceptos se encuentran detallados en el reporte
+        adjunto, con su fórmula de cálculo y el artículo del CST que los respalda.
+      </p>
+
+      <p style="margin:0 0 6px 0"><strong>Propuesta de gestión:</strong></p>
+      <ol style="margin:0 0 12px 0;padding-left:20px;line-height:1.8">
+        <li>Les invito a revisar el reporte adjunto y validar los datos registrados.</li>
+        <li>Podemos coordinar el pago o acuerdo de pago de forma directa y ágil.</li>
+        <li>Si existe alguna discrepancia, estoy abierto(a) al diálogo para llegar a un acuerdo mutuo.</li>
+        <li>En caso de no llegar a un entendimiento, acudiré al Ministerio del Trabajo o a la jurisdicción
+            laboral ordinaria para hacer valer mis derechos. Recuerden que el artículo 65 del CST establece
+            sanción moratoria por retardo en el pago de la liquidación.</li>
+      </ol>
+
+      <p style="margin:0 0 12px 0">
+        Espero que podamos resolver este asunto de manera directa. Quedo atento(a) a su respuesta.
+      </p>
+
+      <p style="margin:0 0 6px 0">Cordialmente,</p>
+      <ul style="margin:0;padding-left:0;list-style:none;line-height:1.9">
+        <li><strong>[Tu nombre completo]</strong></li>
+        <li>C.C.: [Tu número de cédula]</li>
+        <li>Teléfono: [Tu teléfono]</li>
+        <li>Correo: [Tu correo electrónico]</li>
+      </ul>
     `,
+
     ve: `
-      <p>[Ciudad], [Fecha]</p>
-      <br>
-      <p><strong>[Nombre del empleador o empresa]</strong><br>
-      Venezuela</p>
-      <br>
-      <p>Estimados señores:</p>
-      <br>
-      <p>Por medio de la presente, yo <strong>[Tu nombre completo]</strong>, titular de la cédula de identidad No. <strong>[Tu número de cédula]</strong>, trabajador(a) de esta empresa desde <strong>[Fecha de ingreso]</strong>, habiendo culminado la relación laboral el día <strong>[Fecha de salida]</strong>, me dirijo a ustedes a los fines de exigir el pago de mis prestaciones sociales y demás beneficios que me corresponden conforme a la LOTTT (Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras).</p>
-      <br>
-      <p>El monto total calculado es de:</p>
-      <br>
-      <p style="text-align:center;font-size:20px;font-weight:bold;color:#1e3a8a">${fmtCurrency(total, country)}</p>
-      <br>
-      <p>Dicho monto comprende prestaciones sociales, utilidades fraccionadas, vacaciones y bono vacacional proporcionales y demás conceptos legales. Se adjunta el reporte de liquidación detallado.</p>
-      <br>
-      <p>Le otorgo un plazo de <strong>5 días hábiles</strong> para proceder al pago. Vencido dicho plazo sin respuesta favorable, acudiré ante la Inspectoría del Trabajo u otros órganos competentes.</p>
-      <br>
-      <p>Atentamente,</p>
-      <br>
-      <p><strong>[Tu nombre completo]</strong><br>
-      C.I. [Tu número de cédula]<br>
-      [Tu teléfono] · [Tu correo electrónico]</p>
+      <p style="margin:0 0 12px 0">[Ciudad], [Fecha]</p>
+
+      <p style="margin:0 0 12px 0">
+        <strong>[Nombre del empleador o representante de la empresa]</strong><br>
+        <strong>[Nombre de la empresa]</strong><br>
+        Venezuela
+      </p>
+
+      <p style="margin:0 0 12px 0">Estimados señores:</p>
+
+      <p style="margin:0 0 12px 0">
+        Por medio de la presente, yo <strong>[Tu nombre completo]</strong>, titular de la cédula de identidad
+        No. <strong>[Tu número de cédula]</strong>, quien prestó servicios en esta empresa desde el
+        <strong>[Fecha de ingreso]</strong> hasta el <strong>[Fecha de salida]</strong>, fecha en que culminó
+        la relación laboral por <strong>${termLabel}</strong>, me dirijo a ustedes para solicitar el pago
+        oportuno de mis prestaciones sociales y demás beneficios laborales conforme a la
+        Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (LOTTT).
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        De acuerdo con el cálculo realizado conforme a la legislación vigente, el monto total al que
+        tengo derecho es de:
+      </p>
+
+      <p style="margin:0 0 12px 0;font-size:18px;font-weight:bold">
+        ${totalFormatted}
+      </p>
+
+      <p style="margin:0 0 12px 0">
+        Este monto comprende prestaciones sociales (Art. 142 LOTTT), utilidades fraccionadas, vacaciones
+        proporcionales, bono vacacional e indemnización por despido injustificado, según aplique.
+        El reporte detallado con cada concepto y su base de cálculo se adjunta a este correo.
+      </p>
+
+      <p style="margin:0 0 6px 0"><strong>Pasos sugeridos para resolver esto de forma ágil:</strong></p>
+      <ol style="margin:0 0 12px 0;padding-left:20px;line-height:1.8">
+        <li>Revisen el reporte adjunto y confirmen los datos de la relación laboral.</li>
+        <li>Coordinen conmigo la forma y fecha de pago a la brevedad.</li>
+        <li>Si hay algún punto en discusión, propongo abordarlo directamente para llegar a un acuerdo.</li>
+        <li>De no obtenerse respuesta, acudiré ante la Inspectoría del Trabajo o los Tribunales Laborales
+            para hacer valer mis derechos conforme a la LOTTT.</li>
+      </ol>
+
+      <p style="margin:0 0 12px 0">
+        Confío en una pronta y satisfactoria respuesta de su parte.
+      </p>
+
+      <p style="margin:0 0 6px 0">Atentamente,</p>
+      <ul style="margin:0;padding-left:0;list-style:none;line-height:1.9">
+        <li><strong>[Tu nombre completo]</strong></li>
+        <li>C.I.: [Tu número de cédula]</li>
+        <li>Teléfono: [Tu teléfono]</li>
+        <li>Correo: [Tu correo electrónico]</li>
+      </ul>
     `
   };
 
   return templates[country] || templates.mx;
 }
 
-// ── Customer email with PDF attachment ───────────────────────────────────────
+// ── Customer email ────────────────────────────────────────────────────────────
+//
+//  Basic:   breakdown table with colors in email body, no PDF attachment
+//  Premium: brief cover note from FiniquitoYa + PDF attachment + employer letter
 
 async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   if (!process.env.BREVO_API_KEY || !toEmail) return;
 
-  const { country = 'mx', tier = 'premium', result = {} } = calcData;
-  const total   = result.total || 0;
-  const pdfName = `reporte_liquidacion_${country}.pdf`;
+  const { country = 'mx', tier = 'premium', result = {}, inputs = {} } = calcData;
+  const total      = result.total || 0;
+  const items      = result.items || [];
+  const isPremium  = tier === 'premium';
+  const pdfName    = `reporte_liquidacion_${country}.pdf`;
+  const countryLbl = COUNTRY_LABELS[country] || country;
+  const lawLbl     = LAW_LABELS[country]     || '';
+  const api        = getBrevoApi();
 
-  const isPremium = tier === 'premium';
-  const api = getBrevoApi();
-
-  const employerLetterSection = isPremium ? `
-    <div style="margin-top:32px;padding:20px;background:#f8fafc;border-left:4px solid #1d4ed8;border-radius:4px">
-      <h3 style="color:#1e3a8a;margin:0 0 8px 0;font-size:15px">Carta para tu empleador</h3>
-      <p style="color:#475569;font-size:13px;margin:0 0 12px 0">
-        Puedes reenviar este correo a tu empleador, o copiar la carta de abajo y enviarla por separado.
-        <strong>Recuerda reemplazar los campos en [corchetes] con tu información real.</strong>
-      </p>
-      <div style="font-family:serif;font-size:13px;color:#1e293b;line-height:1.8;border:1px solid #e2e8f0;padding:20px;background:#fff;border-radius:4px">
-        ${buildEmployerLetter(calcData)}
+  // ── Shared header ──────────────────────────────────────────────────────────
+  const emailHeader = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1e293b">
+      <div style="margin-bottom:24px">
+        <p style="margin:0;font-size:22px;font-weight:700;color:#1e3a8a">FiniquitoYa</p>
+        <p style="margin:2px 0 0 0;font-size:12px;color:#94a3b8">finiquitoya.app</p>
       </div>
+  `;
+
+  const emailFooter = `
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0"/>
+      <p style="font-size:11px;color:#94a3b8;margin:0">
+        FiniquitoYa · finiquitoya.app<br>
+        Este es un mensaje automático. Por favor no respondas directamente a este correo.<br>
+        Esta estimación es orientativa y no constituye asesoría legal.
+      </p>
     </div>
-  ` : '';
+  `;
+
+  let htmlContent, subject;
+
+  if (isPremium) {
+    // ── PREMIUM: cover note + PDF attachment + employer letter ──────────────
+    subject = `Tu reporte de liquidación — ${fmtCurrency(total, country)}`;
+
+    const employerLetter = buildEmployerLetter(calcData);
+
+    htmlContent = `
+      ${emailHeader}
+
+      <h2 style="font-size:18px;margin:0 0 12px 0;color:#1e3a8a">Gracias por tu compra ✓</h2>
+
+      <p style="font-size:14px;line-height:1.7;margin:0 0 16px 0">
+        Hemos generado tu reporte de liquidación laboral para <strong>${countryLbl}</strong>,
+        basado en la <strong>${lawLbl}</strong>. Lo encontrarás adjunto a este correo en formato PDF.
+      </p>
+
+      <p style="font-size:14px;line-height:1.7;margin:0 0 16px 0">
+        Tu reporte incluye el desglose completo de cada concepto, la fórmula de cálculo aplicada,
+        el artículo de ley que lo respalda, y una guía con tus derechos y próximos pasos si necesitas
+        reclamar el pago.
+      </p>
+
+      <p style="font-size:14px;line-height:1.7;margin:0 0 24px 0">
+        Más abajo encontrarás también una <strong>carta lista para enviar a tu empleador</strong>.
+        Solo reemplaza los campos en <strong>[corchetes]</strong> con tu información real.
+        Puedes copiar el texto, enviarlo como correo o imprimirlo.
+      </p>
+
+      <div style="background:#f1f5f9;border-radius:8px;padding:16px 20px;margin:0 0 24px 0;font-size:13px;color:#475569">
+        <strong>Total estimado de tu liquidación:</strong>
+        <span style="font-size:20px;font-weight:bold;color:#1e3a8a;margin-left:12px">${fmtCurrency(total, country)}</span>
+      </div>
+
+      <hr style="border:none;border-top:2px solid #e2e8f0;margin:32px 0"/>
+
+      <h3 style="font-size:16px;margin:0 0 6px 0;color:#1e293b">Carta para tu empleador</h3>
+      <p style="font-size:12px;color:#64748b;margin:0 0 16px 0">
+        Reemplaza todos los campos en <strong>[corchetes]</strong> antes de enviarla.
+      </p>
+
+      <div style="font-family:Georgia,serif;font-size:13px;color:#1e293b;line-height:1.9;
+                  border:1px solid #cbd5e1;padding:28px;background:#ffffff;border-radius:4px">
+        ${employerLetter}
+      </div>
+
+      ${emailFooter}
+    `;
+
+  } else {
+    // ── BASIC: breakdown table in body, no PDF ──────────────────────────────
+    subject = `Tu desglose de liquidación — ${fmtCurrency(total, country)}`;
+
+    const table = buildBreakdownTable(items, total, country);
+
+    htmlContent = `
+      ${emailHeader}
+
+      <h2 style="font-size:18px;margin:0 0 12px 0;color:#1e3a8a">Tu desglose está listo ✓</h2>
+
+      <p style="font-size:14px;line-height:1.7;margin:0 0 16px 0">
+        Aquí tienes el desglose completo de tu liquidación en <strong>${countryLbl}</strong>,
+        calculado conforme a la <strong>${lawLbl}</strong>.
+      </p>
+
+      ${table}
+
+      <p style="font-size:12px;color:#64748b;line-height:1.6;margin:0 0 24px 0">
+        Cada concepto incluye la fórmula de cálculo y el artículo de ley que lo respalda.
+        Esta es una estimación orientativa; los montos reales pueden variar según tu contrato o
+        convenio colectivo.
+      </p>
+
+      ${emailFooter}
+    `;
+  }
 
   const emailBody = {
     sender: { name: 'FiniquitoYa', email: 'noreply@finiquitoya.app' },
-    to: [{ email: toEmail }],
-    subject: `Tu reporte de liquidación — ${fmtCurrency(total, country)}`,
-    htmlContent: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1e293b">
-
-        <div style="text-align:center;margin-bottom:24px">
-          <h1 style="color:#1e3a8a;margin:0;font-size:24px">FiniquitoYa</h1>
-          <p style="color:#64748b;font-size:12px;margin:4px 0 0 0">finiquitoya.app</p>
-        </div>
-
-        <h2 style="color:#1e3a8a;font-size:18px">Tu reporte está listo ✓</h2>
-
-        <p style="color:#475569">Gracias por tu compra. Tu reporte de liquidación se adjunta a este correo como archivo PDF.</p>
-
-        <div style="background:#dbeafe;border-radius:8px;padding:16px 20px;margin:20px 0">
-          <p style="margin:0;font-size:13px;color:#1e40af"><strong>Tu liquidación estimada:</strong></p>
-          <p style="margin:8px 0 0 0;font-size:26px;font-weight:bold;color:#1e3a8a">${fmtCurrency(total, country)}</p>
-          <p style="margin:4px 0 0 0;font-size:11px;color:#64748b">Estimación basada en los datos proporcionados · no constituye asesoría legal</p>
-        </div>
-
-        ${employerLetterSection}
-
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0"/>
-        <p style="color:#94a3b8;font-size:11px;margin:0">
-          FiniquitoYa · finiquitoya.app<br>
-          Este es un mensaje automático. Por favor no respondas directamente a este correo.
-        </p>
-      </div>
-    `
+    to:     [{ email: toEmail }],
+    subject,
+    htmlContent
   };
 
-  if (pdfBuffer) {
+  // PDF attached only for Premium
+  if (isPremium && pdfBuffer) {
     emailBody.attachment = [{ content: pdfBuffer.toString('base64'), name: pdfName }];
   }
 
