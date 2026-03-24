@@ -1704,6 +1704,7 @@ function calculateMexico(d) {
   const hasComponents = salaryIntegrated > salary || integrationFactor > 1;
 
   const items = [];
+  const warnings = [];
   let total = 0;
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
 
@@ -1733,6 +1734,21 @@ function calculateMexico(d) {
         `12 días × ${fmtCurrency(cappedSDI)}/día${capNote} × ${totalYears.toFixed(2)} años`,
         'LFT Art. 162',
         12 * cappedSDI * totalYears); // Art. 162 LFT: 12 días por año
+  }
+  // Art. 162 LFT — criterio en disputa para despido justificado con 15+ años
+  // Para trabajadores con < 15 años: no hay derecho a prima de antigüedad en despido justificado.
+  // Para trabajadores con 15+ años: existe criterio jurisprudencial que puede reconocerla.
+  // Se muestra como monto en disputa FUERA del total, no como concepto confirmado.
+  if (termType === 'justified' && completedYears >= 15) {
+    const capNote = SDI > 2*MIN_WAGE_MX ? ` (cap. ${fmtCurrency(cappedSDI)}/día)` : '';
+    const paDisputedAmt = 12 * cappedSDI * totalYears;
+    warnings.push({
+      concept: 'Prima de antigüedad (criterio en disputa)',
+      calc: `12 días × ${fmtCurrency(cappedSDI)}/día${capNote} × ${totalYears.toFixed(2)} años`,
+      law: 'Art. 162 LFT',
+      amount: paDisputedAmt,
+      message: `Con ${completedYears} años de servicio, existe criterio jurisprudencial que sostiene que la prima de antigüedad puede corresponder incluso en despido justificado. Este monto NO está incluido en el total — se recomienda consulta con abogado laboral antes de cualquier acuerdo.`
+    });
   }
 
   // 4. Vacaciones proporcionales
@@ -1774,7 +1790,7 @@ function calculateMexico(d) {
     add('Bonos / comisiones pendientes', 'Monto indicado por el trabajador', 'LFT Art. 84', bonuses);
   }
 
-  return { items, total, SDB, SDI, hasComponents };
+  return { items, total, SDB, SDI, hasComponents, warnings };
   } catch(e) {
     console.error('calculateMexico error:', e);
     return null;
@@ -2095,6 +2111,22 @@ function calculate() {
       <div class="bt-name">Total estimado</div>
       <div class="bt-amount">${fmtCurrency(result.total)}</div>
     </div>`;
+  // Disputed items: shown outside the total with a prominent warning
+  if (result.warnings && result.warnings.length) {
+    result.warnings.forEach(w => {
+      rows += `
+        <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div style="flex:1">
+              <div style="font-weight:700;color:#92400e;font-size:13.5px;margin-bottom:4px">⚠️ ${w.concept}</div>
+              <div style="font-size:11.5px;color:#b45309;margin-bottom:6px">${w.calc} · <strong>${w.law}</strong></div>
+              <div style="font-size:12px;color:#78350f;line-height:1.55">${w.message}</div>
+            </div>
+            <div style="font-size:17px;font-weight:700;color:#92400e;white-space:nowrap;padding-top:2px">${fmtCurrency(w.amount)}</div>
+          </div>
+        </div>`;
+    });
+  }
   document.getElementById('breakdownBody').innerHTML = rows;
 
   // Show/hide paywall, upgrade panel, and PDF button based on tier
