@@ -1025,7 +1025,7 @@
     </div>
 
     <!-- Lawyer tiers -->
-    <div class="lawyer-section" id="lawyerSection">
+    <div class="lawyer-section" id="lawyerSection" style="display:none">
       <p class="lawyer-section-title">¿Quieres apoyo legal?</p>
       <div id="lawyerTiersContainer"></div>
     </div>
@@ -2070,11 +2070,11 @@ function calculate() {
   if (unlockedTier === 'premium') {
     pdfBtn.classList.remove('hidden');
     if (pdfNameWrap) {
-      pdfNameWrap.style.display = '';
-      const nameInp = document.getElementById('pdfNameInput');
-      if (nameInp && !nameInp.value) {
-        nameInp.value = sessionStorage.getItem('fy_saved_name') || '';
-      }
+      const savedName = sessionStorage.getItem('fy_saved_name') || '';
+      const nameInp   = document.getElementById('pdfNameInput');
+      if (nameInp) nameInp.value = savedName;
+      // Hide the input if we already have a name from payment modal
+      pdfNameWrap.style.display = savedName ? 'none' : '';
     }
   } else {
     pdfBtn.classList.add('hidden');
