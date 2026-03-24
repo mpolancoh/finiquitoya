@@ -1249,8 +1249,11 @@ async function goToStripe(tier, email) {
 ───────────────────────────────────────────── */
 const S = { country: 'mx', termType: 'dismissal', aguinaldoPaid: false, compOpen: false };
 const MIN_WAGE_MX = 248.93; // MXN daily, 2024
-const SMMLV_CO    = 1423500; // COP monthly, 2025 (Decreto 2706 de 2024)
-const TRANSPORT_CO = 174786; // COP monthly, 2025 (Decreto 2707 de 2024)
+// ─── Colombia labor constants — update every January per Gobierno Nacional decree ───
+// Fuente: Decreto salarial anual — vigente 1 ene 2026. Verificar y actualizar cada enero.
+const SMMLV_CO           = 1_750_905; // COP/month (Decreto 2977 de 2025)
+const TRANSPORT_CO       =   249_095; // COP/month auxilio de transporte (Decreto 2978 de 2025)
+const TRANSPORT_THRESHOLD = 2 * SMMLV_CO; // salary ≤ this gets the transport allowance (Art. 1 Decreto 2978)
 
 /* ─────────────────────────────────────────────
    COUNTRY CONFIG
@@ -1809,7 +1812,7 @@ function calculateColombia(d) {
   const totalDays  = (end - start) / 86400000;
   const totalYears = totalDays / 365;
 
-  const hasTransport = salary <= 2 * SMMLV_CO;
+  const hasTransport = salary <= TRANSPORT_THRESHOLD;
   const salaryForCes = hasTransport ? salary + TRANSPORT_CO : salary;
   const SDB  = salary / 30;
 
@@ -1820,7 +1823,7 @@ function calculateColombia(d) {
   // 1. Cesantias (Art. 249 CST)
   const cesantias = (salaryForCes * totalDays) / 360; // Art. 249 CST: 1 mes por año
   add('Cesantías',
-      `${fmtCurrency(salaryForCes)}/mes × ${totalDays.toFixed(0)} días / 360${hasTransport ? ' (incl. aux. transporte $162.000)' : ''}`,
+      `${fmtCurrency(salaryForCes)}/mes × ${totalDays.toFixed(0)} días / 360${hasTransport ? ` (incl. aux. transporte ${fmtCurrency(TRANSPORT_CO)})` : ''}`,
       'Art. 249 CST',
       cesantias);
 
@@ -2524,7 +2527,7 @@ function buildPdfDocDef(state, folio, workerName) {
   const ctx = {
     salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
     fracCurrentYear, fracCalYear, startDate, endDate, termType,
-    hasTransport: S.country === 'co' && salary <= 2 * SMMLV_CO,
+    hasTransport: S.country === 'co' && salary <= TRANSPORT_THRESHOLD,
     hasComponents: result.hasComponents, bonuses, unusedVac,
     workerName: wName, firstName
   };
@@ -2936,7 +2939,7 @@ function buildPdfHtml(state, folio) {
   const ctx = {
     salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
     fracCurrentYear, fracCalYear, startDate, endDate, termType,
-    hasTransport: S.country === 'co' && salary <= 2 * SMMLV_CO,
+    hasTransport: S.country === 'co' && salary <= TRANSPORT_THRESHOLD,
     hasComponents: result.hasComponents, bonuses, unusedVac
   };
 
@@ -3268,8 +3271,8 @@ function getConceptNarrative(country, name, item, ctx) {
       return {
         p1: 'El artículo 249 del Código Sustantivo del Trabajo establece el derecho de todo trabajador a recibir cesantías equivalentes a un mes de salario por cada año de servicios, o proporcional por fracción de año. Conforme a la jurisprudencia de la Corte Suprema de Justicia, el auxilio de transporte se incluye en la base de liquidación para trabajadores con salario igual o inferior a dos salarios mínimos mensuales legales vigentes (SMMLV).',
         p2: hasTransport
-          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base de liquidación, resultando en una base de ${fmtCurrency(salForCes)} COP/mes.`
-          : `El salario de ${tn} supera los 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el auxilio de transporte <strong>no se incluye</strong> en la base de liquidación de cesantías.`,
+          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(TRANSPORT_THRESHOLD)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base de liquidación, resultando en una base de ${fmtCurrency(salForCes)} COP/mes.`
+          : `El salario de ${tn} supera los 2 SMMLV (${fmtCurrency(TRANSPORT_THRESHOLD)} COP), por lo que el auxilio de transporte <strong>no se incluye</strong> en la base de liquidación de cesantías.`,
         calcLine: `${fmtCurrency(salForCes)}/mes × ${Math.round(totalDays)} días / 360 = ${fmtCurrency(item.amount)}`
       };
     }
