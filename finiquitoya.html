@@ -1859,25 +1859,30 @@ function calculateColombia(d) {
   }
 
   // 5. Indemnizacion por despido sin justa causa (Art. 64 CST)
+  // Art. 64 CST (Ley 789/2002); CSJ SL1047/2021; CSJ SL035/2024 — tramos no acumulables linealmente.
+  // TRAMO 1 (primer año) y TRAMO 2 (años adicionales) son independientes y no lineales.
   if (termType === 'dismissal' || termType === 'mutual') {
     const is10SMMLV = salary <= 10 * SMMLV_CO;
-    let indem;
-    if (is10SMMLV) {
-      indem = totalYears <= 1
-        ? 30 * totalYears * SDB
-        : (30 + 20 * (totalYears - 1)) * SDB;
-    } else {
-      indem = totalYears <= 1
-        ? 20 * totalYears * SDB
-        : (20 + 15 * (totalYears - 1)) * SDB;
+    const diasBase  = is10SMMLV ? 30 : 20; // días por el primer año
+    const diasAd    = is10SMMLV ? 20 : 15; // días por cada año adicional
+    const tierNote  = is10SMMLV ? '(sal. ≤ 10 SMMLV)' : '(sal. > 10 SMMLV)';
+
+    // TRAMO 1 — primer año (proporcional si totalDays < 365)
+    const tramo1 = totalDays >= 365
+      ? diasBase * SDB
+      : diasBase * (totalDays / 365) * SDB;
+    const tramo1Calc = totalDays >= 365
+      ? `${diasBase} días × ${fmtCurrency(SDB)}/día ${tierNote}`
+      : `${diasBase} días × (${Math.round(totalDays)} días / 365) × ${fmtCurrency(SDB)}/día ${tierNote}`;
+    add('Indemnización — 1er año', tramo1Calc, 'Art. 64 CST', tramo1);
+
+    // TRAMO 2 — días adicionales más allá del primer año (solo si > 365 días)
+    if (totalDays > 365) {
+      const additionalDays = totalDays - 365;
+      const tramo2 = diasAd * (additionalDays / 365) * SDB;
+      const tramo2Calc = `${diasAd} días × (${Math.round(additionalDays)} días / 365) × ${fmtCurrency(SDB)}/día ${tierNote}`;
+      add('Indemnización — años adicionales', tramo2Calc, 'Art. 64 CST', tramo2);
     }
-    const tierNote = is10SMMLV ? '(sal. ≤ 10 SMMLV)' : '(sal. > 10 SMMLV)';
-    add('Indemnización por despido sin justa causa',
-        is10SMMLV
-          ? `30 días (1er año) + 20 días × ${Math.max(totalYears-1,0).toFixed(2)} años adicionales ${tierNote}`
-          : `20 días (1er año) + 15 días × ${Math.max(totalYears-1,0).toFixed(2)} años adicionales ${tierNote}`,
-        'Art. 64 CST',
-        indem);
   }
 
   // 6. Bonos
@@ -3304,13 +3309,24 @@ function getConceptNarrative(country, name, item, ctx) {
         calcLine: `${unusedVac} días × ${fmtCurrency(SDB)}/día = ${fmtCurrency(item.amount)}`
       };
     }
-    if (name === 'Indemnización por despido sin justa causa') {
+    if (name === 'Indemnización — 1er año') {
       const is10 = salary <= 10 * SMMLV_CO;
+      const diasBase = is10 ? 30 : 20;
       return {
-        p1: 'El artículo 64 del Código Sustantivo del Trabajo establece la indemnización por terminación unilateral sin justa causa. Para trabajadores con salario igual o inferior a 10 SMMLV: 30 días por el primer año y 20 días adicionales por cada año subsiguiente. Para salarios superiores a 10 SMMLV: 20 días por el primer año y 15 días adicionales por cada año posterior.',
+        p1: 'El artículo 64 del CST (modificado por la Ley 789/2002), interpretado por la CSJ en sentencias SL1047/2021 y SL035/2024, divide la indemnización en dos tramos independientes: el primer año se calcula de forma autónoma (proporcional si la relación duró menos de un año), y los años adicionales se calculan por separado sobre los días que excedan los primeros 365.',
         p2: is10
-          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>igual o inferior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>30 + 20 días</strong>.`
-          : `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>superior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>20 + 15 días</strong>.`,
+          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>igual o inferior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), escala de <strong>${diasBase} días</strong> por el primer año${totalDays < 365 ? `, proporcional a ${Math.round(totalDays)} días trabajados` : ' completo'}.`
+          : `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>superior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), escala de <strong>${diasBase} días</strong> por el primer año${totalDays < 365 ? `, proporcional a ${Math.round(totalDays)} días trabajados` : ' completo'}.`,
+        calcLine: item.calc
+      };
+    }
+    if (name === 'Indemnización — años adicionales') {
+      const is10 = salary <= 10 * SMMLV_CO;
+      const diasAd = is10 ? 20 : 15;
+      const additionalDays = totalDays - 365;
+      return {
+        p1: 'El tramo de años adicionales aplica sobre los días que exceden el primer año de servicio. Conforme a la CSJ (SL1047/2021; SL035/2024), este tramo se calcula de forma separada usando los días reales trabajados más allá de los primeros 365, divididos entre 365 para obtener la fracción de año adicional.',
+        p2: `${Math.round(additionalDays)} días adicionales (totalDays ${Math.round(totalDays)} − 365) a razón de <strong>${diasAd} días de SDB</strong> por año adicional.`,
         calcLine: item.calc
       };
     }
