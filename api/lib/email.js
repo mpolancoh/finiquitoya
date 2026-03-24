@@ -16,6 +16,8 @@ const LAW_LABELS       = {
   co: 'Código Sustantivo del Trabajo (CST)',
   ve: 'LOTTT'
 };
+// Artículo gramatical correcto por país (Código = masculino → "el"; Ley/LOTTT = femenino → "la")
+const LAW_ARTICLES     = { mx: 'la', co: 'el', ve: 'la' };
 const TERM_TYPE_LABELS = {
   dismissal:    'despido injustificado',
   resignation:  'renuncia voluntaria',
@@ -205,8 +207,9 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   const items      = result.items || [];
   const isPremium  = tier === 'premium';
   const pdfName    = `reporte_liquidacion_${country}.pdf`;
-  const countryLbl = COUNTRY_LABELS[country] || country;
-  const lawLbl     = LAW_LABELS[country]     || '';
+  const countryLbl  = COUNTRY_LABELS[country]  || country;
+  const lawLbl      = LAW_LABELS[country]      || '';
+  const lawArticle  = LAW_ARTICLES[country]    || 'la';
   const api        = getBrevoApi();
 
   // ── Shared branded header ──────────────────────────────────────────────────
@@ -242,7 +245,7 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
 
           <p style="font-size:14px;line-height:1.7;margin:0 0 12px 0">
             Hemos generado tu reporte de liquidación para <strong>${countryLbl}</strong>,
-            calculado conforme a la <strong>${lawLbl}</strong>. Encuéntralo adjunto en formato PDF.
+            calculado conforme a ${lawArticle} <strong>${lawLbl}</strong>. Encuéntralo adjunto en formato PDF.
           </p>
 
           <p style="font-size:14px;line-height:1.7;margin:0 0 12px 0">
@@ -291,7 +294,7 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
 
           <p style="font-size:14px;line-height:1.7;margin:0 0 16px 0">
             Aquí tienes el desglose completo de tu liquidación en <strong>${countryLbl}</strong>,
-            calculado conforme a la <strong>${lawLbl}</strong>.
+            calculado conforme a ${lawArticle} <strong>${lawLbl}</strong>.
           </p>
 
           ${table}
