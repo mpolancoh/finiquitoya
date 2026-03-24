@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FiniquitoYa: Calcula lo que te deben</title>
+  <meta name="description" content="Calcula gratis tu liquidación o finiquito laboral. Ingresa tus datos y obtén un estimado de lo que te corresponde por ley según el tipo de terminación. Sin registro, en 2 minutos.">
+  <meta property="og:title" content="FiniquitoYa — Calcula tu liquidación gratis">
+  <meta property="og:description" content="Descubre en 2 minutos cuánto te corresponde por ley al terminar tu relación laboral.">
+  <meta property="og:image" content="https://finiquitoya.app/og-image.png">
+  <meta property="og:url" content="https://finiquitoya.app">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_LA">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="FiniquitoYa — Calcula tu liquidación gratis">
+  <meta name="twitter:description" content="Descubre en 2 minutos cuánto te corresponde por ley al terminar tu relación laboral.">
+  <meta name="twitter:image" content="https://finiquitoya.app/og-image.png">
+  <link rel="canonical" href="https://finiquitoya.app">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
   <style>
@@ -854,10 +866,12 @@
       <div class="field">
         <label class="lbl" for="startDate">Fecha de ingreso</label>
         <input type="date" id="startDate" class="input" onchange="refreshDuration()">
+        <p class="hint">Formato: día/mes/año</p>
       </div>
       <div class="field">
         <label class="lbl" for="endDate">Fecha de salida</label>
         <input type="date" id="endDate" class="input" onchange="refreshDuration()">
+        <p class="hint">Formato: día/mes/año</p>
       </div>
     </div>
     <div id="durationDisplay"></div>
@@ -1457,7 +1471,7 @@ function onRadioChange(input) {
 /* ─────────────────────────────────────────────
    PASO 2
 ───────────────────────────────────────────── */
-document.getElementById('endDate').value = new Date().toISOString().split('T')[0];
+// endDate left blank — user fills in their actual last day
 applyCountryConfig(); // initialize component labels for default country (mx)
 
 // Restore state after returning from Stripe payment
@@ -1572,6 +1586,12 @@ function onSalaryChange() {
   const p = document.getElementById('salaryPreview');
   const cfg = COUNTRY_CONFIG[S.country];
   p.innerHTML = v > 0 ? `<strong>${fmtCurrency(v)}</strong> ${cfg.currency}` : '';
+  // Warn if salary is below minimum wage for the selected country
+  const minMonthly = { mx: MIN_WAGE_MX * 30, co: SMMLV_CO, ve: 0 };
+  const min = minMonthly[S.country] || 0;
+  if (v > 0 && min > 0 && v < min) {
+    p.innerHTML += ` <span style="color:#b45309;font-size:12px">⚠️ Menor al salario mínimo (${fmtCurrency(min)} ${cfg.currency}). ¿Es correcto?</span>`;
+  }
   refreshSDI(); refreshDuration();
 }
 
