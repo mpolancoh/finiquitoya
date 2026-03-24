@@ -1011,6 +1011,12 @@
       </div>
     </div>
 
+    <!-- Worker name for personalized PDF -->
+    <div id="pdfNameWrap" style="display:none;margin-bottom:10px">
+      <input id="pdfNameInput" type="text" maxlength="80" placeholder="Tu nombre completo (para personalizar el reporte)"
+        style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;color:#1e293b;outline:none;transition:border-color .15s"
+        onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#cbd5e1'">
+    </div>
     <button class="btn-pdf hidden" id="pdfBtn" onclick="generatePDF()">📄 Descargar reporte PDF</button>
 
     <!-- Lawyer recommendation callout (shown only when total > threshold) -->
@@ -1455,10 +1461,11 @@ applyCountryConfig(); // initialize component labels for default country (mx)
 async function sendEmailReport() {
   const email = sessionStorage.getItem('fy_saved_email');
   if (!email || !window._pdfState) return;
-  const tier    = sessionStorage.getItem('fy_unlocked') || 'basic';
-  const country = S.country;
+  const tier       = sessionStorage.getItem('fy_unlocked') || 'basic';
+  const country    = S.country;
+  const workerName = sessionStorage.getItem('fy_saved_name') || '';
   try {
-    const docDef = buildPdfDocDef(window._pdfState, genFolio());
+    const docDef = buildPdfDocDef(window._pdfState, genFolio(), workerName);
     pdfMake.createPdf(docDef).getBase64(async (base64) => {
       try {
         await fetch('/api/send-report', {
@@ -1978,12 +1985,21 @@ function calculate() {
   document.getElementById('paywallPanel').style.display  = unlocked ? 'none' : '';
   document.getElementById('upgradePanel').style.display  = unlockedTier === 'basic' ? '' : 'none';
   const pdfBtn = document.getElementById('pdfBtn');
-  if (unlockedTier === 'premium') pdfBtn.classList.remove('hidden');
-  else pdfBtn.classList.add('hidden');
+  const pdfNameWrap = document.getElementById('pdfNameWrap');
+  if (unlockedTier === 'premium') {
+    pdfBtn.classList.remove('hidden');
+    if (pdfNameWrap) pdfNameWrap.style.display = '';
+  } else {
+    pdfBtn.classList.add('hidden');
+    if (pdfNameWrap) pdfNameWrap.style.display = 'none';
+  }
 
-  // Lawyer callout: only show when total exceeds threshold
+  // Lawyer section: only show when total exceeds threshold
+  const showLawyer = needsLawyerRec(S.country, result.total);
   const lawyerCallout = document.getElementById('lawyerCallout');
-  if (lawyerCallout) lawyerCallout.style.display = needsLawyerRec(S.country, result.total) ? '' : 'none';
+  const lawyerSection = document.getElementById('lawyerSection');
+  if (lawyerCallout) lawyerCallout.style.display = showLawyer ? '' : 'none';
+  if (lawyerSection) lawyerSection.style.display  = showLawyer ? '' : 'none';
 
   // Store state for PDF generation
   window._pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
@@ -2057,6 +2073,13 @@ function handlePay(tier) {
         </div>
         <div style="font-size:28px;font-weight:900;color:var(--blue-700)">${price}</div>
       </div>
+      ${tier === 'premium' ? `<div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--slate-500);display:block;margin-bottom:6px;font-weight:600">Tu nombre completo</label>
+        <input id="payNameInput" type="text" maxlength="80" placeholder="p. ej. Juan Carlos García"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s"
+          onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#cbd5e1'">
+        <p style="font-size:11px;color:var(--slate-400);margin:5px 0 0 0">Se mostrará en el encabezado del reporte PDF</p>
+      </div>` : ''}
       <div style="margin-bottom:20px">
         <label style="font-size:12px;color:var(--slate-500);display:block;margin-bottom:6px;font-weight:600">¿A dónde enviamos el reporte?</label>
         <input id="payEmailInput" type="email" placeholder="tu@correo.com"
@@ -2095,6 +2118,8 @@ function unlockBreakdown() {
   document.getElementById('paywallPanel').style.display = 'none';
   document.getElementById('upgradePanel').style.display = 'none';
   document.getElementById('pdfBtn').classList.remove('hidden');
+  const _pnw = document.getElementById('pdfNameWrap');
+  if (_pnw) _pnw.style.display = '';
   closeModal('payModal');
 }
 
@@ -2108,6 +2133,10 @@ function startPayment(tier) {
       emailInput.focus();
     }
     return;
+  }
+  const nameInput = document.getElementById('payNameInput');
+  if (nameInput && nameInput.value.trim()) {
+    sessionStorage.setItem('fy_saved_name', nameInput.value.trim());
   }
   closeModal('payModal');
   goToStripe(tier, email);
@@ -2299,10 +2328,12 @@ function getDisclaimerText(country, total) {
 }
 
 // Build full pdfmake document definition
-function buildPdfDocDef(state, folio) {
+function buildPdfDocDef(state, folio, workerName) {
   const { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result } = state;
   const cfg = COUNTRY_CONFIG[S.country];
   if (!folio) folio = genFolio();
+  const wName    = (workerName || '').trim();
+  const firstName = wName.split(/\s+/)[0] || '';
 
   const start = new Date(startDate + 'T12:00:00');
   const end   = new Date(endDate   + 'T12:00:00');
@@ -2332,19 +2363,20 @@ function buildPdfDocDef(state, folio) {
     salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
     fracCurrentYear, fracCalYear, startDate, endDate, termType,
     hasTransport: S.country === 'co' && salary <= 2 * SMMLV_CO,
-    hasComponents: result.hasComponents, bonuses, unusedVac
+    hasComponents: result.hasComponents, bonuses, unusedVac,
+    workerName: wName, firstName
   };
 
-  // Colors
-  const NAVY  = '#1e3a8a';
-  const LTBLUE = '#dbeafe';
-  const SLATE5 = '#64748b';
-  const SLATE8 = '#1e293b';
-  const SLATE4 = '#94a3b8';
+  // ── Colors ──
+  const NAVY     = '#1e3a8a';
+  const LTBLUE   = '#dbeafe';
+  const SLATE5   = '#64748b';
+  const SLATE8   = '#1e293b';
+  const SLATE4   = '#94a3b8';
   const AMBER_BG = '#fefce8';
   const AMBER_BD = '#ca8a04';
   const AMBER_DK = '#92400e';
-  const AMBER_TXT = '#78350f';
+  const AMBER_TXT= '#78350f';
 
   // ── Section heading helper ──
   const secHead = (num, title) => ({
@@ -2504,7 +2536,7 @@ function buildPdfDocDef(state, folio) {
           stack: [
             { text: 'ANÁLISIS DE LIQUIDACIÓN LABORAL', fontSize: 7.5, bold: true,
               color: '#93c5fd', alignment: 'right' },
-            { text: `Folio ${folio}  |  ${cfg.name} · ${cfg.law}  |  ${reportDate}`,
+            { text: (wName ? `${wName}  ·  ` : '') + `Folio ${folio}  |  ${cfg.name} · ${cfg.law}  |  ${reportDate}`,
               fontSize: 8, color: '#8baed4', alignment: 'right', margin: [0,3,0,0] }
           ],
           fillColor: NAVY
@@ -2543,7 +2575,8 @@ function buildPdfDocDef(state, folio) {
         },
         {
           stack: [
-            { text: termLabel, fontSize: 9.5, bold: true, color: NAVY,
+            ...(wName ? [{ text: wName, fontSize: 10.5, bold: true, color: NAVY, alignment: 'right', margin: [0,0,0,5] }] : []),
+            { text: termLabel, fontSize: 9.5, bold: true, color: wName ? '#1d4ed8' : NAVY,
               margin: [0,0,0,4], alignment: 'right' },
             { text: `Salario base: ${fmtCurrency(salary)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] },
             ...(comps > 0 ? [{ text: `Sal. integrado: ${fmtCurrency(salary+comps)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] }] : []),
@@ -2663,8 +2696,11 @@ function generatePDF() {
   btn.textContent = '⏳ Generando PDF...';
   btn.disabled = true;
   const folio = genFolio();
+  const nameInput  = document.getElementById('pdfNameInput');
+  const workerName = (nameInput ? nameInput.value.trim() : '') ||
+                     sessionStorage.getItem('fy_saved_name') || '';
   try {
-    const docDef = buildPdfDocDef(window._pdfState, folio);
+    const docDef = buildPdfDocDef(window._pdfState, folio, workerName);
     pdfMake.createPdf(docDef).download(`FiniquitoYa-${folio}.pdf`, function() {
       btn.textContent = '📄 Descargar reporte PDF';
       btn.disabled = false;
@@ -2964,22 +3000,24 @@ function buildPdfDataGrid(country, ctx, cfg) {
 function getConceptNarrative(country, name, item, ctx) {
   const { salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
           fracCurrentYear, fracCalYear, startDate, endDate,
-          hasTransport, hasComponents, bonuses, unusedVac } = ctx;
+          hasTransport, hasComponents, bonuses, unusedVac,
+          firstName = '' } = ctx;
+  const tn = firstName || 'el trabajador'; // "the worker" fallback
 
   if (country === 'mx') {
     if (name === 'Indemnización constitucional (3 meses)') {
       return {
         p1: 'El artículo 123, fracción XXII de la Constitución Política de los Estados Unidos Mexicanos establece que todo trabajador tiene derecho a ser indemnizado con el equivalente a tres meses de salario cuando el empleador rescinda el contrato sin causa justificada. Este derecho es irrenunciable y no puede ser disminuido por convenio o contrato colectivo. El artículo 50 de la LFT recoge y reglamenta este mandato constitucional.',
         p2: hasComponents
-          ? `La terminación fue clasificada como <strong>despido injustificado</strong>, activando esta prestación en su monto completo. El cálculo se realiza con el <strong>salario diario integrado (SDI)</strong>, que incorpora el salario base más los componentes variables declarados (salario total: ${fmtCurrency(salary + comps)}/mes).`
-          : `La terminación fue clasificada como <strong>despido injustificado</strong>, activando esta prestación en su monto completo. El cálculo se realiza con el salario diario integrado (SDI = SDB = ${fmtCurrency(SDI)}/día, dado que no se declararon componentes variables).`,
+          ? `La terminación de ${tn} fue clasificada como <strong>despido injustificado</strong>, activando esta prestación en su monto completo. El cálculo se realiza con el <strong>salario diario integrado (SDI)</strong>, que incorpora el salario base más los componentes variables declarados (salario total: ${fmtCurrency(salary + comps)}/mes).`
+          : `La terminación de ${tn} fue clasificada como <strong>despido injustificado</strong>, activando esta prestación en su monto completo. El cálculo se realiza con el salario diario integrado (SDI = SDB = ${fmtCurrency(SDI)}/día, dado que no se declararon componentes variables).`,
         calcLine: `90 días × ${fmtCurrency(SDI)}/día (SDI) = ${fmtCurrency(item.amount)}`
       };
     }
     if (name === '20 días de salario por año trabajado') {
       return {
         p1: 'El artículo 50, fracción I de la Ley Federal del Trabajo establece que, además de la indemnización constitucional, el trabajador tiene derecho a veinte días de salario integrado por cada año de servicios prestados. Esta prestación es proporcional y acumulativa: se calcula sobre la totalidad del tiempo efectivamente laborado, incluyendo las fracciones de año.',
-        p2: `Con <strong>${totalYears.toFixed(2)} años de servicio</strong> (${fmtDateLong(startDate)} al ${fmtDateLong(endDate)}), el cálculo se realiza en forma decimal para reflejar con precisión los meses y días trabajados en el período incompleto.`,
+        p2: `${firstName ? `<strong>${firstName}</strong> acumuló` : 'Se acumularon'} <strong>${totalYears.toFixed(2)} años de servicio</strong> (${fmtDateLong(startDate)} al ${fmtDateLong(endDate)}). El cálculo se realiza en forma decimal para reflejar con precisión los meses y días trabajados en el período incompleto.`,
         calcLine: `20 días × ${fmtCurrency(SDI)}/día (SDI) × ${totalYears.toFixed(2)} años = ${fmtCurrency(item.amount)}`
       };
     }
@@ -2990,8 +3028,8 @@ function getConceptNarrative(country, name, item, ctx) {
       return {
         p1: 'El artículo 162 de la Ley Federal del Trabajo dispone que los trabajadores de planta tienen derecho a una prima de antigüedad equivalente a doce días de salario por cada año de servicios. En casos de despido injustificado, esta prestación se genera independientemente de la antigüedad acumulada. La ley establece que el salario aplicable no puede exceder el doble del salario mínimo general vigente.',
         p2: capApplies
-          ? `El SDI del trabajador (${fmtCurrency(SDI)}/día) supera el doble del salario mínimo diario (${fmtCurrency(MIN_WAGE_MX)} × 2 = ${fmtCurrency(cap)}), por lo que se aplica el <strong>tope legal de ${fmtCurrency(cap)}/día</strong> para este cálculo.`
-          : `El SDI del trabajador (${fmtCurrency(SDI)}/día) no supera el doble del salario mínimo diario (${fmtCurrency(MIN_WAGE_MX)} × 2 = ${fmtCurrency(cap)}), por lo que no aplica tope y se utiliza el SDI directamente.`,
+          ? `El SDI de ${tn} (${fmtCurrency(SDI)}/día) supera el doble del salario mínimo diario (${fmtCurrency(MIN_WAGE_MX)} × 2 = ${fmtCurrency(cap)}), por lo que se aplica el <strong>tope legal de ${fmtCurrency(cap)}/día</strong> para este cálculo.`
+          : `El SDI de ${tn} (${fmtCurrency(SDI)}/día) no supera el doble del salario mínimo diario (${fmtCurrency(MIN_WAGE_MX)} × 2 = ${fmtCurrency(cap)}), por lo que no aplica tope y se utiliza el SDI directamente.`,
         calcLine: `12 días × ${fmtCurrency(cappedSDI)}/día${capApplies ? ' (tope legal)' : ''} × ${totalYears.toFixed(2)} años = ${fmtCurrency(item.amount)}`
       };
     }
@@ -2999,7 +3037,7 @@ function getConceptNarrative(country, name, item, ctx) {
       const vacRate = vacDaysRate(completedYears);
       return {
         p1: 'Los artículos 76 y 79 de la LFT otorgan al trabajador un período de vacaciones pagadas cuyo número de días aumenta según la antigüedad. El artículo 79 establece expresamente que cuando la relación laboral termina antes de cumplirse el año, el trabajador recibe la parte proporcional de vacaciones correspondiente a los días trabajados en ese período incompleto.',
-        p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} de servicio cumplido${completedYears!==1?'s':''}</strong>, corresponden ${vacRate} días de vacaciones por año. Al momento de la terminación, el trabajador había transcurrido el <strong>${(fracCurrentYear*100).toFixed(0)}%</strong> del período vacacional en curso. Las vacaciones se calculan con el salario diario base (SDB), no el integrado.`,
+        p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} de servicio cumplido${completedYears!==1?'s':''}</strong>, ${firstName ? `a <strong>${firstName}</strong> le corresponden` : 'corresponden'} ${vacRate} días de vacaciones por año. Al momento de la terminación, ${firstName ? firstName : 'el trabajador'} había transcurrido el <strong>${(fracCurrentYear*100).toFixed(0)}%</strong> del período vacacional en curso. Las vacaciones se calculan con el salario diario base (SDB), no el integrado.`,
         calcLine: `${vacRate} días/año × ${(fracCurrentYear*100).toFixed(0)}% = ${(vacRate*fracCurrentYear).toFixed(1)} días × ${fmtCurrency(SDB)}/día (SDB) = ${fmtCurrency(item.amount)}`
       };
     }
@@ -3021,7 +3059,7 @@ function getConceptNarrative(country, name, item, ctx) {
       const daysInYear = Math.round(fracCalYear * 365);
       return {
         p1: 'El artículo 87 de la LFT establece el derecho de los trabajadores a recibir un aguinaldo anual equivalente a al menos 15 días de salario, pagadero antes del 20 de diciembre. La misma disposición señala que quienes no hayan cumplido el año de servicios recibirán la parte proporcional al tiempo laborado. Esta proporcionalidad aplica igualmente cuando el trabajador es despedido antes de que concluya el ejercicio calendario.',
-        p2: `Al ${fmtDateLong(endDate)}, el trabajador había laborado aproximadamente <strong>${daysInYear} días del ejercicio ${new Date(endDate+'T12:00:00').getFullYear()}</strong>, representando el ${(fracCalYear*100).toFixed(0)}% del año. El aguinaldo se calcula con el salario diario base (SDB).`,
+        p2: `Al ${fmtDateLong(endDate)}, ${firstName ? `<strong>${firstName}</strong> había laborado` : 'el trabajador había laborado'} aproximadamente <strong>${daysInYear} días del ejercicio ${new Date(endDate+'T12:00:00').getFullYear()}</strong>, representando el ${(fracCalYear*100).toFixed(0)}% del año. El aguinaldo se calcula con el salario diario base (SDB).`,
         calcLine: `15 días × ${fmtCurrency(SDB)}/día (SDB) × ${(fracCalYear*100).toFixed(0)}% del año = ${fmtCurrency(item.amount)}`
       };
     }
@@ -3040,8 +3078,8 @@ function getConceptNarrative(country, name, item, ctx) {
       return {
         p1: 'El artículo 249 del Código Sustantivo del Trabajo establece el derecho de todo trabajador a recibir cesantías equivalentes a un mes de salario por cada año de servicios, o proporcional por fracción de año. Conforme a la jurisprudencia de la Corte Suprema de Justicia, el auxilio de transporte se incluye en la base de liquidación para trabajadores con salario igual o inferior a dos salarios mínimos mensuales legales vigentes (SMMLV).',
         p2: hasTransport
-          ? `El salario del trabajador (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base de liquidación, resultando en una base de ${fmtCurrency(salForCes)} COP/mes.`
-          : `El salario del trabajador supera los 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el auxilio de transporte <strong>no se incluye</strong> en la base de liquidación de cesantías.`,
+          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base de liquidación, resultando en una base de ${fmtCurrency(salForCes)} COP/mes.`
+          : `El salario de ${tn} supera los 2 SMMLV (${fmtCurrency(2*SMMLV_CO)} COP), por lo que el auxilio de transporte <strong>no se incluye</strong> en la base de liquidación de cesantías.`,
         calcLine: `${fmtCurrency(salForCes)}/mes × ${Math.round(totalDays)} días / 360 = ${fmtCurrency(item.amount)}`
       };
     }
@@ -3062,7 +3100,7 @@ function getConceptNarrative(country, name, item, ctx) {
     if (name === 'Vacaciones proporcionales') {
       return {
         p1: 'El artículo 186 del Código Sustantivo del Trabajo establece que todo trabajador tiene derecho a quince días hábiles de vacaciones remuneradas por año de servicios. El artículo 189 dispone que al producirse la terminación del contrato, se liquidan proporcionalmente los días correspondientes al período trabajado en el año en curso.',
-        p2: `Con <strong>${totalYears.toFixed(2)} años de servicio</strong>, se liquidan las vacaciones proporcionales a razón de 15 días por año sobre la totalidad del tiempo laborado.`,
+        p2: `${firstName ? `<strong>${firstName}</strong> acumuló` : 'Se liquidan'} <strong>${totalYears.toFixed(2)} años de servicio</strong>; las vacaciones proporcionales se calculan a razón de 15 días por año sobre la totalidad del tiempo laborado.`,
         calcLine: `15 días/año × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDB)}/día = ${fmtCurrency(item.amount)}`
       };
     }
@@ -3078,8 +3116,8 @@ function getConceptNarrative(country, name, item, ctx) {
       return {
         p1: 'El artículo 64 del Código Sustantivo del Trabajo establece la indemnización por terminación unilateral sin justa causa. Para trabajadores con salario igual o inferior a 10 SMMLV: 30 días por el primer año y 20 días adicionales por cada año subsiguiente. Para salarios superiores a 10 SMMLV: 20 días por el primer año y 15 días adicionales por cada año posterior.',
         p2: is10
-          ? `El salario del trabajador (${fmtCurrency(salary)} COP) es <strong>igual o inferior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>30 + 20 días</strong>.`
-          : `El salario del trabajador (${fmtCurrency(salary)} COP) es <strong>superior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>20 + 15 días</strong>.`,
+          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>igual o inferior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>30 + 20 días</strong>.`
+          : `El salario de ${tn} (${fmtCurrency(salary)} COP) es <strong>superior a 10 SMMLV</strong> (${fmtCurrency(10*SMMLV_CO)} COP), por lo que aplica la escala de <strong>20 + 15 días</strong>.`,
         calcLine: item.calc
       };
     }
@@ -3096,7 +3134,7 @@ function getConceptNarrative(country, name, item, ctx) {
     if (name === 'Prestaciones sociales') {
       return {
         p1: 'El artículo 142 de la Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (LOTTT) establece el régimen de prestaciones sociales con dos métodos de cálculo: el <strong>método retroactivo</strong> (30 días de salario integral por año de servicio) y el <strong>método de garantía acumulada</strong> trimestral (60 días el primer año, más 2 días adicionales por año a partir del segundo). Se aplica siempre el monto mayor entre ambos métodos.',
-        p2: `Para este caso con <strong>${totalYears.toFixed(2)} años de servicio</strong>, se aplicó el método ${item.calc.includes('retroactivo') ? 'retroactivo' : 'de garantía acumulada'} por resultar más favorable al trabajador.`,
+        p2: `${firstName ? `En el caso de <strong>${firstName}</strong>, con` : 'Con'} <strong>${totalYears.toFixed(2)} años de servicio</strong>, se aplicó el método ${item.calc.includes('retroactivo') ? 'retroactivo' : 'de garantía acumulada'} por resultar más favorable al trabajador.`,
         calcLine: item.calc
       };
     }
@@ -3111,7 +3149,7 @@ function getConceptNarrative(country, name, item, ctx) {
       const vacDaysVe = 15 + Math.max(completedYears - 1, 0);
       return {
         p1: 'El artículo 190 de la LOTTT establece el derecho a vacaciones anuales de 15 días hábiles en el primer año de servicios, con un día adicional por cada año subsiguiente hasta un máximo de 15 días adicionales. Al finalizar la relación laboral, se liquidan proporcionalmente las vacaciones del período en curso.',
-        p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} cumplido${completedYears!==1?'s':''}</strong>, corresponden ${vacDaysVe} días por año. Se liquida el ${(fracCurrentYear*100).toFixed(0)}% correspondiente al período en curso.`,
+        p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} cumplido${completedYears!==1?'s':''}</strong>, ${firstName ? `a <strong>${firstName}</strong> le corresponden` : 'corresponden'} ${vacDaysVe} días por año. Se liquida el ${(fracCurrentYear*100).toFixed(0)}% correspondiente al período en curso.`,
         calcLine: item.calc
       };
     }
@@ -3132,7 +3170,7 @@ function getConceptNarrative(country, name, item, ctx) {
     if (name === 'Indemnización por despido injustificado') {
       return {
         p1: 'El artículo 92 de la LOTTT establece que el trabajador despedido sin causa justificada tiene derecho a una indemnización adicional equivalente a 30 días de salario integral por cada año de antigüedad o fracción superior a seis meses. Esta prestación se suma a las prestaciones sociales del artículo 142 y no puede compensarse con ninguna otra.',
-        p2: `Con <strong>${totalYears.toFixed(2)} años de servicio</strong>, la indemnización se calcula sobre el <strong>salario diario integral (SDI)</strong> de ${fmtCurrency(SDI)}/día.`,
+        p2: `${firstName ? `<strong>${firstName}</strong> acumuló` : 'Con'} <strong>${totalYears.toFixed(2)} años de servicio</strong>; la indemnización se calcula sobre el <strong>salario diario integral (SDI)</strong> de ${fmtCurrency(SDI)}/día.`,
         calcLine: `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día (SDI) = ${fmtCurrency(item.amount)}`
       };
     }

@@ -1994,9 +1994,12 @@ function calculate() {
     if (pdfNameWrap) pdfNameWrap.style.display = 'none';
   }
 
-  // Lawyer callout: only show when total exceeds threshold
+  // Lawyer section: only show when total exceeds threshold
+  const showLawyer = needsLawyerRec(S.country, result.total);
   const lawyerCallout = document.getElementById('lawyerCallout');
-  if (lawyerCallout) lawyerCallout.style.display = needsLawyerRec(S.country, result.total) ? '' : 'none';
+  const lawyerSection = document.getElementById('lawyerSection');
+  if (lawyerCallout) lawyerCallout.style.display = showLawyer ? '' : 'none';
+  if (lawyerSection) lawyerSection.style.display  = showLawyer ? '' : 'none';
 
   // Store state for PDF generation
   window._pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
