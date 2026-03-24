@@ -943,6 +943,16 @@
       <p class="hint" style="margin-top:6px">La gran mayoría de trabajadores activos están en régimen Ley 50. Ref: Art. 99 Ley 50/1990 vs Art. 249 CST.</p>
     </div>
 
+    <!-- Colombia only: indemnización pactada en mutuo acuerdo (Art. 15 + 64 CST) -->
+    <div class="field" id="indemnPactadaField" style="display:none">
+      <label class="lbl" for="indemnPactada">Indemnización acordada (mutuo acuerdo)</label>
+      <div class="input-wrap" style="max-width:240px">
+        <span class="input-prefix">$</span>
+        <input type="number" id="indemnPactada" class="input" placeholder="0" min="0" step="1000">
+      </div>
+      <p class="hint">En terminación por mutuo acuerdo la indemnización es negociada, no un mínimo legal. Ingrese el monto acordado entre las partes, o deje en 0 si no se pactó indemnización.</p>
+    </div>
+
     <!-- Colombia only: vacation salary base (Art. 192 CST) -->
     <div class="field" id="vacSalaryField" style="display:none">
       <label class="lbl" for="vacSalary">Salario base para vacaciones (COP/mes)</label>
@@ -1424,9 +1434,7 @@ function applyCountryConfig() {
   document.getElementById('step3Sub').textContent      = cfg.step3Sub;
   document.getElementById('aguinaldoLabel').textContent = cfg.aguinaldoLabel;
   document.getElementById('aguinaldoDesc').textContent  = cfg.aguinaldoDesc;
-  // Colombia-only fields
-  document.getElementById('cesantiasRegimeField').style.display = S.country === 'co' ? '' : 'none';
-  document.getElementById('vacSalaryField').style.display        = S.country === 'co' ? '' : 'none';
+  refreshCoFields();
 
   // Termination types
   const grid = document.getElementById('terminGrid');
@@ -1504,6 +1512,14 @@ function onRadioChange(input) {
   S.termType = input.value;
   document.querySelectorAll('#terminGrid .radio-card').forEach(c =>
     c.classList.toggle('sel', c.querySelector('input').checked));
+  refreshCoFields();
+}
+function refreshCoFields() {
+  const isCo     = S.country === 'co';
+  const isMutual = S.termType === 'mutual';
+  document.getElementById('cesantiasRegimeField').style.display = isCo ? '' : 'none';
+  document.getElementById('indemnPactadaField').style.display   = (isCo && isMutual) ? '' : 'none';
+  document.getElementById('vacSalaryField').style.display       = isCo ? '' : 'none';
 }
 
 /* ─────────────────────────────────────────────
@@ -1841,6 +1857,7 @@ function calculateMexico(d) {
 function calculateColombia(d) {
   try {
   const { salary, salaryForVacaciones = salary, cesantiasRegime = 'ley50',
+          indemnizacionPactada = 0,
           startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
   const start = new Date(startDate + 'T12:00:00');
@@ -1922,31 +1939,63 @@ function calculateColombia(d) {
         unusedVac * SDB);
   }
 
-  // 5. Indemnizacion por despido sin justa causa (Art. 64 CST)
+  // 5. Indemnización
+  // Art. 64 CST — indemnización no obligatoria en mutuo acuerdo; Art. 15 CST — formalización del acuerdo.
   // Art. 64 CST (Ley 789/2002); CSJ SL1047/2021; CSJ SL035/2024 — tramos no acumulables linealmente.
   // TRAMO 1 (primer año) y TRAMO 2 (años adicionales) son independientes y no lineales.
-  if (termType === 'dismissal' || termType === 'mutual') {
+
+  // Helper: compute Art. 64 two-tramo reference amount
+  function calcArt64(is10) {
+    const db = is10 ? 30 : 20;
+    const da = is10 ? 20 : 15;
+    const t1 = totalDays >= 365 ? db * SDB : db * (totalDays / 365) * SDB;
+    const t2 = totalDays > 365 ? da * ((totalDays - 365) / 365) * SDB : 0;
+    return { t1, t2, total: t1 + t2 };
+  }
+
+  if (termType === 'dismissal') {
     const is10SMMLV = salary <= 10 * SMMLV_CO;
-    const diasBase  = is10SMMLV ? 30 : 20; // días por el primer año
-    const diasAd    = is10SMMLV ? 20 : 15; // días por cada año adicional
+    const diasBase  = is10SMMLV ? 30 : 20;
+    const diasAd    = is10SMMLV ? 20 : 15;
     const tierNote  = is10SMMLV ? '(sal. ≤ 10 SMMLV)' : '(sal. > 10 SMMLV)';
-
-    // TRAMO 1 — primer año (proporcional si totalDays < 365)
-    const tramo1 = totalDays >= 365
-      ? diasBase * SDB
-      : diasBase * (totalDays / 365) * SDB;
-    const tramo1Calc = totalDays >= 365
-      ? `${diasBase} días × ${fmtCurrency(SDB)}/día ${tierNote}`
-      : `${diasBase} días × (${Math.round(totalDays)} días / 365) × ${fmtCurrency(SDB)}/día ${tierNote}`;
-    add('Indemnización — 1er año', tramo1Calc, 'Art. 64 CST', tramo1);
-
-    // TRAMO 2 — días adicionales más allá del primer año (solo si > 365 días)
+    const tramo1 = totalDays >= 365 ? diasBase * SDB : diasBase * (totalDays / 365) * SDB;
+    add('Indemnización — 1er año',
+        totalDays >= 365
+          ? `${diasBase} días × ${fmtCurrency(SDB)}/día ${tierNote}`
+          : `${diasBase} días × (${Math.round(totalDays)}/365) × ${fmtCurrency(SDB)}/día ${tierNote}`,
+        'Art. 64 CST', tramo1);
     if (totalDays > 365) {
       const additionalDays = totalDays - 365;
-      const tramo2 = diasAd * (additionalDays / 365) * SDB;
-      const tramo2Calc = `${diasAd} días × (${Math.round(additionalDays)} días / 365) × ${fmtCurrency(SDB)}/día ${tierNote}`;
-      add('Indemnización — años adicionales', tramo2Calc, 'Art. 64 CST', tramo2);
+      add('Indemnización — años adicionales',
+          `${diasAd} días × (${Math.round(additionalDays)}/365) × ${fmtCurrency(SDB)}/día ${tierNote}`,
+          'Art. 64 CST', diasAd * (additionalDays / 365) * SDB);
     }
+  } else if (termType === 'mutual') {
+    // In mutual termination indemnización is negotiated, not a statutory floor.
+    // Include only the agreed amount; show Art. 64 equivalent as reference warning.
+    if (indemnizacionPactada > 0) {
+      add('Indemnización acordada (mutuo acuerdo)',
+          `Monto pactado por las partes`,
+          'Art. 15, 64 CST', indemnizacionPactada);
+    }
+    // Art. 64 reference: inform the parties of the statutory equivalent
+    const ref64 = calcArt64(salary <= 10 * SMMLV_CO);
+    const tierLbl = salary <= 10 * SMMLV_CO ? '(sal. ≤ 10 SMMLV)' : '(sal. > 10 SMMLV)';
+    warnings.push({
+      concept: 'Referencia: indemnización equivalente a despido sin justa causa',
+      calc: `Tramo 1: ${fmtCurrency(ref64.t1)}${ref64.t2 > 0 ? ` + Tramo 2: ${fmtCurrency(ref64.t2)}` : ''} ${tierLbl}`,
+      law: 'Art. 64 CST',
+      amount: ref64.total,
+      message: 'Este valor NO es obligatorio en mutuo acuerdo — sirve como referencia para la negociación. El empleador puede ofrecer más, menos o cero.'
+    });
+    // Art. 15 CST formalization warning — always shown for mutual agreement
+    warnings.push({
+      concept: 'Requisito formal — mutuo acuerdo (Art. 15 CST)',
+      calc: '',
+      law: 'Art. 15 CST',
+      amount: 0,
+      message: 'Para que el mutuo acuerdo tenga efectos liberatorios, debe constar por escrito con renuncia expresa a acciones judiciales (Art. 15 CST). Sin este documento, el trabajador puede demandar alegando despido encubierto.'
+    });
   }
 
   // 6. Bonos
@@ -2098,9 +2147,11 @@ function calculate() {
   } else if (S.country === 'co') {
     const vacSalaryInput   = parseFloat(document.getElementById('vacSalary').value) || 0;
     const salaryForVacaciones = vacSalaryInput > 0 ? vacSalaryInput : salary;
-    const cesantiasRegime  = (document.querySelector('input[name="cesReg"]:checked') || {}).value || 'ley50';
+    const cesantiasRegime    = (document.querySelector('input[name="cesReg"]:checked') || {}).value || 'ley50';
+    const indemnizacionPactada = parseFloat(document.getElementById('indemnPactada').value) || 0;
     result = calculateColombia({
-      salary, salaryForVacaciones, cesantiasRegime, startDate, endDate, termType,
+      salary, salaryForVacaciones, cesantiasRegime, indemnizacionPactada,
+      startDate, endDate, termType,
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
   } else if (S.country === 've') {
@@ -2605,6 +2656,7 @@ function buildPdfDocDef(state, folio, workerName) {
     hasTransport: S.country === 'co' && salary <= TRANSPORT_THRESHOLD,
     salaryForVacaciones: S.country === 'co' ? (parseFloat(document.getElementById('vacSalary').value) || salary) : salary,
     cesantiasRegime: S.country === 'co' ? ((document.querySelector('input[name="cesReg"]:checked') || {}).value || 'ley50') : null,
+    indemnizacionPactada: S.country === 'co' ? (parseFloat(document.getElementById('indemnPactada').value) || 0) : 0,
     hasComponents: result.hasComponents, bonuses, unusedVac,
     workerName: wName, firstName
   };
@@ -3388,6 +3440,13 @@ function getConceptNarrative(country, name, item, ctx) {
         p1: 'El artículo 187 del CST establece que las vacaciones deben tomarse dentro del año siguiente a que se causen. Si la relación laboral termina sin que el trabajador las haya disfrutado, el empleador tiene la obligación de compensarlas en dinero. El trabajador declaró contar con días de vacaciones acumuladas pendientes de disfrute.',
         p2: null,
         calcLine: `${unusedVac} días × ${fmtCurrency(SDB)}/día = ${fmtCurrency(item.amount)}`
+      };
+    }
+    if (name === 'Indemnización acordada (mutuo acuerdo)') {
+      return {
+        p1: 'En la terminación por mutuo acuerdo, el artículo 64 del CST no constituye un piso mínimo obligatorio de indemnización — la ley solo exige el pago de las prestaciones sociales. La indemnización es un valor libremente pactado entre las partes. El artículo 15 del CST exige que el acuerdo conste por escrito con renuncia expresa a acciones legales para tener efectos liberatorios.',
+        p2: `Las partes acordaron una indemnización de <strong>${fmtCurrency(item.amount)} COP</strong>. Este monto forma parte del total liquidado. Se recomienda que el acuerdo conste en acta de conciliación o documento con firma de ambas partes.`,
+        calcLine: `Monto pactado = ${fmtCurrency(item.amount)}`
       };
     }
     if (name === 'Indemnización — 1er año') {
