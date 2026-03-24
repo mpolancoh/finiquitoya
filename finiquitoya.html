@@ -2872,6 +2872,7 @@ function buildPdfDocDef(state, folio, workerName) {
     const nar = getConceptNarrative(S.country, item.name, item, ctx);
     conceptContent.push({
       margin: [0, 0, 0, 16],
+      unbreakable: true,
       stack: [
         // Concept title block (left blue border)
         {
@@ -2935,6 +2936,7 @@ function buildPdfDocDef(state, folio, workerName) {
   const rightsData = getRightsData(S.country);
   const rightsContent = rightsData.map(r => ({
     margin: [0, 0, 0, 12],
+    unbreakable: true,
     stack: [
       {
         table: { widths: ['*'], body: [[{
@@ -3001,43 +3003,50 @@ function buildPdfDocDef(state, folio, workerName) {
       secTitle('II', 'Liquidación por concepto'),
       ...conceptContent,
 
-      // III. Resumen de liquidación
-      secTitle('III', 'Resumen de liquidación'),
+      // III. Resumen de liquidación — unbreakable: keeps title + entire table on one page
       {
-        table: { widths: ['50%', '28%', '22%'], headerRows: 1, body: summaryBody },
-        layout: {
-          hLineWidth: () => 0.5, vLineWidth: () => 0,
-          hLineColor: () => '#e2e8f0',
-          paddingLeft: () => 12, paddingRight: () => 12,
-          paddingTop: () => 7, paddingBottom: () => 7
-        }
+        unbreakable: true,
+        stack: [
+          secTitle('III', 'Resumen de liquidación'),
+          {
+            table: { widths: ['50%', '28%', '22%'], headerRows: 1, dontBreakRows: true, body: summaryBody },
+            layout: {
+              hLineWidth: () => 0.5, vLineWidth: () => 0,
+              hLineColor: () => '#e2e8f0',
+              paddingLeft: () => 12, paddingRight: () => 12,
+              paddingTop: () => 7, paddingBottom: () => 7
+            }
+          }
+        ]
       },
       { text: '', margin: [0, 0, 0, 16] },
 
-      // IV. Derechos del trabajador (new page)
-      { text: '', pageBreak: 'before' },
-      secTitle('IV', 'Derechos del trabajador'),
+      // IV. Derechos del trabajador — no forced page break; flows naturally after Section III
+      { ...secTitle('IV', 'Derechos del trabajador'), margin: [0, 20, 0, 12] },
       ...rightsContent,
       { text: '', margin: [0, 0, 0, 8] },
 
-      // Disclaimer
+      // Disclaimer — unbreakable: keeps yellow block as a single unit, no orphan lines
       {
-        margin: [-40, 0, -40, 0],
-        table: { widths: ['*'], body: [[{
-          stack: [
-            { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
-              fontSize: 8.5, bold: true, color: AMBER_DK, margin: [0, 0, 0, 8] },
-            ...disclaimerContent
-          ],
-          fillColor: AMBER_BG, margin: [40, 16, 40, 16]
-        }]] },
-        layout: {
-          hLineWidth: (i) => i === 0 ? 1 : 0,
-          vLineWidth: () => 0,
-          hLineColor: () => AMBER_BD,
-          paddingLeft: () => 0, paddingRight: () => 0,
-          paddingTop: () => 0, paddingBottom: () => 0
-        }
+        unbreakable: true,
+        stack: [{
+          margin: [-40, 0, -40, 0],
+          table: { widths: ['*'], body: [[{
+            stack: [
+              { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
+                fontSize: 8.5, bold: true, color: AMBER_DK, margin: [0, 0, 0, 8] },
+              ...disclaimerContent
+            ],
+            fillColor: AMBER_BG, margin: [40, 16, 40, 16]
+          }]] },
+          layout: {
+            hLineWidth: (i) => i === 0 ? 1 : 0,
+            vLineWidth: () => 0,
+            hLineColor: () => AMBER_BD,
+            paddingLeft: () => 0, paddingRight: () => 0,
+            paddingTop: () => 0, paddingBottom: () => 0
+          }
+        }]
       }
     ],
 
