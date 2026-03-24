@@ -1669,6 +1669,15 @@ function vacDaysRate(completedYears) {
   return 28;              // Año 25 en adelante
 }
 
+// Art. 84 LFT; SCJN jurisprudencia 2a./J. 85/2011
+// Factor de integración = 1 + partes proporcionales diarias de prestaciones legales.
+// Solo aplica al salario base fijo; componentes variables se suman directamente al SDI.
+// aguinaldoDays: mínimo legal = 15 días (Art. 87 LFT); usar valor mayor si el patrón da más.
+function computeIntegrationFactor(completedYears, aguinaldoDays = 15) {
+  const vacDays = vacDaysRate(completedYears);
+  return 1 + (aguinaldoDays / 365) + (vacDays / 365) + (vacDays * 0.25 / 365);
+}
+
 function calculateMexico(d) {
   try {
   const { salary, salaryIntegrated, startDate, endDate,
@@ -1688,8 +1697,11 @@ function calculateMexico(d) {
   const fracCalYear  = Math.min((end - calYearStart) / 86400000 / 365, 1);
 
   const SDB = salary / 30;
-  const SDI = salaryIntegrated / 30;
-  const hasComponents = salaryIntegrated > salary;
+  // Art. 84 LFT: SDI = (salario base / 30) × factor + componentes variables / 30
+  const integrationFactor = computeIntegrationFactor(completedYears);
+  const varComps = salaryIntegrated - salary; // comisiones u otros ya periódicos
+  const SDI = SDB * integrationFactor + varComps / 30;
+  const hasComponents = salaryIntegrated > salary || integrationFactor > 1;
 
   const items = [];
   let total = 0;
