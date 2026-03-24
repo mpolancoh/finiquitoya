@@ -2032,12 +2032,14 @@ function calculateVenezuela(d) {
 
   const SDB = salary / 30;
 
-  // Salario integral (Art. 122 LOTTT): base + alicuota utilidades + alicuota bono vacacional
-  const utilDias   = 30; // minimum (Art. 131)
-  const bonVacDias = 7 + Math.max(completedYears - 1, 0); // Art. 192: 7+1/yr, minimum 7
+  // Salario integral (Art. 122 LOTTT): base + alícuota utilidades + alícuota bono vacacional
+  // Art. 190 LOTTT (vacaciones, máx. 30 días hábiles) y Art. 192 LOTTT
+  // (bono vacacional, mínimo 15 días + 1/año, máx. 30 días) — LOTTT 2012 derogó LOT 1997.
+  const utilDias   = 30; // mínimo legal (Art. 131 LOTTT)
+  const bonVacDias = Math.min(15 + completedYears, 30); // Art. 192: 15 días año 1, +1/año completado, tope 30
   const alicuotaUtil   = (utilDias   / 360) * SDB;
   const alicuotaBonVac = (bonVacDias / 360) * SDB;
-  const SDI = SDB + alicuotaUtil + alicuotaBonVac; // salario integral diario
+  const SDI = SDB + alicuotaUtil + alicuotaBonVac; // salario integral diario — recalcula con bonVacDias corregido
 
   const items = [];
   let total = 0;
@@ -2093,8 +2095,8 @@ function calculateVenezuela(d) {
         30 * SDB * fracCalYear);
   }
 
-  // 3. Vacaciones (Art. 190 LOTTT): 15 days yr1, +1 day/yr after
-  const vacDaysVe = 15 + Math.max(completedYears - 1, 0);
+  // 3. Vacaciones (Art. 190 LOTTT): 15 días año 1, +1/año, máx. 30 días hábiles
+  const vacDaysVe = Math.min(15 + completedYears, 30);
   const vacAmt    = vacDaysVe * fracCurrentYear * SDB;
   add('Vacaciones proporcionales',
       `${vacDaysVe} días/año × ${(fracCurrentYear*100).toFixed(0)}% = ${(vacDaysVe*fracCurrentYear).toFixed(1)} días × ${fmtCurrency(SDB)}/día`,
@@ -2109,9 +2111,9 @@ function calculateVenezuela(d) {
         unusedVac * SDB);
   }
 
-  // 4. Bono vacacional (Art. 192 LOTTT): 7+1/yr
+  // 4. Bono vacacional (Art. 192 LOTTT): mínimo 15 días año 1, +1/año, máx. 30 días
   add('Bono vacacional',
-      `${bonVacDias} días × ${(fracCurrentYear*100).toFixed(0)}% × ${fmtCurrency(SDB)}/día`,
+      `${bonVacDias} días × ${(fracCurrentYear*100).toFixed(0)}% = ${(bonVacDias*fracCurrentYear).toFixed(1)} días × ${fmtCurrency(SDB)}/día`,
       'Art. 192 LOTTT',
       bonVacDias * fracCurrentYear * SDB);
 
@@ -3515,9 +3517,9 @@ function getConceptNarrative(country, name, item, ctx) {
       };
     }
     if (name === 'Vacaciones proporcionales') {
-      const vacDaysVe = 15 + Math.max(completedYears - 1, 0);
+      const vacDaysVe = Math.min(15 + completedYears, 30);
       return {
-        p1: 'El artículo 190 de la LOTTT establece el derecho a vacaciones anuales de 15 días hábiles en el primer año de servicios, con un día adicional por cada año subsiguiente hasta un máximo de 15 días adicionales. Al finalizar la relación laboral, se liquidan proporcionalmente las vacaciones del período en curso.',
+        p1: 'El artículo 190 de la LOTTT establece el derecho a vacaciones anuales remuneradas de 15 días hábiles en el primer año de servicios, con un día adicional por cada año subsiguiente hasta un máximo de 15 días adicionales (tope: 30 días). Al finalizar la relación laboral, se liquidan proporcionalmente las vacaciones del período en curso.',
         p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} cumplido${completedYears!==1?'s':''}</strong>, ${firstName ? `a <strong>${firstName}</strong> le corresponden` : 'corresponden'} ${vacDaysVe} días por año. Se liquida el ${(fracCurrentYear*100).toFixed(0)}% correspondiente al período en curso.`,
         calcLine: item.calc
       };
@@ -3531,8 +3533,8 @@ function getConceptNarrative(country, name, item, ctx) {
     }
     if (name === 'Bono vacacional') {
       return {
-        p1: 'El artículo 192 de la LOTTT establece un bono vacacional de 7 días de salario en el primer año de servicios, con un día adicional por cada año subsiguiente. Al terminarse la relación laboral, se paga proporcionalmente la fracción del bono correspondiente al período en curso.',
-        p2: null,
+        p1: 'El artículo 192 de la LOTTT (2012) establece un bono vacacional mínimo de 15 días de salario en el primer año de servicios, con un día adicional por cada año subsiguiente hasta un máximo de 30 días. Esta norma derogó el artículo 223 de la LOT de 1997 que establecía apenas 7 días mínimos. Al terminarse la relación laboral, se paga proporcionalmente la fracción del bono correspondiente al período en curso.',
+        p2: `Con <strong>${completedYears} año${completedYears!==1?'s':''} cumplido${completedYears!==1?'s':''}</strong>, el bono vacacional asciende a <strong>${bonVacDias} días</strong> (mín. 15 + ${completedYears} día${completedYears!==1?'s':''} adicional${completedYears!==1?'es':''}, tope 30).`,
         calcLine: item.calc
       };
     }
