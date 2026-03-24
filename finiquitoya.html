@@ -1655,19 +1655,18 @@ function toggleAguinaldo() {
 /* ─────────────────────────────────────────────
    MOTOR DE CALCULO: LFT Mexico 2024
 ───────────────────────────────────────────── */
+// Art. 76 LFT reforma DOF 27-dic-2022 (vigente desde 2-ene-2023)
 function vacDaysRate(completedYears) {
   const y = completedYears;
-  if (y < 1)  return 12;
-  if (y < 2)  return 14;
-  if (y < 3)  return 16;
-  if (y < 4)  return 18;
-  if (y < 9)  return 20;
-  if (y < 14) return 22;
-  if (y < 19) return 24;
-  if (y < 24) return 26;
-  if (y < 29) return 28;
-  if (y < 34) return 30;
-  return 32;
+  if (y <  1) return 12;  // Año 1
+  if (y <  2) return 14;  // Año 2
+  if (y <  3) return 16;  // Año 3
+  if (y <  4) return 18;  // Año 4
+  if (y <  9) return 20;  // Años 5–9
+  if (y < 14) return 22;  // Años 10–14
+  if (y < 19) return 24;  // Años 15–19
+  if (y < 24) return 26;  // Años 20–24
+  return 28;              // Año 25 en adelante
 }
 
 function calculateMexico(d) {
