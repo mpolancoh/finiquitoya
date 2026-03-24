@@ -2117,12 +2117,14 @@ function calculateVenezuela(d) {
       'Art. 192 LOTTT',
       bonVacDias * fracCurrentYear * SDB);
 
-  // 5. Indemnizacion (Art. 92 LOTTT): 30 days/yr if unjustified
+  // 5. Indemnización (Art. 92 LOTTT)
+  // Art. 92 LOTTT — indemnización = monto prestaciones sociales (literal d).
+  // SCS jurisprudencia dominante: indemnización espeja el mayor de los métodos, no cálculo independiente.
   if (termType === 'dismissal' || termType === 'mutual') {
     add('Indemnización por despido injustificado',
-        `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día (sal. integral)`,
+        `Equivalente al monto de prestaciones sociales (literal d) — efecto "doble": ${fmtCurrency(prestaciones)}`,
         'Art. 92 LOTTT',
-        30 * totalYears * SDI);
+        prestaciones);
   }
 
   // 6. Bonos
@@ -3540,9 +3542,9 @@ function getConceptNarrative(country, name, item, ctx) {
     }
     if (name === 'Indemnización por despido injustificado') {
       return {
-        p1: 'El artículo 92 de la LOTTT establece que el trabajador despedido sin causa justificada tiene derecho a una indemnización adicional equivalente a 30 días de salario integral por cada año de antigüedad o fracción superior a seis meses. Esta prestación se suma a las prestaciones sociales del artículo 142 y no puede compensarse con ninguna otra.',
-        p2: `${firstName ? `<strong>${firstName}</strong> acumuló` : 'Con'} <strong>${totalYears.toFixed(2)} años de servicio</strong>; la indemnización se calcula sobre el <strong>salario diario integral (SDI)</strong> de ${fmtCurrency(SDI)}/día.`,
-        calcLine: `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día (SDI) = ${fmtCurrency(item.amount)}`
+        p1: 'El artículo 92 de la LOTTT establece que el trabajador despedido sin causa justificada tiene derecho a una indemnización adicional igual al monto de las prestaciones sociales calculadas conforme al artículo 142 (el mayor de los dos métodos — literal d). La Sala de Casación Social ha consolidado que la indemnización no es un cálculo independiente, sino que espeja el resultado del literal d: produce el efecto de "doble" prestaciones.',
+        p2: `La indemnización es igual a las prestaciones sociales liquidadas: <strong>${fmtCurrency(item.amount)}</strong>. Sumada a las prestaciones, el trabajador recibe el doble de ese monto como piso mínimo por despido injustificado.`,
+        calcLine: `Indemnización = Prestaciones sociales (literal d) = ${fmtCurrency(item.amount)}`
       };
     }
     if (name === 'Otros conceptos adeudados') {
