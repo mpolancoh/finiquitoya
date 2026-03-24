@@ -7,9 +7,18 @@
 //
 // Tab: Transacciones
 // Cols: A=UUID  B=Email  C=FechaCreacion  D=Pais  E=Tier  F=TotalCalculado
-//       G=CalcDataJSON  H=Status  I=FechaPago  J=Monto  K=Moneda  L=SessionID
+//       G=CalcDataJSON  H=Status  I=FechaPago  J=Monto  K=Moneda  L=SessionID  M=NombreTrabajador
 
 const { google } = require('googleapis');
+
+// Returns current time formatted as "YYYY-MM-DD HH:MM:SS" in Miami/Eastern time
+function toEasternTimestamp() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).format(new Date()).replace('T', ' ');
+}
 
 function getAuth() {
   return new google.auth.GoogleAuth({
@@ -30,22 +39,23 @@ async function createTransaction(uuid, calcData) {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${TAB}!A:L`,
+    range: `${TAB}!A:M`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [[
         uuid,
-        calcData.email         || '',
-        new Date().toISOString(),
-        calcData.country       || '',
-        calcData.tier          || '',
-        calcData.result?.total || '',
+        calcData.email              || '',
+        toEasternTimestamp(),           // C — FechaCreacion (Miami/Eastern time)
+        calcData.country            || '',
+        calcData.tier               || '',
+        calcData.result?.total      || '',
         JSON.stringify(calcData),
-        'pending',             // H — updated to "paid" by webhook
-        '',                    // I — FechaPago
-        '',                    // J — Monto
-        '',                    // K — Moneda
-        ''                     // L — SessionID
+        'pending',                      // H — updated to "paid" by webhook
+        '',                             // I — FechaPago
+        '',                             // J — Monto
+        '',                             // K — Moneda
+        '',                             // L — SessionID
+        calcData.inputs?.workerName || ''  // M — NombreTrabajador
       ]]
     }
   });
@@ -102,13 +112,13 @@ async function completeTransaction(uuid, paymentData) {
     // UUID not found (edge case) — append complete row
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
-      range: `${TAB}!A:L`,
+      range: `${TAB}!A:M`,
       valueInputOption: 'RAW',
       requestBody: {
         values: [[
           uuid,
           paymentData.email          || '',
-          paymentData.fecha,
+          toEasternTimestamp(),
           paymentData.pais           || '',
           paymentData.tier           || '',
           paymentData.totalCalculado || '',
@@ -117,7 +127,8 @@ async function completeTransaction(uuid, paymentData) {
           paymentData.fecha,
           paymentData.monto,
           paymentData.moneda,
-          paymentData.sessionId
+          paymentData.sessionId,
+          ''                         // M — NombreTrabajador (unavailable in webhook fallback)
         ]]
       }
     });

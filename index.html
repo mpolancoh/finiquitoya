@@ -1200,7 +1200,8 @@ async function goToStripe(tier, email) {
     email: email || '',
     inputs: {
       salary, startDate, endDate, termType, unusedVac, bonuses,
-      aguinaldoPaid: S.aguinaldoPaid, comps
+      aguinaldoPaid: S.aguinaldoPaid, comps,
+      workerName: sessionStorage.getItem('fy_saved_name') || ''
     },
     result: FY.pdfState ? FY.pdfState.result : {}
   };
@@ -1537,7 +1538,10 @@ async function sendEmailReport() {
         showToast('No pudimos enviarte el email con el reporte. Puedes descargarlo manualmente con el botón de PDF.', 'warn');
       }
     });
-  } catch (e) { console.error('PDF email generation failed:', e); }
+  } catch (e) {
+    console.error('PDF email generation failed:', e);
+    showToast('No pudimos enviarte el email (error al generar el PDF). Descárgalo con el botón PDF.', 'warn');
+  }
 }
 
 function showToast(msg, type = 'info') {
@@ -2420,7 +2424,7 @@ function buildPdfDocDef(state, folio, workerName) {
   const { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result } = state;
   const cfg = COUNTRY_CONFIG[S.country];
   if (!folio) folio = genFolio();
-  const wName    = (workerName || '').trim();
+  const wName     = (workerName || '').trim();
   const firstName = wName.split(/\s+/)[0] || '';
 
   const start = new Date(startDate + 'T12:00:00');
@@ -2434,11 +2438,16 @@ function buildPdfDocDef(state, folio, workerName) {
   const calYearStart    = new Date(end.getFullYear(), 0, 1);
   const fracCalYear     = Math.min((end - calYearStart) / 86400000 / 365, 1);
 
-  const SDB = result.SDB, SDI = result.SDI;
-  const tD = Math.floor(totalDays);
-  const tY = Math.floor(tD/365), tM = Math.floor((tD%365)/30);
-  const tenureStr = (tY ? tY+(tY===1?' año':' años') : '') +
-                   (tM ? (tY?', ':'')+tM+(tM===1?' mes':' meses') : '') || 'Menos de 1 mes';
+  const SDB = result.SDB || 0;
+  const SDI = result.SDI || 0;
+  const tD  = Math.floor(totalDays);
+  const tY  = Math.floor(tD / 365);
+  const tM  = Math.floor((tD % 365) / 30);
+  const tenureStr = tY > 0
+    ? (tY + (tY === 1 ? ' año' : ' años')) + (tM > 0 ? ', ' + tM + (tM === 1 ? ' mes' : ' meses') : '')
+    : tM > 0
+      ? tM + (tM === 1 ? ' mes' : ' meses')
+      : tD + ' día' + (tD !== 1 ? 's' : '');
 
   const termLabels = {};
   cfg.termTypes.forEach(t => { termLabels[t.value] = t.name; });
@@ -2446,6 +2455,8 @@ function buildPdfDocDef(state, folio, workerName) {
 
   const now = new Date();
   const reportDate = fmtDateLong(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`);
+  const startFmt = fmtDateLong(startDate);
+  const endFmt   = fmtDateLong(endDate);
 
   const ctx = {
     salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
@@ -2455,234 +2466,266 @@ function buildPdfDocDef(state, folio, workerName) {
     workerName: wName, firstName
   };
 
-  // ── Colors ──
+  // ── Color palette ──
   const NAVY     = '#1e3a8a';
+  const BLUE     = '#1d4ed8';
   const LTBLUE   = '#dbeafe';
-  const SLATE5   = '#64748b';
+  const F0       = '#f0f6ff';
   const SLATE8   = '#1e293b';
+  const SLATE5   = '#64748b';
   const SLATE4   = '#94a3b8';
-  const AMBER_BG = '#fefce8';
-  const AMBER_BD = '#ca8a04';
+  const SLATE3   = '#cbd5e1';
+  const WHITE    = '#ffffff';
+  const F8       = '#f8fafc';
+  const AMBER_BG = '#fffbeb';
+  const AMBER_BD = '#fde68a';
   const AMBER_DK = '#92400e';
   const AMBER_TXT= '#78350f';
 
-  // ── Section heading helper ──
-  const secHead = (num, title) => ({
-    text: `${num}. ${title.toUpperCase()}`,
-    fontSize: 8, bold: true, color: NAVY,
-    decoration: 'underline', decorationColor: NAVY,
-    margin: [0, 0, 0, 8]
+  // ── Section title: all-caps navy text + blue 1.5pt bottom rule ──
+  const secTitle = (num, title) => ({
+    margin: [0, 0, 0, 12],
+    table: { widths: ['*'], body: [[{
+      text: `${num}. ${title.toUpperCase()}`,
+      fontSize: 9.5, bold: true, color: NAVY, margin: [0, 0, 0, 4]
+    }]] },
+    layout: {
+      hLineWidth: (i) => i === 1 ? 1.5 : 0,
+      vLineWidth: () => 0,
+      hLineColor: () => BLUE,
+      paddingLeft: () => 0, paddingRight: () => 0,
+      paddingTop: () => 3, paddingBottom: () => 2
+    }
   });
 
-  // ── I. Data grid ──
-  const gridData = buildPdfDataGrid(S.country, ctx, cfg);
-  const gridRows = [[], []];
-  gridData.forEach((c, i) => gridRows[Math.floor(i/3)].push(c));
-  const gridTable = {
-    table: {
-      widths: ['*', '*', '*'],
-      body: gridRows.map(row =>
-        row.map(c => ({
-          stack: [
-            { text: c.label.toUpperCase(), fontSize: 7.5, color: SLATE4, bold: true, margin: [0,0,0,1] },
-            { text: c.value, fontSize: 11, bold: true, color: c.blue ? '#1d4ed8' : SLATE8 }
-          ],
-          fillColor: '#f8fafc',
-          margin: [8, 8, 8, 8]
-        }))
-      )
-    },
+  // ── Repeating page header ──
+  const docHeader = () => ({
+    margin: [-40, 0, -40, 0],
+    table: { widths: ['*', '*'], body: [[
+      {
+        stack: [
+          { text: [{ text: 'Finiquito', bold: true, color: WHITE, fontSize: 14 },
+                   { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }], margin: [0,0,0,2] },
+          { text: 'Análisis de Liquidación Laboral', fontSize: 7.5, color: '#8baed4' }
+        ],
+        fillColor: NAVY
+      },
+      {
+        stack: [
+          { text: `Folio ${folio}`, fontSize: 8.5, bold: true, color: '#93c5fd', alignment: 'right' },
+          { text: `Generado el ${reportDate}`, fontSize: 7.5, color: '#bfdbfe', alignment: 'right', margin: [0,2,0,0] }
+        ],
+        fillColor: NAVY
+      }
+    ]] },
     layout: {
-      hLineWidth: () => 0.5, vLineWidth: () => 0.5,
-      hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+      hLineWidth: () => 0, vLineWidth: () => 0,
+      paddingLeft: (i) => i === 0 ? 52 : 8,
+      paddingRight: (i) => i === 0 ? 8 : 52,
+      paddingTop: () => 13, paddingBottom: () => 11
+    }
+  });
+
+  // ── Hero: country/worker left · total right ──
+  const heroSection = {
+    margin: [0, 0, 0, 0],
+    table: { widths: ['*', 'auto'], body: [[
+      {
+        stack: [
+          { text: `${cfg.name}  ·  ${cfg.law}`, fontSize: 9, bold: true, color: BLUE, margin: [0,0,0,5] },
+          ...(wName ? [{ text: wName, fontSize: 15, bold: true, color: SLATE8, margin: [0,0,0,3] }] : []),
+          { text: termLabel, fontSize: 10, color: wName ? SLATE5 : SLATE8, bold: !wName }
+        ],
+        fillColor: F0, margin: [16, 14, 16, 14]
+      },
+      {
+        stack: [
+          { text: 'TOTAL ESTIMADO', fontSize: 8, bold: true, color: SLATE5, alignment: 'right' },
+          { text: `$${fmtNum(result.total)}`, fontSize: 26, bold: true, color: NAVY, alignment: 'right', margin: [0,3,0,2] },
+          { text: cfg.currency, fontSize: 10, color: SLATE5, alignment: 'right' }
+        ],
+        fillColor: F0, margin: [16, 14, 16, 14]
+      }
+    ]] },
+    layout: {
+      hLineWidth: (i) => i === 0 || i === 2 ? 1.5 : 0,
+      vLineWidth: () => 0.5,
+      hLineColor: () => BLUE, vLineColor: () => SLATE3,
       paddingLeft: () => 0, paddingRight: () => 0,
       paddingTop: () => 0, paddingBottom: () => 0
     }
   };
 
-  // ── II. Concepts ──
+  // ── Chips bar: period · tenure · salary · SDI ──
+  const chipItems = [
+    { label: 'Período',         value: `${startFmt} — ${endFmt}` },
+    { label: 'Antigüedad',      value: tenureStr },
+    { label: 'Salario mensual', value: `${cfg.currency} ${fmtCurrency(salary)}` },
+    { label: 'SDI',             value: `${cfg.currency} ${fmtCurrency(SDI)}/día` }
+  ];
+  const chipsSection = {
+    margin: [0, 0, 0, 20],
+    table: {
+      widths: chipItems.map(() => '*'),
+      body: [[ ...chipItems.map(c => ({
+        stack: [
+          { text: c.label, fontSize: 7.5, color: SLATE5 },
+          { text: c.value, fontSize: 9, bold: true, color: SLATE8, margin: [0,2,0,0] }
+        ],
+        fillColor: WHITE, margin: [8, 8, 8, 8]
+      })) ]]
+    },
+    layout: {
+      hLineWidth: (i) => (i === 0 || i === 1) ? 0.5 : 0,
+      vLineWidth: (i, node) => (i > 0 && i < node.table.widths.length) ? 0.5 : 0,
+      hLineColor: () => SLATE3, vLineColor: () => '#e2e8f0',
+      paddingLeft: () => 0, paddingRight: () => 0,
+      paddingTop: () => 0, paddingBottom: () => 0
+    }
+  };
+
+  // ── Section I: narrative + salary params table ──
+  const caseNarText = [
+    ...(wName ? [{ text: wName, bold: true }] : [{ text: 'El trabajador' }]),
+    { text: ' prestó servicios para la empresa desde el ' },
+    { text: startFmt, bold: true },
+    { text: ' hasta el ' },
+    { text: endFmt, bold: true },
+    { text: ', para un total de ' },
+    { text: `${tD} días de servicio`, bold: true },
+    { text: '. La relación terminó por ' },
+    { text: termLabel, bold: true },
+    { text: '.' }
+  ];
+
+  // Salary params table rows
+  const spVal = (v) => `${cfg.currency} $${fmtNum(v)}`;
+  const spRows = [[
+    { text: 'Concepto', fontSize: 8.5, bold: true, color: WHITE, fillColor: BLUE },
+    { text: 'Cálculo',  fontSize: 8.5, bold: true, color: WHITE, fillColor: BLUE },
+    { text: 'Valor',    fontSize: 8.5, bold: true, color: WHITE, fillColor: BLUE, alignment: 'right' }
+  ]];
+  const spAdd = (label, calc, valor, isTot) => {
+    const bg = isTot ? LTBLUE : null;
+    spRows.push([
+      { text: label, fontSize: 9.5, color: SLATE8, bold: !!isTot, fillColor: bg },
+      { text: calc,  fontSize: 8.5, color: SLATE5, fillColor: bg },
+      { text: valor, fontSize: 9.5, color: isTot ? NAVY : SLATE8, bold: !!isTot, alignment: 'right', fillColor: bg }
+    ]);
+  };
+  spAdd('Salario mensual base', '—', spVal(salary));
+  spAdd('Salario diario base (SDB)', `$${fmtNum(salary)} ÷ 30`, spVal(SDB));
+  if (S.country === 've') {
+    const aliUtil = (30 * SDB) / 365;
+    const aliBono = (7  * SDB) / 365;
+    spAdd('Alícuota diaria de utilidades',      `(30 días × $${fmtNum(SDB)}) ÷ 365`, spVal(aliUtil));
+    spAdd('Alícuota diaria de bono vacacional',  `(7 días × $${fmtNum(SDB)}) ÷ 365`,  spVal(aliBono));
+    spAdd('Salario diario integral (SDI)',
+      `$${fmtNum(SDB)} + $${fmtNum(aliUtil)} + $${fmtNum(aliBono)}`, spVal(SDI), true);
+  } else {
+    const aliTotal = SDI - SDB;
+    if (aliTotal > 0.005) spAdd('Alícuotas proporcionales', 'Aguinaldo + vac. + prima vac.', spVal(aliTotal));
+    spAdd('Salario diario integrado (SDI)', aliTotal > 0.005 ? 'SDB + alícuotas' : '= SDB', spVal(SDI), true);
+  }
+  const sdiNotes = {
+    ve: 'El SDI incorpora las porciones proporcionales diarias de utilidades y bono vacacional conforme a los artículos 122 y 131 LOTTT. Es el salario base para los conceptos que así lo exigen por ley.',
+    mx: 'El SDI incorpora el SDB más las partes proporcionales de aguinaldo y prima vacacional (art. 84 LFT). Es el salario base para el cálculo de indemnizaciones.',
+    co: 'Colombia no aplica SDI; el salario diario base (SDB) es la referencia para todos los cálculos.'
+  };
+
+  // ── Section II: concept analysis ──
   const conceptContent = [];
   result.items.forEach((item, idx) => {
     const nar = getConceptNarrative(S.country, item.name, item, ctx);
     conceptContent.push({
-      margin: [0, 0, 0, 12],
+      margin: [0, 0, 0, 16],
       stack: [
-        // Header row: title + law badge
+        // Concept title block (left blue border)
         {
-          columns: [
-            { text: `${idx+1}. ${item.name}`, bold: true, fontSize: 11, color: SLATE8, width: '*' },
-            { text: item.law, fontSize: 8.5, bold: true, color: '#1d4ed8',
-              alignment: 'right', width: 'auto' }
-          ],
-          margin: [0, 0, 0, 4]
+          table: { widths: ['*'], body: [[{
+            text: `${idx + 1}. ${item.name}  —  ${item.law}`,
+            fontSize: 9.5, bold: true, color: NAVY,
+            fillColor: F0, margin: [10, 6, 10, 6]
+          }]] },
+          layout: {
+            hLineWidth: () => 0, vLineWidth: (i) => i === 0 ? 2.5 : 0,
+            vLineColor: () => BLUE,
+            paddingLeft: () => 0, paddingRight: () => 0,
+            paddingTop: () => 0, paddingBottom: () => 0
+          }
         },
-        // p1
-        ...(nar.p1 ? [{ text: htmlToPdfText(nar.p1), fontSize: 9.5, color: '#475569', lineHeight: 1.5, margin: [0,0,0,4] }] : []),
-        // p2
-        ...(nar.p2 ? [{ text: htmlToPdfText(nar.p2), fontSize: 9.5, color: '#475569', lineHeight: 1.5, margin: [0,0,0,4] }] : []),
-        // calc line (use table cell for fillColor support)
+        // p1 — legal explanation
+        ...(nar.p1 ? [{ text: htmlToPdfText(nar.p1), fontSize: 9.5, color: '#475569', lineHeight: 1.6, margin: [0,6,0,3] }] : []),
+        // p2 — case-specific with worker name
+        ...(nar.p2 ? [{ text: htmlToPdfText(nar.p2), fontSize: 9.5, color: '#475569', lineHeight: 1.6, margin: [0,0,0,4] }] : []),
+        // Calc box (left blue border)
         {
           table: { widths: ['*'], body: [[{
             text: nar.calcLine || item.calc,
             fontSize: 9, color: '#334155',
-            fillColor: '#f8fafc',
-            margin: [6, 4, 6, 4]
+            fillColor: F8, margin: [8, 5, 8, 5]
           }]] },
-          layout: { hLineWidth: () => 0.5, vLineWidth: (i) => i === 0 ? 3 : 0,
+          layout: {
+            hLineWidth: (i) => i === 0 || i === 2 ? 0.5 : 0,
+            vLineWidth: (i) => i === 0 ? 2.5 : 0,
             hLineColor: () => '#e2e8f0', vLineColor: () => '#3b82f6',
             paddingLeft: () => 0, paddingRight: () => 0,
-            paddingTop: () => 0, paddingBottom: () => 0 },
-          margin: [0, 2, 0, 0]
-        },
-        // separator
-        { canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#f1f5f9' }], margin: [0,4,0,0] }
+            paddingTop: () => 0, paddingBottom: () => 0
+          }
+        }
       ]
     });
   });
 
-  // ── III. Workers' rights ──
-  const rightsData = getRightsData(S.country);
-  const rightsContent = rightsData.map((r, i) => ({
-    margin: [0, 0, 0, 8],
-    table: {
-      widths: [20, '*'],
-      body: [[
-        { text: String(i+1), fontSize: 8, bold: true, color: '#ffffff',
-          fillColor: NAVY, alignment: 'center',
-          margin: [0, 3, 0, 3] },
-        {
-          stack: [
-            { text: r.title, bold: true, fontSize: 10, color: SLATE8, margin: [0,0,0,2] },
-            { text: r.text, fontSize: 9.5, color: '#475569', lineHeight: 1.5 }
-          ],
-          margin: [6, 2, 0, 2]
-        }
-      ]]
-    },
-    layout: {
-      hLineWidth: () => 0, vLineWidth: () => 0,
-      paddingLeft: () => 0, paddingRight: () => 0,
-      paddingTop: () => 0, paddingBottom: () => 0
-    }
-  }));
-
-  // ── IV. Breakdown table ──
-  const bkTableBody = [
+  // ── Section III: summary table ──
+  const summaryBody = [
     [
-      { text: 'CONCEPTO', style: 'thCell' },
-      { text: 'FÓRMULA APLICADA', style: 'thCell' },
-      { text: 'FUNDAMENTO', style: 'thCell' },
-      { text: `MONTO (${cfg.currency})`, style: 'thCell', alignment: 'right' }
+      { text: 'CONCEPTO',           fontSize: 8.5, bold: true, color: WHITE, fillColor: NAVY },
+      { text: 'BASE LEGAL',         fontSize: 8.5, bold: true, color: WHITE, fillColor: NAVY },
+      { text: `MONTO (${cfg.currency})`, fontSize: 8.5, bold: true, color: WHITE, fillColor: NAVY, alignment: 'right' }
     ],
     ...result.items.map((item, i) => [
-      { stack: [
-          { text: item.name, bold: true, fontSize: 10, color: SLATE8 },
-        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
-      { stack: [
-          { text: item.calc, fontSize: 9, color: SLATE5 }
-        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
-      { stack: [
-          { text: item.law, fontSize: 8, bold: true, color: '#1d4ed8' }
-        ], fillColor: i%2===1 ? '#f8fafc' : '#ffffff' },
-      { text: fmtCurrency(item.amount), bold: true, fontSize: 11, color: SLATE8,
-        alignment: 'right', fillColor: i%2===1 ? '#f8fafc' : '#ffffff' }
+      { text: item.name,            fontSize: 10,  color: SLATE8, fillColor: i%2===1 ? F8 : WHITE },
+      { text: item.law,             fontSize: 8.5, color: BLUE, bold: true, fillColor: i%2===1 ? F8 : WHITE },
+      { text: fmtCurrency(item.amount), fontSize: 10, bold: true, color: NAVY, alignment: 'right', fillColor: i%2===1 ? F8 : WHITE }
     ]),
     [
-      { text: 'Total estimado de liquidación', bold: true, fontSize: 12, color: '#ffffff',
-        colSpan: 3, fillColor: NAVY, margin: [0,4,0,4] },
-      {}, {},
-      { text: fmtCurrency(result.total), bold: true, fontSize: 14, color: '#ffffff',
-        alignment: 'right', fillColor: NAVY, margin: [0,4,0,4] }
+      { text: 'TOTAL ESTIMADO DE LIQUIDACIÓN', bold: true, fontSize: 11, color: WHITE,
+        colSpan: 2, fillColor: NAVY, margin: [0,4,0,4] },
+      {},
+      { text: `${fmtCurrency(result.total)} ${cfg.currency}`, bold: true, fontSize: 12,
+        color: WHITE, alignment: 'right', fillColor: NAVY, margin: [0,4,0,4] }
     ]
   ];
 
-  // ── V. Disclaimer ──
+  // ── Section IV: workers' rights ──
+  const rightsData = getRightsData(S.country);
+  const rightsContent = rightsData.map(r => ({
+    margin: [0, 0, 0, 12],
+    stack: [
+      {
+        table: { widths: ['*'], body: [[{
+          text: r.title,
+          fontSize: 10, bold: true, color: NAVY,
+          fillColor: F0, margin: [10, 6, 10, 6]
+        }]] },
+        layout: {
+          hLineWidth: () => 0, vLineWidth: (i) => i === 0 ? 2.5 : 0,
+          vLineColor: () => BLUE,
+          paddingLeft: () => 0, paddingRight: () => 0,
+          paddingTop: () => 0, paddingBottom: () => 0
+        }
+      },
+      { text: r.text, fontSize: 9.5, color: '#475569', lineHeight: 1.6, margin: [0,5,0,0] }
+    ]
+  }));
+
+  // ── Disclaimer ──
   const disclaimerParagraphs = getDisclaimerText(S.country, result.total);
   const disclaimerContent = disclaimerParagraphs.map(d => ({
     text: [{ text: d.label + ' ', bold: true, color: AMBER_DK }, { text: d.text, color: AMBER_TXT }],
     fontSize: 9, lineHeight: 1.55, margin: [0, 0, 0, 6]
   }));
-
-  // ── Repeating header (table-based so fillColor works) ──
-  // Layout paddingTop/Bottom controls actual spacing — cell `margin` is overridden by layout fns
-  // margin: [-40,0,-40,0] extends the table past the page margins so fillColor fills edge-to-edge
-  const docHeader = () => ({
-    margin: [-40, 0, -40, 0],
-    table: {
-      widths: ['*', '*'],
-      body: [[
-        {
-          stack: [
-            { text: [{ text: 'Finiquito', bold: true, color: '#ffffff', fontSize: 14 },
-                     { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }],
-              margin: [0,0,0,3] },
-            { text: 'finiquitoya.app', fontSize: 7.5, color: '#8baed4' }
-          ],
-          fillColor: NAVY
-        },
-        {
-          stack: [
-            { text: 'ANÁLISIS DE LIQUIDACIÓN LABORAL', fontSize: 7.5, bold: true,
-              color: '#93c5fd', alignment: 'right' },
-            { text: (wName ? `${wName}  ·  ` : '') + `Folio ${folio}  |  ${cfg.name} · ${cfg.law}  |  ${reportDate}`,
-              fontSize: 8, color: '#8baed4', alignment: 'right', margin: [0,3,0,0] }
-          ],
-          fillColor: NAVY
-        }
-      ]]
-    },
-    layout: {
-      hLineWidth: () => 0, vLineWidth: () => 0,
-      paddingLeft: (i) => i === 0 ? 52 : 8,
-      paddingRight: (i) => i === 0 ? 8 : 52,
-      paddingTop: () => 14,
-      paddingBottom: () => 12
-    }
-  });
-
-  // ── Hero section (page 1 only) ──
-  const heroSection = {
-    margin: [0, 0, 0, 16],
-    table: {
-      widths: ['*', 'auto'],
-      body: [[
-        {
-          stack: [
-            { text: 'Total estimado de liquidación', fontSize: 8.5, color: SLATE5,
-              bold: true, margin: [0,0,0,4] },
-            { text: [
-                { text: `${cfg.currency} $`, fontSize: 13, color: NAVY },
-                { text: fmtNum(result.total) + ' ', fontSize: 36, bold: false, color: NAVY },
-                { text: cfg.currency, fontSize: 12, bold: true, color: '#3b82f6' }
-              ]
-            },
-            { text: `Estimación orientativa · ${cfg.law}`, fontSize: 10, color: SLATE5, margin: [0,4,0,0] }
-          ],
-          fillColor: '#f0f4ff',
-          margin: [16, 14, 16, 14]
-        },
-        {
-          stack: [
-            ...(wName ? [{ text: wName, fontSize: 10.5, bold: true, color: NAVY, alignment: 'right', margin: [0,0,0,5] }] : []),
-            { text: termLabel, fontSize: 9.5, bold: true, color: wName ? '#1d4ed8' : NAVY,
-              margin: [0,0,0,4], alignment: 'right' },
-            { text: `Salario base: ${fmtCurrency(salary)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] },
-            ...(comps > 0 ? [{ text: `Sal. integrado: ${fmtCurrency(salary+comps)} / mes`, fontSize: 9.5, color: SLATE5, alignment: 'right', margin: [0,0,0,3] }] : []),
-            { text: `${tenureStr} de servicio`, fontSize: 9.5, color: SLATE5, alignment: 'right' }
-          ],
-          fillColor: '#f0f4ff',
-          margin: [16, 14, 16, 14]
-        }
-      ]]
-    },
-    layout: {
-      hLineWidth: (i) => i === 0 || i === 2 ? 0.5 : 0,
-      vLineWidth: () => 0.5,
-      hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
-      paddingLeft: () => 0, paddingRight: () => 0,
-      paddingTop: () => 0, paddingBottom: () => 0
-    }
-  };
 
   return {
     pageSize: 'LETTER',
@@ -2700,59 +2743,61 @@ function buildPdfDocDef(state, folio, workerName) {
     }),
 
     content: [
-      // Hero
+      // Hero + chips
       heroSection,
+      chipsSection,
 
-      // I. Case data
-      secHead('I', 'Datos del caso'),
-      gridTable,
-      { text: '', margin: [0, 0, 0, 16] },
-
-      // II. Concept analysis
-      secHead('II', 'Análisis por concepto'),
-      ...conceptContent,
-      { text: '', margin: [0, 0, 0, 4] },
-
-      // III. Workers' rights
-      { text: '', pageBreak: 'before' },
-      secHead('III', 'Derechos del trabajador ante la terminación'),
-      ...rightsContent,
-      { text: '', margin: [0, 0, 0, 8] },
-
-      // IV. Breakdown table
-      secHead('IV', 'Cuadro de liquidación'),
+      // I. Datos del caso
+      secTitle('I', 'Datos del caso'),
+      { text: caseNarText, fontSize: 10.5, lineHeight: 1.75, margin: [0, 0, 0, 10] },
+      { text: 'Parámetros salariales aplicables:', fontSize: 10, bold: true, color: SLATE8, margin: [0,0,0,0] },
       {
-        table: {
-          widths: ['38%', '30%', '16%', '16%'],
-          headerRows: 1,
-          body: bkTableBody
-        },
+        table: { widths: ['45%', '35%', '20%'], headerRows: 1, body: spRows },
         layout: {
           hLineWidth: () => 0.5, vLineWidth: () => 0,
-          hLineColor: () => '#f1f5f9',
-          paddingLeft: (i) => i===0 ? 10 : 10,
-          paddingRight: () => 10,
-          paddingTop: () => 8,
-          paddingBottom: () => 8
+          hLineColor: () => '#e2e8f0',
+          paddingLeft: () => 10, paddingRight: () => 10,
+          paddingTop: () => 6, paddingBottom: () => 6
+        },
+        margin: [0, 8, 0, 8]
+      },
+      ...(sdiNotes[S.country] ? [{ text: sdiNotes[S.country], fontSize: 9, color: SLATE5, lineHeight: 1.55, margin: [0,0,0,0] }] : []),
+      { text: '', margin: [0, 0, 0, 12] },
+
+      // II. Liquidación por concepto
+      secTitle('II', 'Liquidación por concepto'),
+      ...conceptContent,
+
+      // III. Resumen de liquidación
+      secTitle('III', 'Resumen de liquidación'),
+      {
+        table: { widths: ['50%', '28%', '22%'], headerRows: 1, body: summaryBody },
+        layout: {
+          hLineWidth: () => 0.5, vLineWidth: () => 0,
+          hLineColor: () => '#e2e8f0',
+          paddingLeft: () => 12, paddingRight: () => 12,
+          paddingTop: () => 7, paddingBottom: () => 7
         }
       },
       { text: '', margin: [0, 0, 0, 16] },
 
-      // V. Disclaimer (table for fillColor support)
+      // IV. Derechos del trabajador (new page)
+      { text: '', pageBreak: 'before' },
+      secTitle('IV', 'Derechos del trabajador'),
+      ...rightsContent,
+      { text: '', margin: [0, 0, 0, 8] },
+
+      // Disclaimer
       {
         margin: [-40, 0, -40, 0],
-        table: {
-          widths: ['*'],
-          body: [[{
-            stack: [
-              { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
-                fontSize: 8.5, bold: true, color: AMBER_DK, margin: [0, 0, 0, 8] },
-              ...disclaimerContent
-            ],
-            fillColor: AMBER_BG,
-            margin: [40, 16, 40, 16]
-          }]]
-        },
+        table: { widths: ['*'], body: [[{
+          stack: [
+            { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
+              fontSize: 8.5, bold: true, color: AMBER_DK, margin: [0, 0, 0, 8] },
+            ...disclaimerContent
+          ],
+          fillColor: AMBER_BG, margin: [40, 16, 40, 16]
+        }]] },
         layout: {
           hLineWidth: (i) => i === 0 ? 1 : 0,
           vLineWidth: () => 0,
@@ -2762,12 +2807,6 @@ function buildPdfDocDef(state, folio, workerName) {
         }
       }
     ],
-
-    styles: {
-      thCell: {
-        fontSize: 8.5, bold: true, color: '#ffffff', fillColor: NAVY
-      }
-    },
 
     defaultStyle: {
       font: 'Roboto',
