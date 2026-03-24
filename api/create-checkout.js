@@ -46,8 +46,11 @@ module.exports = async (req, res) => {
     console.error('createTransaction failed:', err.message);
   }
 
-  // Build success/cancel URLs
-  const baseUrl    = 'https://finiquitoya.app';
+  // Build success/cancel URLs — use the same origin the request came from
+  // so Stripe redirects back to whichever URL the user is on (prod or preview)
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host     = req.headers['x-forwarded-host'] || req.headers.host || 'finiquitoya.app';
+  const baseUrl  = process.env.APP_URL || `${protocol}://${host}`;
   const successUrl = `${baseUrl}/?unlocked=${tier}&pais=${country}`;
   const cancelUrl  = `${baseUrl}/`;
 

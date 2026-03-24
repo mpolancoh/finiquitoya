@@ -1988,7 +1988,13 @@ function calculate() {
   const pdfNameWrap = document.getElementById('pdfNameWrap');
   if (unlockedTier === 'premium') {
     pdfBtn.classList.remove('hidden');
-    if (pdfNameWrap) pdfNameWrap.style.display = '';
+    if (pdfNameWrap) {
+      pdfNameWrap.style.display = '';
+      const nameInp = document.getElementById('pdfNameInput');
+      if (nameInp && !nameInp.value) {
+        nameInp.value = sessionStorage.getItem('fy_saved_name') || '';
+      }
+    }
   } else {
     pdfBtn.classList.add('hidden');
     if (pdfNameWrap) pdfNameWrap.style.display = 'none';
