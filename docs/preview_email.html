@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Preview Email + Carta — FiniquitoYa</title>
+<style>
+  body { background:#e8edf2; font-family: Arial, sans-serif; margin:0; padding:32px; }
+  .label { font-size:11px; color:#888; text-align:center; margin-bottom:8px; letter-spacing:1px; text-transform:uppercase; }
+  .email-wrap { max-width:620px; margin:0 auto 48px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.15); }
+
+  /* ── COVER EMAIL ── */
+  .cover-header { background:#1e3a8a; padding:28px 36px 24px; }
+  .cover-header-logo { color:#fff; font-size:22px; font-weight:700; letter-spacing:-0.5px; margin:0 0 2px 0; }
+  .cover-header-sub { color:#93c5fd; font-size:12px; margin:0; }
+  .cover-body { padding:32px 36px; }
+  .cover-title { font-size:20px; font-weight:700; color:#1e3a8a; margin:0 0 16px 0; }
+  .cover-text { font-size:14px; color:#374151; line-height:1.7; margin:0 0 14px 0; }
+  .cover-box { background:#dbeafe; border-radius:8px; padding:18px 22px; margin:20px 0; display:flex; align-items:center; justify-content:space-between; }
+  .cover-box-lbl { font-size:13px; color:#1e40af; font-weight:600; }
+  .cover-box-amt { font-size:26px; font-weight:900; color:#1e3a8a; }
+  .cover-list { margin:16px 0; padding:0; list-style:none; }
+  .cover-list li { font-size:13px; color:#374151; padding:5px 0 5px 24px; position:relative; line-height:1.5; }
+  .cover-list li::before { content:"✓"; position:absolute; left:0; color:#1d4ed8; font-weight:700; }
+  .cover-divider { border:none; border-top:2px solid #e5e7eb; margin:28px 0; }
+  .cover-letter-title { font-family:Arial; font-size:15px; font-weight:700; color:#1e293b; margin:0 0 8px 0; }
+  .cover-letter-intro { font-size:13px; color:#6b7280; margin:0 0 0 0; line-height:1.6; }
+  .cover-footer { background:#f8fafc; padding:16px 36px; border-top:1px solid #e5e7eb; }
+  .cover-footer p { font-size:11px; color:#9ca3af; margin:0; line-height:1.7; }
+
+  /* ── EMPLOYER LETTER ── */
+  .letter-wrap { max-width:620px; margin:0 auto 48px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.15); }
+  .letter-header { background:#1e3a8a; padding:12px 36px; display:flex; justify-content:space-between; align-items:center; }
+  .letter-header-logo { color:#fff; font-size:14px; font-weight:700; }
+  .letter-header-tag { color:#93c5fd; font-size:11px; }
+  .letter-body { padding:36px 40px; font-family: Georgia, 'Times New Roman', serif; font-size:13.5px; color:#1a1a1a; line-height:1.85; }
+  .letter-date { margin:0 0 22px 0; color:#444; }
+  .letter-to { margin:0 0 22px 0; line-height:1.7; }
+  .letter-salutation { margin:0 0 16px 0; }
+  .letter-p { margin:0 0 16px 0; }
+
+  /* Concept bullet list — plain, no colors */
+  .concept-list { margin:12px 0 20px 0; padding-left:20px; }
+  .concept-list li { margin-bottom:8px; font-size:13px; line-height:1.6; }
+  .concept-name { font-weight:700; }
+  .concept-calc { font-style:italic; color:#444; }
+  .concept-law { color:#666; }
+  .concept-amt { font-weight:700; }
+
+  .total-row { margin:16px 0 24px; font-size:14px; font-weight:700; }
+
+  .steps-list { margin:8px 0 18px 0; padding-left:22px; }
+  .steps-list li { margin-bottom:10px; font-size:13.5px; line-height:1.65; }
+  .closing { margin:28px 0 14px 0; }
+  .sig-block { font-family:Arial,sans-serif; font-size:13px; }
+  .sig-block p { margin:3px 0; color:#1a1a1a; }
+  .sig-name { font-size:14px; font-weight:700; color:#1e3a8a; margin-bottom:6px !important; }
+  .letter-footer { background:#f1f5f9; padding:12px 36px; border-top:1px solid #e5e7eb; font-family:Arial,sans-serif; font-size:10.5px; color:#9ca3af; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<p class="label">📧 Vista del correo — Plan Premium</p>
+
+<!-- COVER EMAIL -->
+<div class="email-wrap">
+  <div class="cover-header">
+    <p class="cover-header-logo">FiniquitoYa</p>
+    <p class="cover-header-sub">finiquitoya.app</p>
+  </div>
+  <div class="cover-body">
+    <p class="cover-title">Tu reporte de liquidación está listo ✓</p>
+    <p class="cover-text">
+      Hola <strong>Juan Carlos</strong>, gracias por tu compra. Hemos generado tu reporte de liquidación
+      laboral con base en la <strong>Ley Federal del Trabajo (LFT)</strong>.
+      Lo encontrarás adjunto a este correo en formato PDF.
+    </p>
+    <p class="cover-text">Tu reporte incluye:</p>
+    <ul class="cover-list">
+      <li>Desglose completo de cada concepto de liquidación</li>
+      <li>Fórmula de cálculo aplicada a tus datos</li>
+      <li>Artículo de la LFT que respalda cada concepto</li>
+      <li>Guía de derechos y próximos pasos para reclamar el pago</li>
+    </ul>
+    <div class="cover-box">
+      <span class="cover-box-lbl">Total estimado de tu liquidación</span>
+      <span class="cover-box-amt">$178,084.10 MXN</span>
+    </div>
+    <hr class="cover-divider">
+    <p class="cover-letter-title">Carta para tu empleador</p>
+    <p class="cover-letter-intro">
+      Más abajo encontrarás una carta lista para enviar a tu empleador.
+      Reemplaza los campos en <strong>[corchetes]</strong> con tu información antes de enviarla.
+      Puedes copiar el texto, enviarlo por correo o imprimirlo.<br>
+      <strong>⚠ Envíala desde tu correo personal, no desde el correo de la empresa.</strong>
+    </p>
+  </div>
+  <div class="cover-footer">
+    <p>FiniquitoYa · finiquitoya.app · Este es un mensaje automático, por favor no respondas directamente a este correo. Esta estimación es orientativa y no constituye asesoría legal.</p>
+  </div>
+</div>
+
+<p class="label" style="margin-top:8px">📄 Carta al empleador (incluida en el mismo correo)</p>
+
+<!-- EMPLOYER LETTER -->
+<div class="letter-wrap">
+  <div class="letter-header">
+    <span class="letter-header-logo">FiniquitoYa</span>
+    <span class="letter-header-tag">Carta de solicitud de liquidación</span>
+  </div>
+  <div class="letter-body">
+
+    <p class="letter-date">Ciudad de México, [Fecha]</p>
+
+    <p class="letter-to">
+      [Nombre del destinatario]<br>
+      [Cargo del destinatario]<br>
+      [Nombre de la empresa]
+    </p>
+
+    <p class="letter-salutation">Estimado(a) [Nombre del destinatario]:</p>
+
+    <p class="letter-p">
+      Por medio de la presente, yo, <strong>Juan Carlos García Martínez</strong>, me dirijo a ustedes
+      con el fin de solicitar formalmente el pago de la liquidación que me corresponde por ley,
+      derivada de la conclusión de mi relación laboral con esta empresa.
+    </p>
+
+    <p class="letter-p">
+      Laboré en esta organización del <strong>1 de marzo de 2021</strong> al <strong>23 de marzo de 2024</strong>,
+      siendo mi separación motivada por <strong>despido injustificado</strong>. La duración total de la
+      relación laboral fue de <strong>3 años y 22 días</strong>, con un salario mensual de
+      <strong>$25,000.00 MXN</strong> (salario base diario: $833.33 · salario diario integrado: $927.50).
+      El cálculo detallado de cada concepto se adjunta en formato PDF.
+    </p>
+
+    <p class="letter-p">Los conceptos que me corresponden, conforme a la Ley Federal del Trabajo, son los siguientes:</p>
+
+    <ul class="concept-list">
+      <li>Indemnización constitucional (3 meses): $83,475.00 — 90 días × $927.50/día</li>
+      <li>20 días de salario por año trabajado: $56,826.00 — 20 días × $927.50 × 3.06 años</li>
+      <li>Prima de antigüedad: $34,095.60 — 12 días × $927.50 × 3.06 años</li>
+      <li>Vacaciones proporcionales: $750.00 — 0.9 días × $833.33/día</li>
+      <li>Prima vacacional: $187.50 — 25% sobre vacaciones proporcionales</li>
+      <li>Aguinaldo proporcional: $2,750.00 — 15 días × $833.33 × 22% del año</li>
+    </ul>
+
+    <p class="letter-p"><strong>Total estimado de liquidación: $178,084.10 MXN</strong></p>
+
+    <p class="letter-p">
+      Solicito que esta situación sea atendida a la brevedad. Agradezco que me confirmen
+      la recepción de esta carta e indiquen la fecha y forma de pago a la mayor brevedad posible.
+    </p>
+
+    <p class="letter-p">Quedo a su disposición para cualquier aclaración.</p>
+
+    <p class="closing">Atentamente,</p>
+    <div class="sig-block">
+      <p class="sig-name">Juan Carlos García Martínez</p>
+      <p>CURP / No. de empleado: [Tu CURP o número de empleado]</p>
+      <p>Teléfono: [Tu teléfono]</p>
+      <p>Correo electrónico: [Tu correo personal]</p>
+    </div>
+
+  </div>
+  <div class="letter-footer">
+    Generado con FiniquitoYa · finiquitoya.app · Los campos en [corchetes] deben completarse antes de enviar.
+  </div>
+</div>
+
+</body>
+</html>

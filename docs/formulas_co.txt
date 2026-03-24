@@ -1,0 +1,283 @@
+═══════════════════════════════════════════════════════════════════
+FÓRMULAS DE CÁLCULO — COLOMBIA (CST)
+Basado en la función calculateColombia() de finiquitoya.html
+Código Sustantivo del Trabajo vigente
+═══════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────
+CONSTANTES USADAS EN EL CÓDIGO
+────────────────────────────────────────────────────────────────────
+
+  SMMLV_CO     = 1,423,500  COP/mes   (salario mínimo mensual, 2025 — Decreto 2706 de 2024)
+  TRANSPORT_CO = 174,786    COP/mes   (auxilio de transporte, 2025 — Decreto 2707 de 2024)
+
+
+────────────────────────────────────────────────────────────────────
+VARIABLES DE TIEMPO
+────────────────────────────────────────────────────────────────────
+
+  totalDays  = (endDate - startDate) / 86,400,000   (días exactos)
+  totalYears = totalDays / 365                       (años decimales, e.g. 2.83)
+
+  Nota: Colombia usa una base de 360 días en los cálculos de cesantías,
+        prima de servicios e intereses (no 365). Esto sigue la práctica
+        del CST y la convención comercial.
+
+
+────────────────────────────────────────────────────────────────────
+SALARIO BASE (SDB) — No hay SDI en Colombia
+────────────────────────────────────────────────────────────────────
+
+  SDB = salary / 30
+
+  Donde salary = salario mensual base ingresado por el usuario.
+  Colombia no tiene un concepto de "salario integrado" al estilo de México.
+  Los componentes salariales adicionales del usuario se suman directamente a
+  salary para efectos de los cálculos (pasados via salaryIntegrated, pero el
+  código de Colombia usa solo salary directamente).
+
+  Fundamento: Art. 127, 128 CST — El salario incluye todo lo que recibe el
+  trabajador como contraprestación directa del servicio.
+
+
+────────────────────────────────────────────────────────────────────
+AUXILIO DE TRANSPORTE: INCLUSIÓN EN CESANTÍAS
+────────────────────────────────────────────────────────────────────
+
+  hasTransport = (salary <= 2 × SMMLV_CO)
+               = (salary <= 2 × 1,423,500)
+               = (salary <= 2,847,000 COP/mes)
+
+  Si hasTransport = true:
+    salaryForCes = salary + TRANSPORT_CO
+                 = salary + 174,786
+
+  Si hasTransport = false:
+    salaryForCes = salary
+
+  Fundamento: Jurisprudencia de la Corte Suprema de Justicia, Sala Laboral —
+  el auxilio de transporte se incluye en la base de liquidación de cesantías
+  para trabajadores con salario igual o inferior a 2 SMMLV.
+
+  IMPORTANTE: El auxilio de transporte solo afecta la base de CESANTÍAS.
+  Para prima de servicios, indemnización y vacaciones se usa el salary sin
+  incluir el transporte.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 1: DESPIDO SIN JUSTA CAUSA (termType = 'dismissal')
+────────────────────────────────────────────────────────────────────
+
+Se calculan TODOS los conceptos siguientes:
+
+  1. CESANTÍAS
+     ──────────
+     Monto = (salaryForCes × totalDays) / 360
+
+     Donde salaryForCes = salary + TRANSPORT_CO si salary ≤ 2 SMMLV
+                        = salary               si salary > 2 SMMLV
+
+     Fundamento: Art. 249 CST (un mes de salario por año, proporcional)
+     Nota: La base es 360 días (año comercial), no 365.
+
+  2. INTERESES SOBRE CESANTÍAS (12% anual)
+     ────────────────────────────────────
+     Monto = cesantías × 0.12 × (totalDays / 360)
+
+     Donde:
+       0.12 = tasa anual del 12%
+       (totalDays / 360) = años laborados en escala de 360 días
+
+     Fundamento: Ley 52 de 1975; Art. 99 Ley 50 de 1990
+     Nota: Los intereses se calculan sobre el monto de cesantías,
+           a la tasa del 12% anual proporcional.
+
+  3. PRIMA DE SERVICIOS (si aguinaldoPaid = false)
+     ────────────────────────────────────────────
+     Monto = (salary × totalDays) / 360
+
+     Fundamento: Art. 306 CST (30 días de salario por año, en dos cuotas semestrales)
+     Condición: Solo si el usuario NO marcó que ya recibió la prima del semestre.
+     Nota: Base 360 días. NO incluye el auxilio de transporte (a diferencia de cesantías).
+
+  4. VACACIONES PROPORCIONALES
+     ──────────────────────────
+     Monto = SDB × 15 × totalYears
+           = (salary / 30) × 15 × totalYears
+
+     Fundamento: Art. 186 CST (15 días hábiles por año)
+     Nota: Se usa totalYears decimal. Se calcula sobre toda la antigüedad,
+           no solo el año en curso (diferencia con MX que calcula solo el
+           período desde el último aniversario).
+
+  4b. VACACIONES ACUMULADAS SIN TOMAR (si unusedVac > 0)
+      ──────────────────────────────────────────────────
+      Monto = unusedVac × SDB
+
+      Fundamento: Art. 186, 187 CST
+      Nota: El usuario declara los días de vacaciones pendientes de períodos anteriores.
+
+  5. INDEMNIZACIÓN POR DESPIDO SIN JUSTA CAUSA
+     ────────────────────────────────────────────
+     La indemnización tiene dos escalas según el nivel salarial:
+
+     is10SMMLV = (salary <= 10 × SMMLV_CO)
+               = (salary <= 10 × 1,423,500)
+               = (salary <= 14,235,000 COP/mes)
+
+     ESCALA A: salary ≤ 10 SMMLV (is10SMMLV = true)
+       Si totalYears ≤ 1:
+         Monto = 30 × totalYears × SDB
+
+       Si totalYears > 1:
+         Monto = (30 + 20 × (totalYears - 1)) × SDB
+               = 30 × SDB + 20 × (totalYears - 1) × SDB
+
+     ESCALA B: salary > 10 SMMLV (is10SMMLV = false)
+       Si totalYears ≤ 1:
+         Monto = 20 × totalYears × SDB
+
+       Si totalYears > 1:
+         Monto = (20 + 15 × (totalYears - 1)) × SDB
+               = 20 × SDB + 15 × (totalYears - 1) × SDB
+
+     Fundamento: Art. 64 CST
+     Condición: Solo para termType = 'dismissal' o 'mutual'
+     Nota: El código usa totalYears decimal en ambos casos, lo que produce
+           un resultado proporcional para fracciones de año.
+
+  6. BONOS / OTROS ADEUDOS PENDIENTES (si bonuses > 0)
+     ──────────────────────────────────────────────────
+     Monto = bonuses  (monto declarado por el usuario)
+
+     Fundamento: Art. 127 CST
+
+
+────────────────────────────────────────────────────────────────────
+CASO 2: RENUNCIA VOLUNTARIA (termType = 'resignation')
+────────────────────────────────────────────────────────────────────
+
+  NO se calcula:
+    - Indemnización por despido sin justa causa
+
+  SÍ se calculan:
+    - Cesantías                                    [fórmula igual al Caso 1]
+    - Intereses sobre cesantías                    [fórmula igual al Caso 1]
+    - Prima de servicios (si no fue pagada)        [fórmula igual al Caso 1]
+    - Vacaciones proporcionales                    [fórmula igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [fórmula igual al Caso 1]
+
+  Nota: En renuncia voluntaria, el trabajador tiene derecho a todas sus
+        prestaciones sociales (cesantías, intereses, prima, vacaciones),
+        pero NO a la indemnización por despido.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 3: DESPIDO CON JUSTA CAUSA (termType = 'justified')
+────────────────────────────────────────────────────────────────────
+
+  NO se calcula:
+    - Indemnización por despido sin justa causa
+
+  SÍ se calculan:
+    - Cesantías                                    [fórmula igual al Caso 1]
+    - Intereses sobre cesantías                    [fórmula igual al Caso 1]
+    - Prima de servicios (si no fue pagada)        [fórmula igual al Caso 1]
+    - Vacaciones proporcionales                    [fórmula igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [fórmula igual al Caso 1]
+
+  Nota: El despido con justa causa (Art. 62 CST) elimina la obligación del
+        empleador de pagar indemnización, pero NO exime de pagar las
+        prestaciones sociales acumuladas (cesantías, prima, vacaciones).
+
+
+────────────────────────────────────────────────────────────────────
+CASO 4: TERMINACIÓN POR MUTUO ACUERDO (termType = 'mutual')
+────────────────────────────────────────────────────────────────────
+
+  El código trata el mutuo acuerdo IGUAL que el despido sin justa causa.
+  Se calculan TODOS los conceptos:
+
+    - Cesantías                                    [igual al Caso 1]
+    - Intereses sobre cesantías                    [igual al Caso 1]
+    - Prima de servicios (si no fue pagada)        [igual al Caso 1]
+    - Vacaciones proporcionales                    [igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [igual al Caso 1]
+    - Indemnización por despido sin justa causa    [igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [igual al Caso 1]
+
+  Condición en el código:
+    if (termType === 'dismissal' || termType === 'mutual') { ... [indemnización] }
+
+
+────────────────────────────────────────────────────────────────────
+RESUMEN DE CONCEPTOS POR TIPO DE TERMINACIÓN
+────────────────────────────────────────────────────────────────────
+
+  Concepto                              DESPIDO   RENUNCIA   JUSTIFICADO   MUTUO
+  ──────────────────────────────────────────────────────────────────────────────
+  Cesantías                                SI        SI          SI          SI
+  Intereses sobre cesantías               SI        SI          SI          SI
+  Prima de servicios *                    SI        SI          SI          SI
+  Vacaciones proporcionales               SI        SI          SI          SI
+  Vacaciones acumuladas *                 SI        SI          SI          SI
+  Indemnización por despido               SI        NO          NO          SI
+  Bonos pendientes *                      SI        SI          SI          SI
+
+  * = condicionado: prima si no fue pagada, vacaciones acumuladas si el usuario
+      declaró días, bonos si el usuario ingresó monto
+
+
+────────────────────────────────────────────────────────────────────
+INDEMNIZACIÓN — EJEMPLOS DE CÁLCULO
+────────────────────────────────────────────────────────────────────
+
+  Ejemplo A: salary = 2,000,000 COP (≤ 10 SMMLV), 3.5 años de servicio
+    SDB = 2,000,000 / 30 = 66,666.67 COP/día
+    Monto = (30 + 20 × (3.5 - 1)) × 66,666.67
+          = (30 + 50) × 66,666.67
+          = 80 × 66,666.67
+          = 5,333,333 COP
+
+  Ejemplo B: salary = 20,000,000 COP (> 10 SMMLV), 2.0 años de servicio
+    SDB = 20,000,000 / 30 = 666,666.67 COP/día
+    Monto = (20 + 15 × (2.0 - 1)) × 666,666.67
+          = (20 + 15) × 666,666.67
+          = 35 × 666,666.67
+          = 23,333,333 COP
+
+
+────────────────────────────────────────────────────────────────────
+NOTAS ADICIONALES DEL CÁLCULO
+────────────────────────────────────────────────────────────────────
+
+  1. Base de 360 días vs. 365:
+     Cesantías, intereses y prima de servicios usan base 360 (año comercial).
+     Vacaciones usan totalYears = totalDays / 365.
+     Esto es consistente con la práctica del CST.
+
+  2. Auxilio de transporte SOLO en cesantías:
+     La inclusión del auxilio de transporte en la base liquidatoria aplica
+     únicamente para el cálculo de cesantías, no para prima de servicios,
+     indemnización ni vacaciones.
+
+  3. No hay SDI en Colombia:
+     La función retorna { items, total, SDB, SDI: SDB, hasComponents: false }
+     — SDI se devuelve igual a SDB para compatibilidad con el resto del sistema.
+
+  4. Sanción moratoria (no calculada, pero mencionada en la carta):
+     El Art. 65 CST establece que si el empleador no paga la liquidación al
+     momento de la terminación, debe pagar un día de salario por cada día de
+     retardo. Esta sanción NO está incluida en el cálculo de la app.
+
+  5. La prima de servicios en Colombia equivale funcionalmente al aguinaldo
+     de México: es el bono anual obligatorio. El toggle en la app pregunta
+     "¿Ya recibiste tu prima de servicios de este semestre?" (igual que
+     México pregunta por el aguinaldo).
+
+═══════════════════════════════════════════════════════════════════
+FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════

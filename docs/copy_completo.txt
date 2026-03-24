@@ -1,0 +1,878 @@
+═══════════════════════════════════════════════════════════════════
+FINIQUITOYA — COPY COMPLETO DE TODOS LOS TEXTOS DE LA APP
+Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
+═══════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────
+1. LANDING / HERO (Paso 1 — selector de país)
+────────────────────────────────────────────────────────────────────
+
+  Título principal (h1):
+    "¿Te están pagando lo que te corresponde?"
+
+  Subtítulo:
+    "Ingresa tus datos y obtén un estimado de lo que la ley te garantiza,
+     sin abogados ni complicaciones."
+
+  Pills (badges de confianza):
+    ✓ Gratis
+    ⏱ 2 minutos
+    ⚖️ Basado en la [LFT / CST / LOTTT] (cambia dinámicamente según país)
+    🔒 Sin registro
+
+  Country info box (debajo de la cuadrícula de países):
+
+    MX: "México · LFT 2024: Calculamos indemnización constitucional
+         (3 meses), 20 días por año, prima de antigüedad, vacaciones
+         proporcionales, prima vacacional y aguinaldo proporcional."
+
+    CO: "Colombia · CST: Calculamos cesantías (+ intereses 12% anual),
+         prima de servicios, vacaciones proporcionales e indemnización por
+         despido sin justa causa según el Art. 64 CST."
+
+    VE: "Venezuela · LOTTT: Calculamos prestaciones sociales (Art. 142,
+         mayor entre método retroactivo y trimestral), utilidades, vacaciones,
+         bono vacacional e indemnización por despido injustificado."
+
+  Badge en el header:
+    MX: "México · LFT 2024"
+    CO: "Colombia · CST"
+    VE: "Venezuela · LOTTT"
+
+  Título de la página (browser tab):
+    "FiniquitoYa: Calcula lo que te deben"
+
+  Logo:
+    "FiniquitoYa" (con "Ya" en azul)
+
+  Demo banner (solo en modo demo ?demo=1):
+    "🛠 Modo Demo activo: paywall desactivado. Accede via ?demo=1"
+
+
+────────────────────────────────────────────────────────────────────
+2. PROGRESS BAR — Etiquetas de los 3 pasos
+────────────────────────────────────────────────────────────────────
+
+  Paso 1: "Situación"
+  Paso 2: "Tu empleo"
+  Paso 3: "Beneficios"
+
+
+────────────────────────────────────────────────────────────────────
+3. PASO 1 — Card de situación
+────────────────────────────────────────────────────────────────────
+
+  Título de la card: "¿Cuál es tu situación?"
+  Subtítulo: "Selecciona tu país y el tipo de terminación laboral."
+
+  Campo País — Opciones:
+    México
+    Colombia
+    Venezuela
+    Chile (badge: "Próximo")
+    Argentina (badge: "Próximo")
+    Perú (badge: "Próximo")
+
+  Campo Tipo de terminación:
+
+    MX:
+      🚫 Despido injustificado — "Me comunicaron que ya no continuaré, sin causa justificada."
+      ✋ Renuncia voluntaria — "Yo decidí dejar el trabajo de forma voluntaria."
+      🤝 Convenio / Mutuo acuerdo — "Ambas partes acordaron terminar la relación laboral."
+      📋 Despido justificado — "La empresa tiene una causa debidamente acreditada de rescisión conforme a la ley."
+
+    CO:
+      🚫 Despido sin justa causa — "El empleador terminó el contrato sin una causa legal válida."
+      ✋ Renuncia voluntaria — "Yo decidí terminar el contrato de forma voluntaria."
+      🤝 Terminación mutuo acuerdo — "Ambas partes acordaron terminar la relación laboral."
+      📋 Despido con justa causa — "El empleador tiene una causa válida de terminación (Art. 62 CST)."
+
+    VE:
+      🚫 Despido injustificado — "El empleador terminó la relación sin una causa válida conforme a la LOTTT."
+      ✋ Retiro voluntario — "Yo decidí terminar la relación de trabajo."
+      🤝 Convenio / Mutuo acuerdo — "Ambas partes acordaron terminar la relación."
+      📋 Despido justificado — "El empleador tiene causa válida conforme al Art. 79 LOTTT."
+
+  Botón: "Continuar →"
+
+
+────────────────────────────────────────────────────────────────────
+4. PASO 2 — Card de datos de empleo
+────────────────────────────────────────────────────────────────────
+
+  Título: "Datos de tu empleo"
+
+  Subtítulo (varía por país):
+    MX: "Ingresa los datos de tu relación laboral. Todos los montos en pesos mexicanos (MXN)."
+    CO: "Ingresa los datos de tu relación laboral. Todos los montos en pesos colombianos (COP)."
+    VE: "Ingresa los datos de tu relación laboral. Montos en USD (la divisa en que recibes tu salario)."
+
+  Campo Salario:
+    MX — Label: "Salario mensual base (MXN)"
+         Placeholder: "15,000"
+         Hint: "Tu salario base mensual en pesos mexicanos. Los pagos adicionales (vales, comisiones, etc.) los agregas abajo."
+
+    CO — Label: "Salario mensual base (COP)"
+         Placeholder: "2.000.000"
+         Hint: "Tu salario base mensual en pesos colombianos. Si ganas hasta $2.847.000 COP (2 SMMLV 2025), el auxilio de transporte ($174.786) se incluye automáticamente en las cesantías."
+
+    VE — Label: "Salario mensual (USD)"
+         Placeholder: "400"
+         Hint: "Ingresa tu salario mensual en USD. Dado el contexto económico venezolano, la mayoría de los cálculos se expresan en dólares."
+
+  Campo: "Fecha de ingreso"
+  Campo: "Fecha de salida"
+
+  Pill de duración (se genera dinámicamente):
+    "📅 Tiempo laborado: [X años, Y meses, Z días]"
+
+  Errores de validación:
+    "Por favor ingresa un salario mensual válido."
+    "Selecciona tu fecha de ingreso."
+    "Selecciona tu fecha de salida."
+    "La fecha de salida debe ser posterior a la de ingreso."
+
+
+────────────────────────────────────────────────────────────────────
+5. PASO 2 — Acordeón de componentes salariales
+────────────────────────────────────────────────────────────────────
+
+  Trigger (botón del acordeón):
+    "+ Agregar pagos regulares adicionales"
+    Subtexto: "Vales, comisiones, transporte, fondo de ahorro..."
+
+  Nota en el panel (varía por país):
+    MX: "Según el Art. 84 de la LFT, ciertos pagos regulares forman parte del salario integrado
+         y afectan el cálculo de la indemnización y prima de antigüedad.
+         Incluye solo pagos que recibes de manera regular."
+
+    CO: "Según el CST, ciertos pagos regulares pueden aumentar el salario base para liquidaciones.
+         Incluye solo pagos que recibes de manera regular y constante."
+
+    VE: "Según el Art. 122 LOTTT, el salario integral incluye alícuotas de utilidades y bono
+         vacacional, y es la base para prestaciones sociales e indemnización."
+
+  Componentes — MX:
+    Bonos regulares — "(los bonos pagados de forma regular forman parte del salario integrado, Art. 84 LFT)"
+    Vales de despensa — "Vales o tarjeta de supermercado"
+    Transporte — "Apoyo fijo de transporte o gasolina"
+    Comisiones — "Promedio mensual de comisiones"
+    Bono de puntualidad — "Bono fijo mensual por asistencia"
+    Fondo de ahorro — "Aportación mensual de la empresa"
+    Otro concepto regular — "Cualquier otro pago mensual fijo"
+
+  Componentes — CO:
+    Bonos regulares — "(los bonos pagados de forma regular y permanente forman parte del salario, Art. 127 CST)"
+    Auxilio de alimentación — "Subsidio o bono de alimentación regular"
+    Auxilio de transporte extra — "Transporte adicional al legal (el legal se aplica automáticamente)"
+    Comisiones — "Promedio mensual de comisiones"
+    Bonificación por puntualidad — "Bono mensual por asistencia o puntualidad"
+    Fondo de empleados — "Aportación mensual de la empresa"
+    Otro concepto regular — "Cualquier otro pago mensual constante"
+
+  Componentes — VE:
+    Bonos regulares — "(los bonos pagados de forma regular forman parte del salario, Art. 122 LOTTT)"
+    Cestaticket / bono de alimentación — "Beneficio de alimentación regular (Ley de Alimentación)"
+    Bono de transporte — "Apoyo fijo mensual de transporte"
+    Comisiones — "Promedio mensual de comisiones"
+    Bono de asistencia — "Bono mensual por asistencia o puntualidad"
+    Fondo de ahorro — "Aportación mensual de la empresa"
+    Otro concepto regular — "Cualquier otro pago mensual fijo"
+
+  Resumen SDI (aparece cuando hay componentes):
+    "Salario base:"
+    "Componentes adicionales:"
+    "Salario integrado (mensual):"
+
+  Botones:
+    "← Atrás"
+    "Continuar →"
+
+
+────────────────────────────────────────────────────────────────────
+6. PASO 3 — Card de últimos detalles
+────────────────────────────────────────────────────────────────────
+
+  Título: "Últimos detalles"
+  Subtítulo: "Ajusta estos datos para afinar el cálculo." (igual en los 3 países)
+
+  Campo: "Días de vacaciones acumuladas sin tomar"
+  Hint: "Días de periodos anteriores que no hayas disfrutado.
+         El periodo actual ya se calcula automáticamente."
+
+  Campo: "Bonos o adeudos pendientes de pago"
+  Hint:
+    MX/VE: "Comisiones, bonos de desempeño u otros pagos que la empresa te adeuda."
+    CO: (mismo campo, mismo label)
+
+  Toggle — varía por país:
+    MX — Label: "¿Ya recibiste tu aguinaldo de este año?"
+         Desc: "Actívalo si ya se te pagó para no contabilizarlo de nuevo."
+
+    CO — Label: "¿Ya recibiste tu prima de servicios de este semestre?"
+         Desc: "Actívalo si ya se te pagó la prima de este periodo para no contabilizarla de nuevo."
+
+    VE — Label: "¿Ya recibiste tus utilidades de este año?"
+         Desc: "Actívalo si ya se te pagaron las utilidades de este ejercicio para no contabilizarlas de nuevo."
+
+  Botones:
+    "← Atrás"
+    "Calcular mi liquidación →"
+
+
+────────────────────────────────────────────────────────────────────
+7. RESULTADOS — Sección Hero
+────────────────────────────────────────────────────────────────────
+
+  Icono: 💰
+  Eyebrow: "Estimado total de tu liquidación"
+  Monto total (grande, en verde)
+  Contexto: "[Tipo de terminación] · [Ley]"
+    Ejemplo: "Despido injustificado · LFT 2024"
+  Badge verde: "✓ Monto total gratuito"
+
+  Chips de resumen (dinámicos):
+    "📅 [X años, Y meses] de servicio"
+    "💵 $[salario]/mes base"
+    "💼 +$[componentes]/mes componentes"  (solo si hay componentes)
+    "📋 [Tipo de terminación]"
+
+  Nota SDI (aparece cuando hay componentes salariales):
+    "💼 Salario integrado: $[X]/mes ($[Y]/día), usado en los conceptos que lo requieren.
+     Salario base: $[X]/mes, usado en vacaciones y aguinaldo / utilidades."
+
+  Botón final:
+    "← Hacer un nuevo cálculo"
+
+  Callout (solo si el total supera el umbral por país):
+    "⚖️ Dado el monto de tu liquidación, te recomendamos consultar con un abogado laboral
+     antes de firmar cualquier acuerdo. Muchos ofrecen primera consulta gratuita."
+
+
+────────────────────────────────────────────────────────────────────
+8. RESULTADOS — Tabla de desglose (breakdown)
+────────────────────────────────────────────────────────────────────
+
+  Cabeceras de columna:
+    "Concepto"  |  "Monto"
+
+  Estado bloqueado (antes de pagar):
+    - Nombre del concepto: visible
+    - Fórmula de cálculo: "••• •••••••• •••" (oculta con blur)
+    - Fundamento legal: "••• ••••••••" (oculta)
+    - Monto: 🔒 [monto borroso]
+
+  Estado desbloqueado (después de pagar):
+    - Nombre del concepto
+    - Fórmula de cálculo
+    - Fundamento legal (en azul)
+    - Monto
+
+  Fila total (siempre visible, en verde):
+    "Total estimado"  |  $[monto]
+
+
+────────────────────────────────────────────────────────────────────
+9. PAYWALL PANEL (estado bloqueado — antes de cualquier pago)
+────────────────────────────────────────────────────────────────────
+
+  Título: "🔓 Desbloquea el desglose completo"
+  Subtítulo: "Conoce el monto estimado de cada concepto, la fórmula de cálculo
+              y el artículo de ley que lo respalda."
+
+  PLAN BÁSICO:
+    Precio (MX): $25 MXN  |  Subprecio: ~$1.25 USD · Pago único
+    Precio (CO): $5.000 COP  |  Subprecio: ~$1.25 USD · Pago único
+    Precio (VE): $1.25 USD  |  Subprecio: Pago único
+
+    Nombre del plan: "Ver desglose completo"
+    Features:
+      ✓ Monto de cada concepto
+      ✓ Fórmula de cálculo
+      ✓ Fundamento legal ([LFT / CST / LOTTT])
+    Botón: "Ver montos →"
+
+  PLAN PREMIUM:
+    Precio (MX): $150 MXN  |  Subprecio: ~$7.50 USD · Reporte completo
+    Precio (CO): $30.000 COP  |  Subprecio: ~$7.50 USD · Reporte completo
+    Precio (VE): $7.50 USD  |  Subprecio: Reporte completo
+
+    Nombre del plan: "Reporte PDF completo"
+    Features:
+      ✓ Todo lo del plan básico
+      ✓ PDF profesional descargable
+      ✓ Carta de solicitud de pago
+      ✓ Guía de negociación
+    Botón: "Obtener reporte →"
+
+
+────────────────────────────────────────────────────────────────────
+10. UPGRADE PANEL (después de pagar el plan Básico)
+────────────────────────────────────────────────────────────────────
+
+  Título: "📄 Obtén el reporte PDF completo"
+  Subtítulo: "Ya tienes el desglose completo. Descarga ahora el reporte profesional
+              con carta de solicitud de pago y guía de negociación."
+
+  PLAN PREMIUM (precio de upgrade):
+    Precio (MX): $150 MXN  |  Subprecio: ~$7.50 USD · Reporte completo
+    Precio (CO): $30.000 COP  |  Subprecio: ~$7.50 USD · Reporte completo
+    Precio (VE): $7.50 USD  |  Subprecio: Reporte completo
+
+    Nombre del plan: "Reporte PDF completo"
+    Features:
+      ✓ PDF profesional descargable
+      ✓ Carta de solicitud de pago
+      ✓ Guía de negociación
+    Botón: "Obtener reporte →"
+
+  Botón de descarga PDF (visible solo con plan Premium):
+    "📄 Descargar reporte PDF"
+    Durante descarga: "⏳ Generando PDF..."
+
+
+────────────────────────────────────────────────────────────────────
+11. PAYMENT MODAL (ventana emergente de pago)
+────────────────────────────────────────────────────────────────────
+
+  Título modal:
+    Básico: "Desbloquear desglose"   → renombra a: "Ver desglose completo"
+    Premium: → renombra a: "Obtener reporte PDF"
+
+  Descripción (siempre igual):
+    "Accede al monto exacto de cada concepto, la fórmula de cálculo y su fundamento legal."
+
+  Dentro del modal (generado dinámicamente):
+
+    Básico:
+      Descripción: "Desglose completo"
+      Subtext: "Con fundamento legal"
+      Precio: [precio según país]
+
+    Premium:
+      Descripción: "Reporte PDF completo"
+      Subtext: "Con carta de negociación"
+      Precio: [precio según país]
+
+  Campo email:
+    Label: "¿A dónde enviamos el reporte?"
+    Placeholder: "tu@correo.com"
+    Hint: "Te mandamos el PDF a este correo al confirmar el pago"
+
+  Botón de pago: "Pagar [precio] →"
+  Durante redirección: "⏳ Redirigiendo..."
+  Error de pago: "Hubo un problema al iniciar el pago. Por favor intenta de nuevo."
+  Error email: el campo se pone en rojo, placeholder cambia a "Ingresa tu correo"
+
+
+────────────────────────────────────────────────────────────────────
+12. SECCIÓN ABOGADOS (Lawyer section)
+────────────────────────────────────────────────────────────────────
+
+  Encabezado de sección: "¿Quieres apoyo legal?"
+
+  Card única — Abogado especialista:
+    Icono: ⚖️
+    Título: "Abogado especialista laboral"
+    Badge: "Recomendado"
+    Descripción: "Un especialista en derecho laboral de [País] revisará tu caso,
+                  te explicará tus opciones y te representará ante tu empleador.
+                  Te contactaremos directamente."
+    Botón: "Hablar con un especialista →"
+
+  Modal de contacto con abogado:
+    Título: "Hablar con un abogado laboral"
+    Subtítulo: "Completa tu información y un especialista en derecho laboral
+                te contactará a la brevedad."
+
+    Campos del formulario:
+      "Nombre completo" (placeholder: "Juan García")
+      "Correo electrónico" (placeholder: "juan@ejemplo.com")
+      "Empresa (empleador)" (placeholder: "Nombre de la empresa")
+      "Describe tu situación" (placeholder: "Explica brevemente qué ocurrió:
+        motivo de la terminación, fechas relevantes, si ya recibiste algún pago, etc.")
+      "Documentos relevantes (opcional)"
+        Zona de arrastre: "Arrastra archivos aquí o haz clic para seleccionar"
+        Hint: "PDF, Word, imágenes · Máximo 5 archivos"
+
+    Botón: "Enviar solicitud →"
+    Mensaje de éxito: "¡Listo! Abriendo tu cliente de correo para enviar la solicitud..."
+
+
+────────────────────────────────────────────────────────────────────
+13. FOOTER DEL SITIO
+────────────────────────────────────────────────────────────────────
+
+  Encabezado: "Sobre FiniquitoYa"
+
+  Párrafo 1:
+    "FiniquitoYa es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
+    a entender sus derechos y estimar el monto de su liquidación con base en la legislación vigente
+    de cada país. Nuestro objetivo es poner información clara y accesible al alcance de cualquier
+    persona, de modo que ningún trabajador tenga que enfrentarse solo a la terminación de su
+    relación laboral sin conocer lo que le corresponde por ley."
+
+  Párrafo 2 (aviso legal):
+    "Aviso legal.
+    Los cálculos generados por esta herramienta son estimaciones de carácter orientativo basadas
+    en los datos ingresados por el usuario y en la legislación laboral vigente al momento de la
+    consulta. FiniquitoYa no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
+    resultado, reporte ni comunicación generada por esta plataforma constituye asesoría jurídica,
+    opinión legal ni representación legal, y su uso no crea una relación abogado-cliente. Los
+    montos reales pueden variar según convenios colectivos, condiciones específicas del contrato,
+    acuerdos previos u otras circunstancias no consideradas en el cálculo. Para orientación gratuita,
+    puede acudir a los organismos públicos de defensa del trabajador en su país."
+
+  Copyright: "© FiniquitoYa · finiquitoya.app"
+
+
+────────────────────────────────────────────────────────────────────
+14. EMAIL — PLAN BÁSICO
+────────────────────────────────────────────────────────────────────
+
+  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+
+  Asunto:
+    "Tu desglose de liquidación — [monto] [moneda]"
+    Ejemplo: "Tu desglose de liquidación — 45,320.00 MXN"
+
+  Encabezado del email:
+    "FiniquitoYa"
+    "finiquitoya.app"
+
+  Título del cuerpo:
+    "Tu desglose está listo ✓"
+
+  Párrafo introductorio:
+    "Aquí tienes el desglose completo de tu liquidación en [País],
+     calculado conforme a la [Ley Federal del Trabajo (LFT) / Código Sustantivo del Trabajo (CST) / LOTTT]."
+
+  [TABLA DE DESGLOSE — ver estructura a continuación]
+
+  Pie de la tabla / nota:
+    "Cada concepto incluye la fórmula de cálculo y el artículo de ley que lo respalda.
+     Esta es una estimación orientativa; los montos reales pueden variar según tu contrato o
+     convenio colectivo."
+
+  Estructura de la tabla de desglose (HTML en el email):
+    Columna 1: "Concepto" (fondo azul oscuro, texto blanco)
+    Columna 2: "Monto ([moneda])" (fondo azul oscuro, texto blanco)
+    Filas alternas: blanco (#ffffff) y azul muy claro (#f0f6ff)
+    Cada fila contiene:
+      - Nombre del concepto (negrita, color oscuro)
+      - Fórmula de cálculo (gris, 11px)
+      - Artículo de ley (gris claro, 10px)
+      - Monto a la derecha (azul, negrita)
+    Fila final "TOTAL ESTIMADO" (fondo azul claro, negrita grande)
+
+  Footer del email:
+    "FiniquitoYa · finiquitoya.app"
+    "Este es un mensaje automático. Por favor no respondas directamente a este correo."
+    "Esta estimación es orientativa y no constituye asesoría legal."
+
+
+────────────────────────────────────────────────────────────────────
+15. EMAIL — PLAN PREMIUM
+────────────────────────────────────────────────────────────────────
+
+  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+
+  Asunto:
+    "Tu reporte de liquidación — [monto] [moneda]"
+    Ejemplo: "Tu reporte de liquidación — 45,320.00 MXN"
+
+  Encabezado del email:
+    "FiniquitoYa"
+    "finiquitoya.app"
+
+  Título del cuerpo:
+    "Gracias por tu compra ✓"
+
+  Párrafo 1:
+    "Hemos generado tu reporte de liquidación laboral para [País],
+     basado en la [Ley]. Lo encontrarás adjunto a este correo en formato PDF."
+
+  Párrafo 2:
+    "Tu reporte incluye el desglose completo de cada concepto, la fórmula de cálculo aplicada,
+     el artículo de ley que lo respalda, y una guía con tus derechos y próximos pasos si necesitas
+     reclamar el pago."
+
+  Párrafo 3:
+    "Más abajo encontrarás también una carta lista para enviar a tu empleador.
+     Solo reemplaza los campos en [corchetes] con tu información real.
+     Puedes copiar el texto, enviarlo como correo o imprimirlo."
+
+  Box de total:
+    "Total estimado de tu liquidación:"  [monto grande en azul]
+
+  Separador + encabezado de carta:
+    "Carta para tu empleador"
+    "Reemplaza todos los campos en [corchetes] antes de enviarla."
+
+  [CARTA AL EMPLEADOR — ver sección siguiente]
+
+  Footer del email: (igual que el email básico)
+
+  Adjunto: reporte_liquidacion_[pais].pdf (solo para plan Premium)
+
+
+────────────────────────────────────────────────────────────────────
+16. CARTA AL EMPLEADOR (Premium — por país)
+────────────────────────────────────────────────────────────────────
+
+  MÉXICO:
+
+    [Ciudad], [Fecha]
+
+    [Nombre del responsable de Recursos Humanos o representante legal]
+    [Nombre de la empresa]
+    México
+
+    Estimado(a) señor(a):
+
+    Por medio de la presente me dirijo a usted de manera respetuosa. Mi nombre es [Tu nombre completo]
+    y laboré en esta empresa desde el [Fecha de ingreso] hasta el [Fecha de salida],
+    fecha en que se dio por concluida la relación laboral por motivo de [tipo de terminación].
+
+    Conforme a los derechos que me asisten según la Ley Federal del Trabajo (LFT), y con base en el
+    cálculo detallado que adjunto a este correo, el monto total de mi liquidación asciende a:
+
+    [MONTO TOTAL]
+
+    Este monto contempla los conceptos que me corresponden por ley, incluyendo partes proporcionales de
+    aguinaldo, vacaciones, prima vacacional, prima de antigüedad e indemnización, según corresponda al
+    tipo de separación. El reporte detallado con cada concepto y su fundamento legal se adjunta a este
+    correo.
+
+    Próximos pasos que les propongo:
+    1. Revisen el reporte adjunto y confirmen los datos de la relación laboral.
+    2. Acordemos la forma y fecha de pago a la brevedad posible para evitar inconvenientes mayores.
+    3. Si hay algún concepto en discusión, estoy dispuesto(a) a dialogar y llegar a un acuerdo justo.
+    4. De no lograrse un acuerdo, me veré en la necesidad de acudir a las instancias legales
+       correspondientes, incluyendo la Junta de Conciliación y Arbitraje o la PROFEDET.
+
+    Confío en que podemos resolver esto de manera directa y amistosa. Quedo a su disposición para
+    cualquier aclaración que requieran.
+
+    Atentamente,
+    [Tu nombre completo]
+    CURP / No. de empleado: [Tu CURP o número de empleado]
+    Teléfono: [Tu teléfono]
+    Correo: [Tu correo electrónico]
+
+  ---
+
+  COLOMBIA:
+
+    [Ciudad], [Fecha]
+
+    Recursos Humanos / Representante Legal
+    [Nombre de la empresa]
+    Colombia
+
+    Respetados señores:
+
+    Mi nombre es [Tu nombre completo], identificado(a) con cédula de ciudadanía No. [Tu número de cédula].
+    Laboré en esta empresa desde el [Fecha de ingreso] hasta el [Fecha de salida],
+    fecha en la que se dio por terminada la relación laboral por [tipo de terminación].
+
+    Con base en el Código Sustantivo del Trabajo y en el cálculo detallado que adjunto, el monto
+    total de mis acreencias laborales es de:
+
+    [MONTO TOTAL]
+
+    Este valor comprende cesantías, intereses sobre cesantías, prima de servicios, vacaciones
+    proporcionales e indemnización por despido, según corresponda. Todos los conceptos se encuentran
+    detallados en el reporte adjunto, con su fórmula de cálculo y el artículo del CST que los respalda.
+
+    Propuesta de gestión:
+    1. Les invito a revisar el reporte adjunto y validar los datos registrados.
+    2. Podemos coordinar el pago o acuerdo de pago de forma directa y ágil.
+    3. Si existe alguna discrepancia, estoy abierto(a) al diálogo para llegar a un acuerdo mutuo.
+    4. En caso de no llegar a un entendimiento, acudiré al Ministerio del Trabajo o a la jurisdicción
+       laboral ordinaria para hacer valer mis derechos. Recuerden que el artículo 65 del CST establece
+       sanción moratoria por retardo en el pago de la liquidación.
+
+    Espero que podamos resolver este asunto de manera directa. Quedo atento(a) a su respuesta.
+
+    Cordialmente,
+    [Tu nombre completo]
+    C.C.: [Tu número de cédula]
+    Teléfono: [Tu teléfono]
+    Correo: [Tu correo electrónico]
+
+  ---
+
+  VENEZUELA:
+
+    [Ciudad], [Fecha]
+
+    [Nombre del empleador o representante de la empresa]
+    [Nombre de la empresa]
+    Venezuela
+
+    Estimados señores:
+
+    Por medio de la presente, yo [Tu nombre completo], titular de la cédula de identidad No. [Tu número
+    de cédula], quien prestó servicios en esta empresa desde el [Fecha de ingreso] hasta el [Fecha de
+    salida], fecha en que culminó la relación laboral por [tipo de terminación], me dirijo a ustedes
+    para solicitar el pago oportuno de mis prestaciones sociales y demás beneficios laborales conforme
+    a la Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (LOTTT).
+
+    De acuerdo con el cálculo realizado conforme a la legislación vigente, el monto total al que tengo
+    derecho es de:
+
+    [MONTO TOTAL]
+
+    Este monto comprende prestaciones sociales (Art. 142 LOTTT), utilidades fraccionadas, vacaciones
+    proporcionales, bono vacacional e indemnización por despido injustificado, según aplique. El reporte
+    detallado con cada concepto y su base de cálculo se adjunta a este correo.
+
+    Pasos sugeridos para resolver esto de forma ágil:
+    1. Revisen el reporte adjunto y confirmen los datos de la relación laboral.
+    2. Coordinen conmigo la forma y fecha de pago a la brevedad.
+    3. Si hay algún punto en discusión, propongo abordarlo directamente para llegar a un acuerdo.
+    4. De no obtenerse respuesta, acudiré ante la Inspectoría del Trabajo o los Tribunales Laborales
+       para hacer valer mis derechos conforme a la LOTTT.
+
+    Confío en una pronta y satisfactoria respuesta de su parte.
+
+    Atentamente,
+    [Tu nombre completo]
+    C.I.: [Tu número de cédula]
+    Teléfono: [Tu teléfono]
+    Correo: [Tu correo electrónico]
+
+
+────────────────────────────────────────────────────────────────────
+17. EMAIL — NOTIFICACIÓN AL ADMIN
+────────────────────────────────────────────────────────────────────
+
+  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+
+  Asunto:
+    "💰 Nueva venta: [PLAN] · [PAIS] · [monto] [moneda]"
+    Ejemplo: "💰 Nueva venta: PREMIUM · MX · 45320.00 MXN"
+
+  Cuerpo (tabla HTML):
+    Email comprador:   [email]
+    País:              [MX / CO / VE]
+    Plan:              [basic / premium]
+    Monto:             [monto] [moneda]
+    Session ID:        [session ID de Stripe]
+
+
+────────────────────────────────────────────────────────────────────
+18. PDF — TEXTOS Y SECCIONES
+────────────────────────────────────────────────────────────────────
+
+  ENCABEZADO (se repite en cada página):
+    Marca: "FiniquitoYa" (con "Ya" en azul)
+    URL: "finiquitoya.app"
+    Tipo de documento: "ANÁLISIS DE LIQUIDACIÓN LABORAL"
+    Metadatos: "Folio [FY-YYYY-MM-XXXX]  |  [País] · [Ley]  |  [Fecha]"
+
+  HERO DEL REPORTE:
+    Label: "Total estimado de liquidación"
+    Monto (grande)
+    Subtexto: "Estimación orientativa · [Ley]"
+    Chips: [Tipo de terminación] | [Salario base] | [Salario integrado si aplica] | [Antigüedad]
+
+  Memo (debajo del header en versión HTML):
+    País / Marco legal: "[País] · [Ley]"
+    Tipo de terminación: [label dinámico]
+    Período laboral: "[fecha ingreso] — [fecha salida]"
+    Antigüedad: "[X años, Y meses]"
+
+  SECCIÓN I — "DATOS DEL CASO"
+    Grilla de 6 celdas:
+      MX: País y ley aplicable | Salario mensual base | Salario diario base (SDB)
+          Fecha de ingreso | Fecha de terminación | Salario diario integrado (SDI)
+      CO: País y ley aplicable | Salario mensual base | Salario diario base (SDB)
+          Fecha de ingreso | Fecha de terminación |
+          [Aux. transporte (incluido en cesantías) si sal ≤ 2 SMMLV,
+           o Escala salarial si sal > 2 SMMLV]
+      VE: País y ley aplicable | Salario mensual base | Salario diario base (SDB)
+          Fecha de ingreso | Fecha de terminación | Salario diario integral (SDI)
+
+  SECCIÓN II — "ANÁLISIS POR CONCEPTO"
+    Por cada concepto calculado:
+      - Número y nombre del concepto
+      - Referencia legal (badge azul)
+      - Párrafo explicativo 1 (texto del artículo y derechos)
+      - Párrafo explicativo 2 (contexto específico del caso)
+      - Línea de cálculo (en fondo gris, borde izquierdo azul, fuente mono)
+
+  SECCIÓN III — "DERECHOS DEL TRABAJADOR ANTE LA TERMINACIÓN"
+    (Ver textos completos en sección 19 abajo — los mismos en la app y el PDF)
+
+  SECCIÓN IV — "CUADRO DE LIQUIDACIÓN"
+    Tabla con columnas:
+      CONCEPTO  |  FÓRMULA APLICADA  |  FUNDAMENTO  |  MONTO ([moneda])
+    Fila final: "Total estimado de liquidación" (fondo azul oscuro, texto blanco)
+
+  PIE DE PÁGINA:
+    Izquierda: "FiniquitoYa · Análisis de Liquidación · Folio [FY-...]"
+    Derecha: "Página X de Y"
+
+  AVISO LEGAL DEL PDF (al final, fondo amarillo):
+    Título: "AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO"
+
+    Párrafo 1 — Naturaleza del documento:
+      "Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y
+       de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni
+       representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada
+       de esta herramienta crea una relación abogado-cliente."
+
+    Párrafo 2 — Alcance de los cálculos:
+      "Las estimaciones se basan en la legislación vigente al momento de la generación y en los datos
+       proporcionados por el usuario. No consideran convenios colectivos, cláusulas contractuales
+       específicas, acuerdos previos, resoluciones judiciales, ni circunstancias no declaradas.
+       Los montos reales pueden diferir significativamente."
+
+    Párrafo 3 — Orientación / Recomendación (varía):
+
+      Si el monto supera el umbral (MX: $200,000 / CO: $40,000,000 / VE: $10,000 USD):
+        "Recomendación. Dado el monto de esta liquidación, le recomendamos consultar con un abogado
+         laboral certificado antes de firmar cualquier acuerdo. Para orientación gratuita, [autoridad]."
+
+      Si el monto NO supera el umbral:
+        "Orientación gratuita. Para orientación sobre sus derechos laborales, [autoridad]."
+
+      Autoridad por país:
+        MX: "la Procuraduría Federal de la Defensa del Trabajo (PROFEDET) ofrece servicios de asesoría
+             y conciliación sin costo en todo el territorio nacional."
+        CO: "el Ministerio del Trabajo ofrece servicios de inspección y conciliación laboral gratuitos
+             en todo el país."
+        VE: "el Ministerio del Poder Popular para el Proceso Social de Trabajo ofrece orientación y
+             servicios de inspectoría laboral gratuitos."
+
+
+────────────────────────────────────────────────────────────────────
+19. PDF — DERECHOS DEL TRABAJADOR (Sección III)
+────────────────────────────────────────────────────────────────────
+
+  MÉXICO (6 derechos):
+  1. Derecho a recibir el pago de forma inmediata
+     "El artículo 89 de la LFT establece que el salario debe pagarse directamente al trabajador.
+      La jurisprudencia laboral ha interpretado que el patrón debe liquidar los adeudos al momento
+      de la separación o a la brevedad posible. El retraso injustificado en el pago puede generar
+      salarios caídos adicionales a cargo del patrón."
+
+  2. Derecho a recibir aviso de rescisión por escrito
+     "El artículo 47 de la LFT exige que el patrón entregue al trabajador un aviso escrito precisando
+      la fecha y causa de la rescisión. La falta de este aviso puede ser invocada por el trabajador como
+      evidencia de despido injustificado ante la autoridad laboral."
+
+  3. Derecho a la conciliación prejudicial gratuita (PROFEDET / CFCRL)
+     "Antes de acudir a un tribunal, el trabajador puede presentar su caso ante el Centro Federal de
+      Conciliación y Registro Laboral (CFCRL) o ante la PROFEDET, ambos servicios completamente gratuitos.
+      Este proceso puede resolver la disputa en semanas sin necesidad de litigio formal."
+
+  4. Derecho a acudir a los Tribunales Laborales
+     "Si la conciliación fracasa, el trabajador puede demandar ante los Tribunales Laborales. En caso de
+      despido injustificado comprobado, puede optar entre la reinstalación o el pago de la indemnización,
+      más los salarios caídos generados desde la fecha del despido."
+
+  5. Plazo de prescripción: un año
+     "El artículo 516 de la LFT establece que las acciones de trabajo prescriben en un año a partir del
+      día siguiente a la separación. Es fundamental no dejar transcurrir este plazo: una vez vencido, el
+      trabajador pierde el derecho legal de reclamar los conceptos adeudados."
+
+  6. Derecho a conservar y solicitar documentación
+     "El trabajador tiene derecho a solicitar copias de su contrato, recibos de nómina, constancias de
+      semanas cotizadas ante el IMSS y cualquier documento firmado durante la relación laboral. El patrón
+      tiene la obligación de entregar constancia de trabajo al término de la relación."
+
+  ---
+
+  COLOMBIA (6 derechos):
+  1. Derecho a la liquidación final del contrato
+     "El empleador tiene la obligación legal de entregar al trabajador la liquidación completa de todas
+      sus acreencias laborales en el momento de la terminación. El incumplimiento da lugar a la sanción
+      moratoria del artículo 65 del CST: un día de salario por cada día de retardo."
+
+  2. Derecho a carta de terminación del contrato
+     "El empleador debe entregar comunicación escrita en la que conste la fecha y, en caso de justa causa,
+      las causales invocadas. La ausencia de carta con causa puede ser utilizada por el trabajador como
+      prueba de despido sin justa causa ante la jurisdicción laboral ordinaria."
+
+  3. Derecho a la conciliación laboral gratuita (Ministerio del Trabajo)
+     "El trabajador puede acudir al Ministerio del Trabajo o a los Inspectores de Trabajo para solicitar
+      una conciliación laboral gratuita antes de iniciar cualquier proceso judicial. No se requiere abogado
+      para ser iniciada y el proceso es expedito."
+
+  4. Derecho a acudir a los Juzgados Laborales
+     "Si la conciliación fracasa, el trabajador puede instaurar demanda ante el Juzgado Laboral del
+      Circuito competente. El juez puede ordenar el pago de la indemnización, los salarios y prestaciones
+      adeudados, y sanciones moratorias por retardo."
+
+  5. Plazo de prescripción: tres años
+     "El artículo 488 del Código Sustantivo del Trabajo establece que las acciones derivadas del contrato
+      de trabajo prescriben en tres años a partir de que la obligación sea exigible. Es importante actuar
+      dentro de este plazo para no perder el derecho de reclamar."
+
+  6. Derecho al certificado laboral y documentos de soporte
+     "El artículo 57 del CST obliga al empleador a expedir al trabajador una certificación que indique
+      el tiempo servido, la naturaleza del trabajo y el salario. El trabajador tiene también derecho a
+      copia de los últimos comprobantes de pago de aportes a seguridad social (PILA)."
+
+  ---
+
+  VENEZUELA (6 derechos):
+  1. Derecho al pago inmediato de prestaciones sociales
+     "El artículo 142 de la LOTTT establece que al finalizar la relación laboral, el empleador debe pagar
+      de inmediato las prestaciones sociales. El retraso genera intereses de mora calculados a la tasa
+      activa del Banco Central de Venezuela, conforme al artículo 143 de la LOTTT."
+
+  2. Participación del Inspector del Trabajo
+     "El Inspector del Trabajo tiene facultades para supervisar y sancionar incumplimientos laborales.
+      El trabajador puede acudir a la Inspectoría del Trabajo de su jurisdicción para denunciar el
+      incumplimiento en el pago de prestaciones sociales y demás conceptos laborales."
+
+  3. Derecho a la conciliación ante la Inspectoría del Trabajo
+     "Antes de acudir al tribunal, el trabajador puede solicitar un procedimiento de conciliación y
+      mediación laboral ante la Inspectoría del Trabajo. Este proceso es gratuito y puede resolver la
+      disputa de forma ágil sin necesidad de litigio formal."
+
+  4. Derecho a acudir a los Tribunales Laborales
+     "La Ley Orgánica Procesal del Trabajo (LOPTRA) regula el procedimiento laboral. El trabajador puede
+      presentar demanda ante el Juzgado de Sustanciación, Mediación y Ejecución del Trabajo competente
+      para reclamar los conceptos no pagados."
+
+  5. Prescripción: 10 años para prestaciones, 1 año para otros conceptos
+     "El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años.
+      Los demás créditos laborales prescriben al año a partir de la terminación. Dada la diferencia de
+      plazos, es fundamental identificar cada concepto y actuar con prontitud."
+
+  6. Derecho a documentación y constancia de trabajo
+     "Al finalizar la relación, el empleador está obligado a entregar constancia de trabajo con cargo,
+      fechas y salario devengado. El trabajador tiene también derecho a copia de los recibos de pago y
+      de los reportes al IVSS (Instituto Venezolano de los Seguros Sociales)."
+
+
+────────────────────────────────────────────────────────────────────
+20. DIFERENCIAS TERMINOLÓGICAS ENTRE PAÍSES
+────────────────────────────────────────────────────────────────────
+
+  Concepto              MX                        CO                      VE
+  ─────────────────────────────────────────────────────────────────────────────
+  Tipo de terminación   Despido injustificado      Despido sin justa causa  Despido injustificado
+  Renuncia              Renuncia voluntaria         Renuncia voluntaria      Retiro voluntario
+  Ley aplicable         LFT (2024)                 CST                      LOTTT
+  Salario integrado     Salario integrado / SDI     N/A (SDB)                Salario integral / SDI
+  Bono anual            Aguinaldo                   Prima de servicios       Utilidades
+  Prestaciones          Prima de antigüedad +        Cesantías + intereses    Prestaciones sociales
+                        indemnización constitucional + prima de servicios      (Art. 142)
+  Moneda                MXN                         COP                      USD
+  Organismo gratuito    PROFEDET / CFCRL            Ministerio del Trabajo   Inspectoría del Trabajo
+  Prescripción          1 año                       3 años                   10 años (prestaciones)
+                                                                              1 año (otros)
+  SMMLV 2025 (CO)       N/A                         $1,423,500 COP/mes       N/A
+  Aux. transporte       N/A                         $174,786 COP/mes         N/A
+  Salario mín. (MX)     $248.93 MXN/día             N/A                      N/A
+
+═══════════════════════════════════════════════════════════════════
+FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════

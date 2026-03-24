@@ -1,0 +1,322 @@
+═══════════════════════════════════════════════════════════════════
+FÓRMULAS DE CÁLCULO — VENEZUELA (LOTTT)
+Basado en la función calculateVenezuela() de finiquitoya.html
+Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras, 2012
+═══════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────
+VARIABLES DE TIEMPO
+────────────────────────────────────────────────────────────────────
+
+  totalDays        = (endDate - startDate) / 86,400,000   (días exactos)
+  totalYears       = totalDays / 365                       (años decimales)
+  completedYears   = Math.floor(totalYears)               (años completos)
+
+  lastAnniv        = fecha del último aniversario laboral
+  fracCurrentYear  = Math.min((endDate - lastAnniv) / 86,400,000 / 365, 1)
+                   = fracción del año laboral actual (entre 0 y 1)
+                   → Usada para vacaciones y bono vacacional proporcional
+
+  calYearStart     = 1 de enero del año de salida
+  fracCalYear      = Math.min((endDate - calYearStart) / 86,400,000 / 365, 1)
+                   = fracción del año calendario (entre 0 y 1)
+                   → Usada para utilidades proporcionales
+
+
+────────────────────────────────────────────────────────────────────
+SALARIOS: SDB y SDI (Salario Integral)
+────────────────────────────────────────────────────────────────────
+
+  SDB (Salario Diario Base)
+  ─────────────────────────
+  SDB = salary / 30
+
+  Donde salary = salario mensual base ingresado en USD.
+  Se usa en: vacaciones, bono vacacional, utilidades.
+
+  SDI (Salario Diario Integral — Art. 122 LOTTT)
+  ───────────────────────────────────────────────
+  El salario integral incorpora el SDB más las alícuotas diarias
+  de utilidades y de bono vacacional:
+
+  utilDias    = 30   (días mínimos de utilidades — Art. 131 LOTTT)
+
+  bonVacDias  = 7 + Math.max(completedYears - 1, 0)
+              = 7 días en el año 1
+              = 8 días al cumplir 2 años
+              = 9 días al cumplir 3 años ... etc.
+              (Art. 192 LOTTT: 7 días base + 1 día por año adicional)
+
+  alicuotaUtil    = (utilDias   / 360) × SDB = (30 / 360) × SDB
+  alicuotaBonVac  = (bonVacDias / 360) × SDB
+
+  SDI = SDB + alicuotaUtil + alicuotaBonVac
+
+  Ejemplo con salary = $400 USD, completedYears = 3:
+    SDB             = 400 / 30 = 13.33 USD/día
+    bonVacDias      = 7 + max(3-1, 0) = 9
+    alicuotaUtil    = (30/360) × 13.33 = 1.11 USD/día
+    alicuotaBonVac  = (9/360) × 13.33  = 0.33 USD/día
+    SDI             = 13.33 + 1.11 + 0.33 = 14.77 USD/día
+
+  El SDI se usa en: prestaciones sociales (Art. 142) e indemnización (Art. 92).
+
+  Fundamento: Art. 122 LOTTT — El salario integral está constituido por el
+  salario normal más una alícuota diaria del bono vacacional y de las
+  utilidades.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 1: DESPIDO INJUSTIFICADO (termType = 'dismissal')
+────────────────────────────────────────────────────────────────────
+
+Se calculan TODOS los conceptos siguientes:
+
+  1. PRESTACIONES SOCIALES (Art. 142 LOTTT)
+     ────────────────────────────────────────
+     Se calculan DOS métodos y se toma el mayor:
+
+     MÉTODO A — Retroactivo:
+       methodA = 30 × totalYears × SDI
+
+     MÉTODO B — Garantía acumulada trimestral:
+       Se acumula año por año:
+       Para cada año y completo (y = 1, 2, ..., completedYears):
+         días del año y = 60 + 2 × (y - 1)
+         aporte año y = (60 + 2 × (y - 1)) × SDI
+
+       Ejemplo para 3 años completos:
+         Año 1: (60 + 2×0) × SDI = 60 × SDI
+         Año 2: (60 + 2×1) × SDI = 62 × SDI
+         Año 3: (60 + 2×2) × SDI = 64 × SDI
+         Total años completos = (60 + 62 + 64) × SDI = 186 × SDI
+
+       Para la fracción de año incompleta (fracYear = totalYears - completedYears):
+         días fracción = (60 + 2 × Math.max(completedYears - 1, 0)) × fracYear
+         aporte fracción = días_fracción × SDI
+
+       methodB = suma de aportes de años completos + aporte de fracción
+
+     Prestaciones = Math.max(methodA, methodB)
+
+     Fundamento: Art. 142 LOTTT
+     Se muestra en la fórmula: "Método retroactivo (30 días × años)" o
+                                "Método trimestral acumulado"
+     Aplica en TODOS los tipos de terminación.
+
+  2. UTILIDADES PROPORCIONALES (si aguinaldoPaid = false)
+     ──────────────────────────────────────────────────
+     Monto = 30 × SDB × fracCalYear
+
+     Donde 30 = días mínimos de utilidades (Art. 131 LOTTT).
+     Fundamento: Art. 131 LOTTT (mínimo 30 días de salario por año)
+     Condición: Solo si el usuario NO marcó que ya recibió las utilidades.
+     Nota: Se usa SDB (no SDI).
+
+  3. VACACIONES PROPORCIONALES
+     ──────────────────────────
+     vacDaysVe = 15 + Math.max(completedYears - 1, 0)
+               = 15 días en el año 1
+               = 16 días al cumplir 2 años
+               = 17 días al cumplir 3 años ... etc.
+               (Art. 190 LOTTT: 15 días base + 1 día por año adicional)
+
+     Monto = vacDaysVe × fracCurrentYear × SDB
+
+     Fundamento: Art. 190 LOTTT
+     Nota: Se usa SDB. Se paga proporcional al tiempo del año laboral actual.
+
+  3b. VACACIONES ACUMULADAS SIN TOMAR (si unusedVac > 0)
+      ──────────────────────────────────────────────────
+      Monto = unusedVac × SDB
+
+      Fundamento: Art. 190 LOTTT
+      Nota: Días declarados por el usuario como pendientes de disfrutar.
+
+  4. BONO VACACIONAL
+     ─────────────────
+     Monto = bonVacDias × fracCurrentYear × SDB
+
+     Donde bonVacDias = 7 + Math.max(completedYears - 1, 0)
+     (el mismo valor que se usó para calcular el SDI)
+
+     Fundamento: Art. 192 LOTTT (7 días base + 1 día adicional por año)
+     Nota: Se usa SDB. Proporcional al período en curso.
+
+  5. INDEMNIZACIÓN POR DESPIDO INJUSTIFICADO
+     ──────────────────────────────────────────
+     Monto = 30 × totalYears × SDI
+
+     Fundamento: Art. 92 LOTTT
+     Condición: Solo para termType = 'dismissal' o 'mutual'
+     Nota: Usa SDI (salario integral). Esta indemnización es ADICIONAL
+           a las prestaciones sociales — no se compensan entre sí.
+
+  6. OTROS CONCEPTOS ADEUDADOS (si bonuses > 0)
+     ─────────────────────────────────────────
+     Monto = bonuses  (monto declarado por el usuario)
+
+     Fundamento: Art. 122 LOTTT
+
+
+────────────────────────────────────────────────────────────────────
+CASO 2: RETIRO VOLUNTARIO (termType = 'resignation')
+────────────────────────────────────────────────────────────────────
+
+  NO se calcula:
+    - Indemnización por despido injustificado (Art. 92)
+
+  SÍ se calculan:
+    - Prestaciones sociales (Art. 142)            [fórmula igual al Caso 1]
+    - Utilidades proporcionales (si aplica)        [fórmula igual al Caso 1]
+    - Vacaciones proporcionales                    [fórmula igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [fórmula igual al Caso 1]
+    - Bono vacacional                              [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [fórmula igual al Caso 1]
+
+  Nota: En Venezuela, aun si el trabajador renuncia voluntariamente, le
+        corresponden todas sus prestaciones sociales acumuladas (Art. 142).
+        La indemnización adicional del Art. 92 solo aplica en despido
+        injustificado.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 3: DESPIDO JUSTIFICADO (termType = 'justified')
+────────────────────────────────────────────────────────────────────
+
+  NO se calcula:
+    - Indemnización por despido injustificado (Art. 92)
+
+  SÍ se calculan:
+    - Prestaciones sociales (Art. 142)            [fórmula igual al Caso 1]
+    - Utilidades proporcionales (si aplica)        [fórmula igual al Caso 1]
+    - Vacaciones proporcionales                    [fórmula igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [fórmula igual al Caso 1]
+    - Bono vacacional                              [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [fórmula igual al Caso 1]
+
+  Nota: El despido justificado (Art. 79 LOTTT) elimina la indemnización
+        adicional, pero el trabajador siempre conserva el derecho a sus
+        prestaciones sociales acumuladas (Art. 142 LOTTT es irrenunciable).
+
+
+────────────────────────────────────────────────────────────────────
+CASO 4: TERMINACIÓN POR MUTUO ACUERDO (termType = 'mutual')
+────────────────────────────────────────────────────────────────────
+
+  El código trata el mutuo acuerdo IGUAL que el despido injustificado.
+  Se calculan TODOS los conceptos:
+
+    - Prestaciones sociales (Art. 142)            [igual al Caso 1]
+    - Utilidades proporcionales (si aplica)        [igual al Caso 1]
+    - Vacaciones proporcionales                    [igual al Caso 1]
+    - Vacaciones acumuladas (si aplica)            [igual al Caso 1]
+    - Bono vacacional                              [igual al Caso 1]
+    - Indemnización por despido (Art. 92)          [igual al Caso 1]
+    - Bonos pendientes (si aplica)                 [igual al Caso 1]
+
+  Condición en el código:
+    if (termType === 'dismissal' || termType === 'mutual') { ... [indemnización] }
+
+
+────────────────────────────────────────────────────────────────────
+RESUMEN DE CONCEPTOS POR TIPO DE TERMINACIÓN
+────────────────────────────────────────────────────────────────────
+
+  Concepto                              DESPIDO   RETIRO     JUSTIFICADO   MUTUO
+  ──────────────────────────────────────────────────────────────────────────────
+  Prestaciones sociales (Art. 142)        SI        SI          SI          SI
+  Utilidades proporcionales *             SI        SI          SI          SI
+  Vacaciones proporcionales               SI        SI          SI          SI
+  Vacaciones acumuladas *                 SI        SI          SI          SI
+  Bono vacacional                         SI        SI          SI          SI
+  Indemnización (Art. 92)                 SI        NO          NO          SI
+  Bonos pendientes *                      SI        SI          SI          SI
+
+  * = condicionado al input del usuario
+
+
+────────────────────────────────────────────────────────────────────
+MÉTODO A vs. MÉTODO B — PRESTACIONES SOCIALES: COMPARACIÓN
+────────────────────────────────────────────────────────────────────
+
+  La LOTTT Art. 142 garantiza el monto mayor entre ambos métodos.
+  El Método A (retroactivo) es simple: multiplica todos los años por el
+  mismo SDI final. Es más favorable cuanto mayor sea el SDI al momento
+  de la terminación (p.ej. si el salario creció mucho).
+
+  El Método B (garantía acumulada) es más favorable en trayectorias
+  largas con salario estable, porque el factor de días crece 2 días
+  por año (60 días año 1, 62 año 2, 64 año 3, etc.).
+
+  Tabla de días del Método B por año de servicio:
+    Año 1:  60 días × SDI
+    Año 2:  62 días × SDI
+    Año 3:  64 días × SDI
+    Año 4:  66 días × SDI
+    Año 5:  68 días × SDI
+    Año N:  (60 + 2×(N-1)) días × SDI
+
+  Ejemplo comparación para 5 años, SDI = $14 USD/día:
+    Método A: 30 × 5 × 14 = $2,100
+    Método B: (60+62+64+66+68) × 14 = 320 × 14 = $4,480
+    → Método B es mayor → se usa Método B
+
+  Para años cortos (ej. 1 año), Método A = 30 × SDI,
+  Método B = 60 × SDI → Método B siempre gana en el año 1.
+
+  En la práctica, Método B casi siempre genera un monto mayor o igual
+  al Método A cuando hay varios años de servicio.
+
+
+────────────────────────────────────────────────────────────────────
+TABLA DE DÍAS POR AÑO: VACACIONES Y BONO VACACIONAL
+────────────────────────────────────────────────────────────────────
+
+  Años          Días vacaciones    Días bono vacacional
+  ─────────────────────────────────────────────────────
+  Año 1               15                  7
+  Año 2               16                  8
+  Año 3               17                  9
+  Año 4               18                 10
+  Año 5               19                 11
+  Año 6               20                 12
+  Año N           15 + (N-1)          7 + (N-1)
+
+  Nota: El código usa completedYears (años completos) para determinar
+  la tabla. Para fracción de año en curso, multiplica por fracCurrentYear.
+
+
+────────────────────────────────────────────────────────────────────
+NOTAS ADICIONALES DEL CÁLCULO
+────────────────────────────────────────────────────────────────────
+
+  1. Moneda: Venezuela usa USD en la app (dado el contexto económico).
+     Las fórmulas son idénticas en cualquier moneda; el usuario introduce
+     el salario en la divisa en que lo recibe.
+
+  2. Las prestaciones sociales (Art. 142) y la indemnización (Art. 92)
+     son conceptos INDEPENDIENTES y se suman. La LOTTT prohíbe expresamente
+     compensar una con la otra.
+
+  3. El SDI varía con la antigüedad porque bonVacDias aumenta un día por
+     año. Esto significa que para el Método B en rigor cada trimestre
+     debería recalcularse el SDI vigente; el código usa un SDI único
+     (el del momento de terminación) como aproximación.
+
+  4. Utilidades mínimas: la LOTTT establece 30 días como mínimo (Art. 131).
+     El código usa exactamente 30 días. Las empresas pueden pagar más, pero
+     la app calcula el mínimo legal.
+
+  5. Intereses de mora: el Art. 143 LOTTT establece que el retraso en el
+     pago genera intereses a la tasa activa del BCV. Estos intereses NO
+     están incluidos en el cálculo de la app.
+
+  6. La función retorna { items, total, SDB, SDI, hasComponents: true }
+     — hasComponents es siempre true para Venezuela porque el SDI siempre
+     difiere del SDB.
+
+═══════════════════════════════════════════════════════════════════
+FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════

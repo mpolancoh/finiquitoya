@@ -1,0 +1,286 @@
+═══════════════════════════════════════════════════════════════════
+FÓRMULAS DE CÁLCULO — MÉXICO (LFT)
+Basado en la función calculateMexico() de finiquitoya.html
+Ley Federal del Trabajo vigente 2024
+═══════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────
+CONSTANTES USADAS EN EL CÓDIGO
+────────────────────────────────────────────────────────────────────
+
+  MIN_WAGE_MX = 248.93 MXN/día   (salario mínimo diario general, 2024)
+
+
+────────────────────────────────────────────────────────────────────
+VARIABLES DE TIEMPO (calculadas a partir de fechas de ingreso/salida)
+────────────────────────────────────────────────────────────────────
+
+  totalDays        = (endDate - startDate) / 86,400,000  (en milisegundos → días)
+  totalYears       = totalDays / 365                     (años decimales, e.g. 3.58)
+  completedYears   = Math.floor(totalYears)              (años completos, e.g. 3)
+
+  lastAnniv        = fecha del último aniversario laboral
+  fracCurrentYear  = (endDate - lastAnniv) / 86,400,000 / 365
+                   = fracción del año laboral actual (entre 0 y 1)
+                   → Usada para proporcional de vacaciones
+
+  calYearStart     = 1 de enero del año de salida
+  fracCalYear      = (endDate - calYearStart) / 86,400,000 / 365
+                   = fracción del año calendario actual (entre 0 y 1)
+                   → Usada para proporcional de aguinaldo
+
+  NOTA: Ambas fracciones están limitadas a un máximo de 1 con Math.min(..., 1)
+
+
+────────────────────────────────────────────────────────────────────
+SALARIOS BASE (SDB y SDI)
+────────────────────────────────────────────────────────────────────
+
+  SDB (Salario Diario Base)
+  ─────────────────────────
+  SDB = salary / 30
+
+  Donde salary = salario mensual base ingresado por el usuario.
+  Se usa en: vacaciones, prima vacacional, aguinaldo.
+
+  SDI (Salario Diario Integrado)
+  ───────────────────────────────
+  SDI = salaryIntegrated / 30
+
+  Donde salaryIntegrated = salary + componentes_adicionales_mensuales
+  (bonos regulares, vales, transporte, comisiones, bono de puntualidad,
+  fondo de ahorro, otro concepto regular)
+
+  Si no se declaran componentes, salaryIntegrated = salary → SDI = SDB.
+
+  Fundamento: Art. 84 LFT — El salario se integra con los pagos hechos
+  en efectivo por cuota diaria, gratificaciones, percepciones, habitación,
+  primas, comisiones, prestaciones en especie y cualquier otra cantidad
+  o prestación que se entregue al trabajador por su trabajo.
+
+  Se usa en: indemnización constitucional, 20 días por año, prima de antigüedad.
+
+  hasComponents = (salaryIntegrated > salary)
+  → Si es true, la fórmula mostrada especifica "(sal. integrado)".
+
+
+────────────────────────────────────────────────────────────────────
+TABLA DE DÍAS DE VACACIONES POR ANTIGÜEDAD (función vacDaysRate)
+────────────────────────────────────────────────────────────────────
+
+  Años cumplidos     Días de vacaciones / año
+  ──────────────────────────────────────────
+  < 1 (primer año)         12
+  1 (año 1 cumplido)       14
+  2                        16
+  3                        18
+  4 a 8                    20
+  9 a 13                   22
+  14 a 18                  24
+  19 a 23                  26
+  24 a 28                  28
+  29 a 33                  30
+  34 o más                 32
+
+  Fundamento: Art. 76 LFT (tabla de vacaciones con reforma 2023).
+  La función recibe completedYears (años enteros completados).
+
+
+────────────────────────────────────────────────────────────────────
+CASO 1: DESPIDO INJUSTIFICADO (termType = 'dismissal')
+────────────────────────────────────────────────────────────────────
+
+Se calculan TODOS los conceptos siguientes:
+
+  1. INDEMNIZACIÓN CONSTITUCIONAL (3 meses)
+     ──────────────────────────────────────
+     Monto = 90 × SDI
+
+     Fundamento: Art. 123, fracción XXII de la CPEUM; Art. 50 LFT
+     Condición: Solo para termType = 'dismissal' o 'mutual'
+     Nota: Se usa SDI (no SDB).
+
+  2. 20 DÍAS DE SALARIO POR AÑO TRABAJADO
+     ──────────────────────────────────────
+     Monto = 20 × SDI × totalYears
+
+     Donde totalYears es decimal (incluye fracción del año en curso).
+     Fundamento: Art. 50, fracción I LFT
+     Condición: Solo para termType = 'dismissal' o 'mutual'
+     Nota: Se usa SDI. La proporcionalidad es automática porque totalYears es decimal.
+
+  3. PRIMA DE ANTIGÜEDAD
+     ────────────────────
+     cappedSDI = Math.min(SDI, 2 × MIN_WAGE_MX)
+               = Math.min(SDI, 2 × 248.93) = Math.min(SDI, 497.86)
+
+     Monto = 12 × cappedSDI × totalYears
+
+     Fundamento: Art. 162 LFT
+     Condición: Para despido o mutuo acuerdo (cualquier antigüedad).
+                Para renuncia SOLO si completedYears >= 15.
+     Tope: El salario diario no puede exceder 2 veces el salario mínimo diario.
+           Si SDI > 497.86, se usa 497.86 como tope.
+     Nota: Se usan años decimales (totalYears), no años completos.
+
+  4. VACACIONES PROPORCIONALES (año en curso)
+     ──────────────────────────────────────────
+     vacRate = vacDaysRate(completedYears)  [ver tabla arriba]
+     vacPropDays = vacRate × fracCurrentYear
+     Monto = vacPropDays × SDB
+
+     Donde fracCurrentYear = fracción del año laboral actual transcurrida.
+     Fundamento: Art. 76, 79 LFT
+     Nota: Se usa SDB (no SDI). Aplica SIEMPRE, en todos los tipos de terminación.
+
+  4b. VACACIONES ACUMULADAS SIN TOMAR (si unusedVac > 0)
+      ──────────────────────────────────────────────────
+      Monto = unusedVac × SDB
+
+      Donde unusedVac = días ingresados por el usuario como vacaciones no disfrutadas.
+      Fundamento: Art. 79 LFT
+      Nota: Se usa SDB. Aplica siempre que el usuario haya ingresado días pendientes.
+
+  5. PRIMA VACACIONAL
+     ─────────────────
+     totalVacAmt = vacAmt + pendVacAmt
+     Monto = totalVacAmt × 0.25
+
+     Donde totalVacAmt = suma de vacaciones proporcionales + vacaciones acumuladas.
+     Fundamento: Art. 80 LFT (mínimo 25% del importe de vacaciones)
+     Nota: Se aplica sobre el total de vacaciones (proporcionales + pendientes).
+           Aplica SIEMPRE, en todos los tipos de terminación.
+
+  6. AGUINALDO PROPORCIONAL (si aguinaldoPaid = false)
+     ────────────────────────────────────────────────
+     Monto = 15 × SDB × fracCalYear
+
+     Donde fracCalYear = fracción del año calendario transcurrida (enero 1 → fecha de salida).
+     Fundamento: Art. 87 LFT (mínimo 15 días)
+     Condición: Solo si el usuario NO marcó que ya recibió el aguinaldo.
+                Aplica en todos los tipos de terminación.
+     Nota: Se usa SDB (no SDI).
+
+  7. BONOS / COMISIONES PENDIENTES (si bonuses > 0)
+     ─────────────────────────────────────────────
+     Monto = bonuses  (monto ingresado directamente por el usuario)
+
+     Fundamento: Art. 84 LFT
+     Condición: Solo si el usuario ingresó un monto de bonos pendientes.
+     Aplica en todos los tipos de terminación.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 2: RENUNCIA VOLUNTARIA (termType = 'resignation')
+────────────────────────────────────────────────────────────────────
+
+  NO se calculan:
+    - Indemnización constitucional (3 meses)
+    - 20 días de salario por año trabajado
+    - Prima de antigüedad (SALVO si completedYears >= 15)
+
+  SÍ se calculan siempre:
+    - Vacaciones proporcionales (año en curso)       [fórmula igual al Caso 1]
+    - Vacaciones acumuladas sin tomar (si aplica)    [fórmula igual al Caso 1]
+    - Prima vacacional                               [fórmula igual al Caso 1]
+    - Aguinaldo proporcional (si no fue pagado)      [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                   [fórmula igual al Caso 1]
+
+  Prima de antigüedad por renuncia con 15+ años:
+    cappedSDI = Math.min(SDI, 2 × 248.93)
+    Monto = 12 × cappedSDI × totalYears
+    Fundamento: Art. 162 LFT (derecho a prima de antigüedad en renuncia
+                voluntaria cuando se tienen 15 o más años de servicio)
+
+
+────────────────────────────────────────────────────────────────────
+CASO 3: DESPIDO JUSTIFICADO (termType = 'justified')
+────────────────────────────────────────────────────────────────────
+
+  NO se calculan:
+    - Indemnización constitucional (3 meses)
+    - 20 días de salario por año trabajado
+    - Prima de antigüedad
+
+  SÍ se calculan siempre:
+    - Vacaciones proporcionales (año en curso)       [fórmula igual al Caso 1]
+    - Vacaciones acumuladas sin tomar (si aplica)    [fórmula igual al Caso 1]
+    - Prima vacacional                               [fórmula igual al Caso 1]
+    - Aguinaldo proporcional (si no fue pagado)      [fórmula igual al Caso 1]
+    - Bonos pendientes (si aplica)                   [fórmula igual al Caso 1]
+
+  Nota: En despido justificado, el patrón no debe pagar indemnización,
+        pero sí tiene obligación de pagar los días proporcionales de vacaciones,
+        prima vacacional y aguinaldo. La prima de antigüedad no aplica.
+
+
+────────────────────────────────────────────────────────────────────
+CASO 4: MUTUO ACUERDO (termType = 'mutual')
+────────────────────────────────────────────────────────────────────
+
+  El código trata el mutuo acuerdo IGUAL que el despido injustificado.
+  Se calculan TODOS los conceptos:
+
+    - Indemnización constitucional (3 meses)         [igual al Caso 1]
+    - 20 días de salario por año trabajado            [igual al Caso 1]
+    - Prima de antigüedad                             [igual al Caso 1]
+    - Vacaciones proporcionales (año en curso)        [igual al Caso 1]
+    - Vacaciones acumuladas sin tomar (si aplica)     [igual al Caso 1]
+    - Prima vacacional                                [igual al Caso 1]
+    - Aguinaldo proporcional (si no fue pagado)       [igual al Caso 1]
+    - Bonos pendientes (si aplica)                    [igual al Caso 1]
+
+  Condición en el código:
+    if (termType === 'dismissal' || termType === 'mutual') { ... }
+
+
+────────────────────────────────────────────────────────────────────
+RESUMEN DE CONCEPTOS POR TIPO DE TERMINACIÓN
+────────────────────────────────────────────────────────────────────
+
+  Concepto                          DESPIDO   RENUNCIA   JUSTIFICADO   MUTUO
+  ─────────────────────────────────────────────────────────────────────────
+  Indemnización constitucional (3m)    SI        NO          NO           SI
+  20 días × año                        SI        NO          NO           SI
+  Prima de antigüedad                  SI      solo ≥15      NO           SI
+  Vacaciones proporcionales            SI        SI          SI           SI
+  Vacaciones acumuladas                SI        SI          SI           SI
+  Prima vacacional                     SI        SI          SI           SI
+  Aguinaldo proporcional *             SI        SI          SI           SI
+  Bonos pendientes *                   SI        SI          SI           SI
+
+  * = Solo si el usuario no marcó que ya lo recibió / si el usuario ingresó monto
+
+
+────────────────────────────────────────────────────────────────────
+NOTAS ADICIONALES DEL CÁLCULO
+────────────────────────────────────────────────────────────────────
+
+  1. Proporcionalidad decimal: El código usa totalYears como número decimal
+     (ej.: 2.75 años) en lugar de años completos + días sueltos. Esto produce
+     un resultado proporcional automático sin necesidad de calcular fracciones
+     por separado.
+
+  2. Dos fracciones de año distintas:
+     - fracCurrentYear: se mide desde el último aniversario laboral.
+       Usada para vacaciones (el derecho se genera por año laborado).
+     - fracCalYear: se mide desde el 1 de enero.
+       Usada para aguinaldo (el derecho se genera por año calendario).
+
+  3. Tope de prima de antigüedad: Art. 162 LFT limita el salario a 2 × SMG.
+     El código aplica Math.min(SDI, 2 × 248.93) = Math.min(SDI, 497.86 MXN/día).
+
+  4. Base para vacaciones y aguinaldo: Siempre SDB (no SDI).
+     La ley distingue: la indemnización y la prima de antigüedad usan SDI,
+     pero vacaciones, prima vacacional y aguinaldo usan SDB.
+
+  5. Prima vacacional se calcula sobre el TOTAL de vacaciones (proporcionales
+     del año en curso + vacaciones acumuladas sin tomar).
+
+  6. El total final es la suma de todos los items calculados.
+     return { items, total, SDB, SDI, hasComponents }
+
+═══════════════════════════════════════════════════════════════════
+FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════
