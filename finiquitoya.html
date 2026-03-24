@@ -921,6 +921,16 @@
       <p class="hint">Días de periodos anteriores que no hayas disfrutado. El periodo actual ya se calcula automáticamente.</p>
     </div>
 
+    <!-- Colombia only: vacation salary base (Art. 192 CST) -->
+    <div class="field" id="vacSalaryField" style="display:none">
+      <label class="lbl" for="vacSalary">Salario base para vacaciones (COP/mes)</label>
+      <div class="input-wrap" style="max-width:240px">
+        <span class="input-prefix">$</span>
+        <input type="number" id="vacSalary" class="input" placeholder="Igual al salario mensual" min="0">
+      </div>
+      <p class="hint">Salario ordinario base para vacaciones — excluye horas extra y recargos (Art. 192 CST). Si el trabajador no tiene componentes variables, déjalo en blanco (se usará el salario mensual).</p>
+    </div>
+
     <div class="field">
       <label class="lbl" for="bonuses">Bonos o adeudos pendientes de pago</label>
       <div class="input-wrap" style="max-width:240px">
@@ -1392,6 +1402,8 @@ function applyCountryConfig() {
   document.getElementById('step3Sub').textContent      = cfg.step3Sub;
   document.getElementById('aguinaldoLabel').textContent = cfg.aguinaldoLabel;
   document.getElementById('aguinaldoDesc').textContent  = cfg.aguinaldoDesc;
+  // Colombia-only field: vacation salary base (Art. 192 CST)
+  document.getElementById('vacSalaryField').style.display = S.country === 'co' ? '' : 'none';
 
   // Termination types
   const grid = document.getElementById('terminGrid');
@@ -1805,7 +1817,7 @@ function calculateMexico(d) {
 ───────────────────────────────────────────── */
 function calculateColombia(d) {
   try {
-  const { salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
+  const { salary, salaryForVacaciones = salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
   const start = new Date(startDate + 'T12:00:00');
   const end   = new Date(endDate   + 'T12:00:00');
@@ -1843,11 +1855,15 @@ function calculateColombia(d) {
         prima);
   }
 
-  // 4. Vacaciones proporcionales (Art. 186 CST, 15 dias/año)
-  const vacProp = (SDB) * 15 * totalYears;
+  // 4. Vacaciones proporcionales (Art. 186 y 192 CST)
+  // Art. 186 y 192 CST — base vacaciones excluye horas extra y recargos.
+  // Fórmula canónica: (salario mensual ordinario × días trabajados) / 720
+  // El divisor 720 = 360 días laborales × (30/15 días vacaciones por año).
+  const vacProp = (salaryForVacaciones * totalDays) / 720;
+  const vacBaseNote = salaryForVacaciones !== salary ? ` (base ordinaria ${fmtCurrency(salaryForVacaciones)})` : '';
   add('Vacaciones proporcionales',
-      `15 días/año × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDB)}/día`,
-      'Art. 186 CST',
+      `${fmtCurrency(salaryForVacaciones)}/mes × ${Math.round(totalDays)} días / 720${vacBaseNote}`,
+      'Art. 186, 192 CST',
       vacProp);
 
   // 4b. Vacaciones pendientes
@@ -2032,8 +2048,10 @@ function calculate() {
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
   } else if (S.country === 'co') {
+    const vacSalaryInput = parseFloat(document.getElementById('vacSalary').value) || 0;
+    const salaryForVacaciones = vacSalaryInput > 0 ? vacSalaryInput : salary;
     result = calculateColombia({
-      salary, startDate, endDate, termType,
+      salary, salaryForVacaciones, startDate, endDate, termType,
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
   } else if (S.country === 've') {
@@ -2533,6 +2551,7 @@ function buildPdfDocDef(state, folio, workerName) {
     salary, comps, SDB, SDI, totalDays, totalYears, completedYears,
     fracCurrentYear, fracCalYear, startDate, endDate, termType,
     hasTransport: S.country === 'co' && salary <= TRANSPORT_THRESHOLD,
+    salaryForVacaciones: S.country === 'co' ? (parseFloat(document.getElementById('vacSalary').value) || salary) : salary,
     hasComponents: result.hasComponents, bonuses, unusedVac,
     workerName: wName, firstName
   };
@@ -3296,10 +3315,12 @@ function getConceptNarrative(country, name, item, ctx) {
       };
     }
     if (name === 'Vacaciones proporcionales') {
+      const vacBase = ctx.salaryForVacaciones || salary;
+      const vacBaseNote = vacBase !== salary ? ` El salario ordinario base (${fmtCurrency(vacBase)} COP/mes) excluye los componentes variables indicados.` : '';
       return {
-        p1: 'El artículo 186 del Código Sustantivo del Trabajo establece que todo trabajador tiene derecho a quince días hábiles de vacaciones remuneradas por año de servicios. El artículo 189 dispone que al producirse la terminación del contrato, se liquidan proporcionalmente los días correspondientes al período trabajado en el año en curso.',
-        p2: `${firstName ? `<strong>${firstName}</strong> acumuló` : 'Se liquidan'} <strong>${totalYears.toFixed(2)} años de servicio</strong>; las vacaciones proporcionales se calculan a razón de 15 días por año sobre la totalidad del tiempo laborado.`,
-        calcLine: `15 días/año × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDB)}/día = ${fmtCurrency(item.amount)}`
+        p1: 'Los artículos 186 y 192 del Código Sustantivo del Trabajo establecen el derecho a 15 días hábiles de vacaciones remuneradas por año y disponen que la base de liquidación es el <strong>salario ordinario</strong>, excluyendo expresamente horas extra, recargos nocturnos, dominicales y festivos. La fórmula canónica reconocida por la CSJ es: <em>(salario mensual ordinario × días trabajados) / 720</em>, donde 720 = 360 días laborales ÷ 15 días de vacaciones por año × 30.',
+        p2: `${firstName ? `<strong>${firstName}</strong> trabajó` : 'Se liquidan'} <strong>${Math.round(totalDays)} días</strong> sobre una base ordinaria de <strong>${fmtCurrency(vacBase)} COP/mes</strong>.${vacBaseNote}`,
+        calcLine: `${fmtCurrency(vacBase)}/mes × ${Math.round(totalDays)} días / 720 = ${fmtCurrency(item.amount)}`
       };
     }
     if (name.startsWith('Vacaciones acumuladas sin tomar')) {
