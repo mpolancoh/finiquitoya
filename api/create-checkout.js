@@ -20,6 +20,11 @@ module.exports = async (req, res) => {
   // Only allow POST
   if (req.method !== 'POST') return res.status(405).end();
 
+  // Basic abuse prevention: reject non-JSON requests
+  if (req.method === 'POST' && req.headers['content-type'] !== 'application/json') {
+    return res.status(415).json({ error: 'Content-Type must be application/json' });
+  }
+
   // Parse body — Vercel serverless functions parse JSON automatically
   let body;
   try {
@@ -51,7 +56,7 @@ module.exports = async (req, res) => {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host     = req.headers['x-forwarded-host'] || req.headers.host || 'finiquitoya.app';
   const baseUrl  = process.env.APP_URL || `${protocol}://${host}`;
-  const successUrl = `${baseUrl}/?unlocked=${tier}&pais=${country}`;
+  const successUrl = `${baseUrl}/?unlocked=${tier}&pais=${country}&sid={CHECKOUT_SESSION_ID}`;
   const cancelUrl  = `${baseUrl}/`;
 
   // Create Stripe Checkout Session

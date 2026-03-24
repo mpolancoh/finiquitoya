@@ -1,4 +1,7 @@
 // Stripe webhook handler
+// In-memory idempotency store (per serverless instance)
+// TODO: replace with Redis/Upstash for multi-instance safety
+const processedSessions = new Set();
 //
 // On checkout.session.completed:
 //   1. Retrieves calc data from Transacciones sheet using client_reference_id (UUID)
@@ -42,6 +45,14 @@ module.exports = async (req, res) => {
   }
 
   const session       = event.data.object;
+
+  // Idempotency: skip if already processed
+  if (processedSessions.has(session.id)) {
+    console.log(`Webhook: session ${session.id} already processed — skipping`);
+    return res.json({ received: true });
+  }
+  processedSessions.add(session.id);
+
   const customerEmail = session.customer_details?.email || session.customer_email;
   const monto         = ((session.amount_total || 0) / 100).toFixed(2);
   const moneda        = (session.currency || 'usd').toUpperCase();

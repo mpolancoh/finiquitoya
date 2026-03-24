@@ -43,4 +43,13 @@ const COUNTRY_CONFIG = {
   }
 };
 
-module.exports = { COUNTRY_CONFIG };
+// Shared date formatter — mirrors finiquitoya.html fmtDateLong()
+function fmtDateLong(ds) {
+  if (!ds) return '—';
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                  'septiembre','octubre','noviembre','diciembre'];
+  const [y, m, d] = ds.split('-').map(Number);
+  return `${d} de ${months[m-1]} de ${y}`;
+}
+
+module.exports = { COUNTRY_CONFIG, fmtDateLong };

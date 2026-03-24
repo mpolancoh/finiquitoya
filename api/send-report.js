@@ -11,10 +11,22 @@ const { sendCustomerEmail } = require('./lib/email');
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
+  // Basic abuse prevention: reject non-JSON requests
+  if (req.method === 'POST' && req.headers['content-type'] !== 'application/json') {
+    return res.status(415).json({ error: 'Content-Type must be application/json' });
+  }
+
   const { email, pdfBase64, tier, country, result, inputs } = req.body || {};
 
   if (!email || !pdfBase64) {
     return res.status(400).json({ error: 'Missing email or pdf' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+  // Limit PDF to 10MB base64 (~7.5MB actual)
+  if (pdfBase64.length > 10 * 1024 * 1024) {
+    return res.status(413).json({ error: 'PDF too large' });
   }
 
   const pdfBuffer = Buffer.from(pdfBase64, 'base64');

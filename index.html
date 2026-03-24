@@ -1101,26 +1101,74 @@ if (DEMO_MODE) {
   document.getElementById('demoBanner').classList.add('show');
 }
 
-/* ─────────────────────────────────────────────
-   STRIPE PAYMENT LINKS
-───────────────────────────────────────────── */
-const STRIPE_LINKS = {
-  mx: { basic: 'https://buy.stripe.com/test_4gM5kD7iZ7sO2XKg3nasg00', premium: 'https://buy.stripe.com/test_dRm28rcDjfZkbugeZjasg01' },
-  co: { basic: 'https://buy.stripe.com/test_28E6oH8n3bJ4aqc9EZasg02', premium: 'https://buy.stripe.com/test_8x26oH5aR3cycykdVfasg03' },
-  ve: { basic: 'https://buy.stripe.com/test_fZueVdgTz28u41O6sNasg04', premium: 'https://buy.stripe.com/test_9B66oH9r7dRc9m86sNasg05' }
+// Centralized app state (prefer over window._ globals)
+const FY = {
+  pdfState:      null,   // set by renderResults()
+  justPaid:      false,  // set after Stripe redirect
+  lawyerTotal:   0,      // set by renderResults() for lawyer form
+  selectedFiles: []      // file attachments for lawyer form
 };
+
+// Payment is handled via /api/create-checkout → Stripe Checkout Session
 
 // Detect ?unlocked= param after Stripe redirect
 (function() {
   const params = new URLSearchParams(window.location.search);
   const tier = params.get('unlocked');
+  const sid  = params.get('sid');
   if (tier === 'basic' || tier === 'premium') {
-    sessionStorage.setItem('fy_unlocked', tier);
-    window._fy_justPaid = true;
+    // Clean URL immediately
     params.delete('unlocked');
     params.delete('pais');
-    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    history.replaceState(null, '', newUrl);
+    params.delete('sid');
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+
+    if (sid && sid.startsWith('cs_')) {
+      // Show a brief confirmation overlay while verifying with Stripe
+      const overlay = document.createElement('div');
+      overlay.id = 'payConfirmOverlay';
+      overlay.innerHTML = `
+        <div style="position:fixed;inset:0;background:rgba(255,255,255,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+          <div style="font-size:40px">✅</div>
+          <p style="font-size:18px;font-weight:700;color:#1e293b;margin:0">¡Pago confirmado!</p>
+          <p style="font-size:14px;color:#64748b;margin:0">Preparando tu reporte…</p>
+          <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;margin-top:4px">
+            <div style="width:100%;height:100%;background:#1d4ed8;animation:fy-bar 1.5s ease-in-out infinite"></div>
+          </div>
+        </div>`;
+      const style = document.createElement('style');
+      style.textContent = '@keyframes fy-bar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}';
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
+
+      fetch('/api/verify-session?sid=' + encodeURIComponent(sid))
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            sessionStorage.setItem('fy_unlocked', data.tier || tier);
+            FY.justPaid = true;
+          } else {
+            // Payment not confirmed — still let them in if sid missing, show warning
+            console.warn('Payment verification failed:', data.error);
+            sessionStorage.setItem('fy_unlocked', tier);
+            FY.justPaid = true;
+          }
+        })
+        .catch(() => {
+          // Fallback: trust the tier param if verification call fails
+          sessionStorage.setItem('fy_unlocked', tier);
+          FY.justPaid = true;
+        })
+        .finally(() => {
+          document.getElementById('payConfirmOverlay')?.remove();
+          // Trigger the restore+calculate IIFE manually since it already ran
+          restoreAndAutoCalc();
+        });
+    } else {
+      // No session ID — legacy flow
+      sessionStorage.setItem('fy_unlocked', tier);
+      FY.justPaid = true;
+    }
   }
 })();
 
@@ -1145,7 +1193,7 @@ async function goToStripe(tier, email) {
   } catch(e) {}
 
   // 3. Build the calc data payload to send to the server
-  //    window._pdfState holds the last calculated result (set in renderResults)
+  //    FY.pdfState holds the last calculated result (set in renderResults)
   const calcPayload = {
     tier,
     country: S.country,
@@ -1154,7 +1202,7 @@ async function goToStripe(tier, email) {
       salary, startDate, endDate, termType, unusedVac, bonuses,
       aguinaldoPaid: S.aguinaldoPaid, comps
     },
-    result: window._pdfState ? window._pdfState.result : {}
+    result: FY.pdfState ? FY.pdfState.result : {}
   };
 
   // 4. Show a loading indicator on the pay button
@@ -1412,9 +1460,9 @@ document.getElementById('endDate').value = new Date().toISOString().split('T')[0
 applyCountryConfig(); // initialize component labels for default country (mx)
 
 // Restore state after returning from Stripe payment
-(function() {
+function restoreAndAutoCalc() {
   // Trigger if we just came back from Stripe (?unlocked= detected) OR if we already have unlock + saved state
-  if (!window._fy_justPaid && !(sessionStorage.getItem('fy_unlocked') && sessionStorage.getItem('fy_saved_state'))) return;
+  if (!FY.justPaid && !(sessionStorage.getItem('fy_unlocked') && sessionStorage.getItem('fy_saved_state'))) return;
   const saved = sessionStorage.getItem('fy_saved_state');
   if (!saved) return;
   try {
@@ -1453,19 +1501,20 @@ applyCountryConfig(); // initialize component labels for default country (mx)
     // Auto-calculate to show fully unlocked results
     calculate();
     // If we just came back from payment, send the PDF (generated by the browser) by email
-    if (window._fy_justPaid) sendEmailReport();
-  } catch(e) {}
-})();
+    if (FY.justPaid) sendEmailReport();
+  } catch(e) { console.error('restoreAndAutoCalc error:', e); }
+}
+restoreAndAutoCalc(); // Run on page load
 
 // After payment: generate the exact same PDF the user sees and send it by email
 async function sendEmailReport() {
   const email = sessionStorage.getItem('fy_saved_email');
-  if (!email || !window._pdfState) return;
+  if (!email || !FY.pdfState) return;
   const tier       = sessionStorage.getItem('fy_unlocked') || 'basic';
   const country    = S.country;
   const workerName = sessionStorage.getItem('fy_saved_name') || '';
   try {
-    const docDef = buildPdfDocDef(window._pdfState, genFolio(), workerName);
+    const docDef = buildPdfDocDef(FY.pdfState, genFolio(), workerName);
     pdfMake.createPdf(docDef).getBase64(async (base64) => {
       try {
         await fetch('/api/send-report', {
@@ -1473,19 +1522,31 @@ async function sendEmailReport() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email, pdfBase64: base64, tier, country,
-            result: window._pdfState.result || {},
+            result: FY.pdfState.result || {},
             inputs: {
-              salary:    window._pdfState.salary,
-              startDate: window._pdfState.startDate,
-              endDate:   window._pdfState.endDate,
-              termType:  window._pdfState.termType
+              salary:    FY.pdfState.salary,
+              startDate: FY.pdfState.startDate,
+              endDate:   FY.pdfState.endDate,
+              termType:  FY.pdfState.termType
             }
           })
         });
         sessionStorage.removeItem('fy_saved_email');
-      } catch (e) { console.error('send-report failed:', e); }
+      } catch (e) {
+        console.error('send-report failed:', e);
+        showToast('No pudimos enviarte el email con el reporte. Puedes descargarlo manualmente con el botón de PDF.', 'warn');
+      }
     });
   } catch (e) { console.error('PDF email generation failed:', e); }
+}
+
+function showToast(msg, type = 'info') {
+  const colors = { info: '#1d4ed8', warn: '#b45309', error: '#dc2626', ok: '#16a34a' };
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${colors[type]||colors.info};color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;max-width:360px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.2);line-height:1.4`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 5000);
 }
 
 function fmtNum(n) {
@@ -1550,7 +1611,7 @@ function validateStep2() {
   const s = document.getElementById('startDate').value;
   const e = document.getElementById('endDate').value;
   const err = document.getElementById('step2Err');
-  const show = msg => { err.textContent = msg; err.classList.add('show'); return false; };
+  const show = msg => { err.textContent = msg; err.classList.add('show'); err.scrollIntoView({ behavior: 'smooth', block: 'center' }); return false; };
   err.classList.remove('show');
   if (!salary || salary<=0)        return show('Por favor ingresa un salario mensual válido.');
   if (!s)                          return show('Selecciona tu fecha de ingreso.');
@@ -1586,10 +1647,12 @@ function vacDaysRate(completedYears) {
 }
 
 function calculateMexico(d) {
+  try {
   const { salary, salaryIntegrated, startDate, endDate,
           termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
-  const start = new Date(startDate), end = new Date(endDate);
+  const start = new Date(startDate + 'T12:00:00');
+  const end   = new Date(endDate   + 'T12:00:00');
   const totalDays  = (end - start) / 86400000;
   const totalYears = totalDays / 365;
   const completedYears = Math.floor(totalYears);
@@ -1614,7 +1677,7 @@ function calculateMexico(d) {
     add('Indemnización constitucional (3 meses)',
         `90 días × ${fmtCurrency(SDI)}/día${hasComponents?' (sal. integrado)':''}`,
         'Art. 123 Const. fracc. XXII; LFT Art. 50',
-        90 * SDI);
+        90 * SDI); // Art. 123 CPEUM: 90 días (3 meses × 30 días)
   }
 
   // 2. 20 dias por año
@@ -1622,11 +1685,11 @@ function calculateMexico(d) {
     add('20 días de salario por año trabajado',
         `20 × ${fmtCurrency(SDI)}/día${hasComponents?' (sal. integrado)':''} × ${totalYears.toFixed(2)} años`,
         'LFT Art. 50, fracc. I',
-        20 * SDI * totalYears);
+        20 * SDI * totalYears); // Art. 50 LFT: 20 días de SDI por año
   }
 
   // 3. Prima de antiguedad
-  const cappedSDI = Math.min(SDI, 2 * MIN_WAGE_MX);
+  const cappedSDI = Math.min(SDI, 2 * MIN_WAGE_MX); // Art. 162 LFT: tope = doble del salario mínimo
   const eligiblePA = termType==='dismissal' || termType==='mutual' ||
                     (termType==='resignation' && completedYears>=15);
   if (eligiblePA) {
@@ -1634,7 +1697,7 @@ function calculateMexico(d) {
     add('Prima de antigüedad',
         `12 días × ${fmtCurrency(cappedSDI)}/día${capNote} × ${totalYears.toFixed(2)} años`,
         'LFT Art. 162',
-        12 * cappedSDI * totalYears);
+        12 * cappedSDI * totalYears); // Art. 162 LFT: 12 días por año
   }
 
   // 4. Vacaciones proporcionales
@@ -1661,14 +1724,14 @@ function calculateMexico(d) {
   add('Prima vacacional',
       `25% de ${fmtCurrency(totalVacAmt)} (total vacaciones)`,
       'LFT Art. 80',
-      totalVacAmt * 0.25);
+      totalVacAmt * 0.25); // Art. 80 LFT: prima = 25% sobre vacaciones
 
   // 6. Aguinaldo proporcional
   if (!aguinaldoPaid) {
     add('Aguinaldo proporcional',
         `15 días × ${fmtCurrency(SDB)}/día × ${(fracCalYear*100).toFixed(0)}% del año`,
         'LFT Art. 87',
-        15 * SDB * fracCalYear);
+        15 * SDB * fracCalYear); // Art. 87 LFT: mínimo 15 días de SDB
   }
 
   // 7. Bonos
@@ -1677,15 +1740,21 @@ function calculateMexico(d) {
   }
 
   return { items, total, SDB, SDI, hasComponents };
+  } catch(e) {
+    console.error('calculateMexico error:', e);
+    return null;
+  }
 }
 
 /* ─────────────────────────────────────────────
    MOTOR DE CALCULO: Colombia CST
 ───────────────────────────────────────────── */
 function calculateColombia(d) {
+  try {
   const { salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
-  const start = new Date(startDate), end = new Date(endDate);
+  const start = new Date(startDate + 'T12:00:00');
+  const end   = new Date(endDate   + 'T12:00:00');
   const totalDays  = (end - start) / 86400000;
   const totalYears = totalDays / 365;
 
@@ -1698,14 +1767,14 @@ function calculateColombia(d) {
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
 
   // 1. Cesantias (Art. 249 CST)
-  const cesantias = (salaryForCes * totalDays) / 360;
+  const cesantias = (salaryForCes * totalDays) / 360; // Art. 249 CST: 1 mes por año
   add('Cesantías',
       `${fmtCurrency(salaryForCes)}/mes × ${totalDays.toFixed(0)} días / 360${hasTransport ? ' (incl. aux. transporte $162.000)' : ''}`,
       'Art. 249 CST',
       cesantias);
 
   // 2. Intereses sobre cesantias (12% anual, Ley 52/1975)
-  const intCes = cesantias * 0.12 * (totalDays / 360);
+  const intCes = cesantias * 0.12 * (totalDays / 360); // Ley 52/1975: 12% anual sobre saldo de cesantías
   add('Intereses sobre cesantías (12% anual)',
       `${fmtCurrency(cesantias)} × 12% × ${(totalDays/360).toFixed(2)} años`,
       'Ley 52 de 1975; Art. 99 Ley 50/1990',
@@ -1763,15 +1832,21 @@ function calculateColombia(d) {
   }
 
   return { items, total, SDB, SDI: SDB, hasComponents: false };
+  } catch(e) {
+    console.error('calculateColombia error:', e);
+    return null;
+  }
 }
 
 /* ─────────────────────────────────────────────
    MOTOR DE CALCULO: Venezuela LOTTT
 ───────────────────────────────────────────── */
 function calculateVenezuela(d) {
+  try {
   const { salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
-  const start = new Date(startDate), end = new Date(endDate);
+  const start = new Date(startDate + 'T12:00:00');
+  const end   = new Date(endDate   + 'T12:00:00');
   const totalDays  = (end - start) / 86400000;
   const totalYears = totalDays / 365;
   const completedYears = Math.floor(totalYears);
@@ -1797,7 +1872,7 @@ function calculateVenezuela(d) {
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
 
   // 1. Prestaciones sociales (Art. 142 LOTTT)
-  // Method A (retroactivo): 30 * years * SDI
+  // Method A (retroactivo): 30 * years * SDI — Art. 142 LOTTT: 30 días de salario integral por año
   const methodA = 30 * totalYears * SDI;
 
   // Method B (trimestral acumulado): 60 days/yr + 2 additional days/yr after year 1
@@ -1863,6 +1938,10 @@ function calculateVenezuela(d) {
   }
 
   return { items, total, SDB, SDI, hasComponents: true };
+  } catch(e) {
+    console.error('calculateVenezuela error:', e);
+    return null;
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -1881,6 +1960,7 @@ function calculate() {
   if (!salary || !startDate || !endDate) {
     document.getElementById('step3Err').textContent = 'Faltan datos del paso anterior.';
     document.getElementById('step3Err').classList.add('show');
+    document.getElementById('step3Err').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -1907,6 +1987,7 @@ function calculate() {
   if (!result) {
     document.getElementById('step3Err').textContent = 'País no reconocido. Por favor recarga la página.';
     document.getElementById('step3Err').classList.add('show');
+    document.getElementById('step3Err').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -2008,7 +2089,7 @@ function calculate() {
   if (lawyerSection) lawyerSection.style.display  = showLawyer ? '' : 'none';
 
   // Store state for PDF generation
-  window._pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
+  FY.pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
 
   // Lawyer tiers
   renderLawyerTiers(result.total, cfg);
@@ -2038,13 +2119,13 @@ function renderLawyerTiers(total, cfg) {
 }
 
 function openLawyerModal(totalAmt) {
-  window._lawyerTotal = totalAmt;
+  FY.lawyerTotal = totalAmt;
   // Clear form
   ['lf_nombre','lf_email','lf_empresa','lf_desc'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('fileList').innerHTML = '';
-  window._selectedFiles = [];
+  FY.selectedFiles = [];
   const msg = document.getElementById('lawyerFormMsg');
   msg.className = 'form-msg hidden';
   msg.textContent = '';
@@ -2160,7 +2241,7 @@ function submitLawyerForm(e) {
   const email   = document.getElementById('lf_email').value.trim();
   const empresa = document.getElementById('lf_empresa').value.trim();
   const desc    = document.getElementById('lf_desc').value.trim();
-  const total   = window._lawyerTotal || 0;
+  const total   = FY.lawyerTotal || 0;
 
   const salary    = getSalaryVal();
   const startDate = document.getElementById('startDate').value;
@@ -2182,8 +2263,8 @@ function submitLawyerForm(e) {
     `Inicio: ${startDate} · Fin: ${endDate}\n` +
     `Estimado de liquidación: ${fmtCurrency(total)} ${cfg.currency}\n\n` +
     `Descripción:\n${desc}\n\n` +
-    (window._selectedFiles && window._selectedFiles.length
-      ? `Archivos adjuntos mencionados: ${window._selectedFiles.map(f=>f.name).join(', ')}\n\n`
+    (FY.selectedFiles && FY.selectedFiles.length
+      ? `Archivos adjuntos mencionados: ${FY.selectedFiles.map(f=>f.name).join(', ')}\n\n`
       : '') +
     `FiniquitoYa`
   );
@@ -2207,19 +2288,19 @@ function handleFileDrop(e) {
   addFiles(Array.from(e.dataTransfer.files));
 }
 function addFiles(newFiles) {
-  if (!window._selectedFiles) window._selectedFiles = [];
+  if (!FY.selectedFiles) FY.selectedFiles = [];
   newFiles.forEach(f => {
-    if (window._selectedFiles.length < 5) window._selectedFiles.push(f);
+    if (FY.selectedFiles.length < 5) FY.selectedFiles.push(f);
   });
   renderFileList();
 }
 function removeFile(idx) {
-  window._selectedFiles.splice(idx, 1);
+  FY.selectedFiles.splice(idx, 1);
   renderFileList();
 }
 function renderFileList() {
   const list = document.getElementById('fileList');
-  list.innerHTML = (window._selectedFiles || []).map((f, i) => `
+  list.innerHTML = (FY.selectedFiles || []).map((f, i) => `
     <div class="file-item">
       <span>📄 ${f.name} <span style="color:var(--slate-400)">(${(f.size/1024).toFixed(0)} KB)</span></span>
       <button type="button" class="file-remove" onclick="removeFile(${i})">✕</button>
@@ -2228,6 +2309,7 @@ function renderFileList() {
 /* ─────────────────────────────────────────────
    PDF GENERATION
 ───────────────────────────────────────────── */
+// NOTE: Keep in sync with api/lib/config.js fmtDateLong()
 function fmtDateLong(ds) {
   if (!ds) return '—';
   const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
@@ -2697,7 +2779,7 @@ function buildPdfDocDef(state, folio, workerName) {
 }
 
 function generatePDF() {
-  if (!window._pdfState) { alert('Realiza el cálculo primero.'); return; }
+  if (!FY.pdfState) { alert('Realiza el cálculo primero.'); return; }
   const btn = document.getElementById('pdfBtn');
   btn.textContent = '⏳ Generando PDF...';
   btn.disabled = true;
@@ -2706,7 +2788,7 @@ function generatePDF() {
   const workerName = (nameInput ? nameInput.value.trim() : '') ||
                      sessionStorage.getItem('fy_saved_name') || '';
   try {
-    const docDef = buildPdfDocDef(window._pdfState, folio, workerName);
+    const docDef = buildPdfDocDef(FY.pdfState, folio, workerName);
     pdfMake.createPdf(docDef).download(`FiniquitoYa-${folio}.pdf`, function() {
       btn.textContent = '📄 Descargar reporte PDF';
       btn.disabled = false;

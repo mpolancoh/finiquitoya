@@ -7,6 +7,7 @@
 // sendAdminNotification(data) — sale alert to admin
 
 const SibApiV3Sdk = require('sib-api-v3-sdk');
+const { fmtDateLong } = require('./config');
 
 const COUNTRY_LABELS   = { mx: 'México', co: 'Colombia', ve: 'Venezuela' };
 const COUNTRY_CURRENCY = { mx: 'MXN',    co: 'COP',       ve: 'USD'      };
@@ -22,9 +23,6 @@ const TERM_TYPE_LABELS = {
   mutual:       'terminación por mutuo acuerdo',
   constructive: 'renuncia por causas imputables al empleador'
 };
-const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio',
-                   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getBrevoApi() {
@@ -38,13 +36,6 @@ function fmtCurrency(value, country) {
   const sym = COUNTRY_CURRENCY[country] || '';
   const n   = Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `$${n} ${sym}`;
-}
-
-// "1 de marzo de 2021"
-function fmtDateLong(dateStr) {
-  if (!dateStr) return '[fecha]';
-  const d = new Date(dateStr + 'T12:00:00');
-  return `${d.getDate()} de ${MONTHS_ES[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
 // "3 años y 22 días" — counts exact anniversaries
