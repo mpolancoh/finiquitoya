@@ -2044,26 +2044,45 @@ function calculateVenezuela(d) {
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
 
   // 1. Prestaciones sociales (Art. 142 LOTTT)
-  // Method A (retroactivo): 30 * years * SDI — Art. 142 LOTTT: 30 días de salario integral por año
-  const methodA = 30 * totalYears * SDI;
+  // Art. 142 LOTTT literales a, b, c, d — sistema dual obligatorio.
+  // Ambos cálculos son requeridos; se paga el mayor (literal d).
+  const daysSinceLastAnniv = (end - lastAnniv) / 86400000;
+  const fracMonthsVe = Math.floor(daysSinceLastAnniv / 30);
 
-  // Method B (trimestral acumulado): 60 days/yr + 2 additional days/yr after year 1
-  let methodB = 0;
+  // ── Literal c: Método Retroactivo ──────────────────────────────────────────
+  // 30 días × años completados × SDI (último salario). Fracción de año:
+  //   >6 meses → 30 días | 3–6 meses → 5 días × meses | <3 meses → 0
+  let fractionalAdditionVe = 0;
+  let fracNoteVe = 'fracción <3 meses: sin adición';
+  if (fracMonthsVe > 6) {
+    fractionalAdditionVe = 30 * SDI;
+    fracNoteVe = `fracción >6 meses: +30 días`;
+  } else if (fracMonthsVe >= 3) {
+    fractionalAdditionVe = 5 * fracMonthsVe * SDI;
+    fracNoteVe = `fracción ${fracMonthsVe} meses: +${5 * fracMonthsVe} días`;
+  }
+  const metodoRetroactivo = 30 * completedYears * SDI + fractionalAdditionVe;
+
+  // ── Literales a/b: Método Trimestral ───────────────────────────────────────
+  // 60 días SDI por año completado + 2 días adicionales acumulativos, TOPE 30 días.
+  // Derecho trimestral adquirido desde el INICIO del trimestre — incluye trimestre en curso.
+  let metodoTrimestral = 0;
   for (let y = 1; y <= completedYears; y++) {
-    methodB += (60 + 2 * (y - 1)) * SDI;
+    metodoTrimestral += (60 + Math.min(2 * (y - 1), 30)) * SDI;
   }
-  const fracYear = totalYears - completedYears;
-  if (fracYear > 0) {
-    methodB += (60 + 2 * Math.max(completedYears - 1, 0)) * fracYear * SDI;
-  }
+  const quartersStarted = daysSinceLastAnniv > 0
+    ? Math.min(Math.ceil(daysSinceLastAnniv / 91.25), 4) : 0;
+  metodoTrimestral += 15 * quartersStarted * SDI;
 
-  const prestaciones = Math.max(methodA, methodB);
-  const methodWon = methodA >= methodB ? 'retroactivo (30 días × años)' : 'trimestral acumulado';
+  // ── Literal d: se paga el mayor ────────────────────────────────────────────
+  const prestaciones = Math.max(metodoTrimestral, metodoRetroactivo);
+  const retroWins = metodoRetroactivo >= metodoTrimestral;
+  const trimStr  = `Trimestral (lit. a/b): ${fmtCurrency(metodoTrimestral)} [${completedYears} años + ${quartersStarted} trim.]`;
+  const retroStr = `Retroactivo (lit. c): ${fmtCurrency(metodoRetroactivo)} [30×${completedYears} años; ${fracNoteVe}]`;
   add('Prestaciones sociales',
-      `Método ${methodWon}: ${methodA >= methodB
-        ? `30 días × ${totalYears.toFixed(2)} años × ${fmtCurrency(SDI)}/día integral`
-        : `acumulado trimestral, ${totalYears.toFixed(2)} años × SDI`}`,
-      'Art. 142 LOTTT',
+      `${trimStr} | ${retroStr} → Se aplica: ${retroWins ? 'Retroactivo (lit. c)' : 'Trimestral (lit. a/b)'} (mayor). `
+      + `Derecho trimestral adquirido desde inicio del trimestre — incluye trimestre en curso.`,
+      'Art. 142 LOTTT lit. d',
       prestaciones);
 
   // 2. Utilidades (Art. 131 LOTTT) - min 30 days
@@ -3481,9 +3500,10 @@ function getConceptNarrative(country, name, item, ctx) {
 
   if (country === 've') {
     if (name === 'Prestaciones sociales') {
+      const retroApplied = item.calc.includes('Retroactivo (lit. c)') && item.calc.includes('mayor');
       return {
-        p1: 'El artículo 142 de la Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (LOTTT) establece el régimen de prestaciones sociales con dos métodos de cálculo: el <strong>método retroactivo</strong> (30 días de salario integral por año de servicio) y el <strong>método de garantía acumulada</strong> trimestral (60 días el primer año, más 2 días adicionales por año a partir del segundo). Se aplica siempre el monto mayor entre ambos métodos.',
-        p2: `${firstName ? `En el caso de <strong>${firstName}</strong>, con` : 'Con'} <strong>${totalYears.toFixed(2)} años de servicio</strong>, se aplicó el método ${item.calc.includes('retroactivo') ? 'retroactivo' : 'de garantía acumulada'} por resultar más favorable al trabajador.`,
+        p1: 'El artículo 142 de la LOTTT establece un sistema dual obligatorio. <strong>Literales a/b (Trimestral):</strong> el empleador deposita trimestralmente 15 días de salario integral (= 60 días/año), más 2 días adicionales acumulativos por año completado, con un tope de 30 días adicionales; el derecho nace desde el inicio de cada trimestre. <strong>Literal c (Retroactivo):</strong> 30 días de SDI por cada año completado usando el último salario; fracciones de más de 6 meses cuentan como año completo; fracciones de 3–6 meses generan 5 días por mes. <strong>Literal d:</strong> se paga siempre el mayor de los dos métodos.',
+        p2: `${firstName ? `Con <strong>${completedYears} año${completedYears !== 1 ? 's' : ''} completado${completedYears !== 1 ? 's' : ''}</strong> de <strong>${firstName}</strong>` : `Con <strong>${completedYears} año${completedYears !== 1 ? 's' : ''} completado${completedYears !== 1 ? 's' : ''}</strong>`}, el método <strong>${retroApplied ? 'Retroactivo (lit. c)' : 'Trimestral (lit. a/b)'}</strong> resulta mayor y es el aplicado.`,
         calcLine: item.calc
       };
     }
