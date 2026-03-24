@@ -921,6 +921,28 @@
       <p class="hint">Días de periodos anteriores que no hayas disfrutado. El periodo actual ya se calcula automáticamente.</p>
     </div>
 
+    <!-- Colombia only: cesantías regime (Art. 99 Ley 50/1990 vs Art. 249 CST retroactivo) -->
+    <div class="field" id="cesantiasRegimeField" style="display:none">
+      <label class="lbl">Régimen de cesantías</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--blue-200);border-radius:8px;cursor:pointer;background:var(--blue-50);flex:1;min-width:180px">
+          <input type="radio" name="cesReg" value="ley50" checked>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--slate-800)">📋 Ley 50/1990 <span style="font-size:11px;color:var(--blue-600);font-weight:400">(más común)</span></div>
+            <div style="font-size:11.5px;color:var(--slate-500);margin-top:1px">Depósito anual en fondo — solo se liquida el año en curso.</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--slate-200);border-radius:8px;cursor:pointer;flex:1;min-width:180px">
+          <input type="radio" name="cesReg" value="retroactivo">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--slate-800)">⚠️ Régimen retroactivo</div>
+            <div style="font-size:11.5px;color:var(--slate-500);margin-top:1px">Contratados antes de 1991 — todo el período sobre último salario.</div>
+          </div>
+        </label>
+      </div>
+      <p class="hint" style="margin-top:6px">La gran mayoría de trabajadores activos están en régimen Ley 50. Ref: Art. 99 Ley 50/1990 vs Art. 249 CST.</p>
+    </div>
+
     <!-- Colombia only: vacation salary base (Art. 192 CST) -->
     <div class="field" id="vacSalaryField" style="display:none">
       <label class="lbl" for="vacSalary">Salario base para vacaciones (COP/mes)</label>
@@ -1402,8 +1424,9 @@ function applyCountryConfig() {
   document.getElementById('step3Sub').textContent      = cfg.step3Sub;
   document.getElementById('aguinaldoLabel').textContent = cfg.aguinaldoLabel;
   document.getElementById('aguinaldoDesc').textContent  = cfg.aguinaldoDesc;
-  // Colombia-only field: vacation salary base (Art. 192 CST)
-  document.getElementById('vacSalaryField').style.display = S.country === 'co' ? '' : 'none';
+  // Colombia-only fields
+  document.getElementById('cesantiasRegimeField').style.display = S.country === 'co' ? '' : 'none';
+  document.getElementById('vacSalaryField').style.display        = S.country === 'co' ? '' : 'none';
 
   // Termination types
   const grid = document.getElementById('terminGrid');
@@ -1817,7 +1840,8 @@ function calculateMexico(d) {
 ───────────────────────────────────────────── */
 function calculateColombia(d) {
   try {
-  const { salary, salaryForVacaciones = salary, startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
+  const { salary, salaryForVacaciones = salary, cesantiasRegime = 'ley50',
+          startDate, endDate, termType, unusedVac, aguinaldoPaid, bonuses } = d;
 
   const start = new Date(startDate + 'T12:00:00');
   const end   = new Date(endDate   + 'T12:00:00');
@@ -1829,20 +1853,44 @@ function calculateColombia(d) {
   const SDB  = salary / 30;
 
   const items = [];
+  const warnings = [];
   let total = 0;
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
 
-  // 1. Cesantias (Art. 249 CST)
-  const cesantias = (salaryForCes * totalDays) / 360; // Art. 249 CST: 1 mes por año
-  add('Cesantías',
-      `${fmtCurrency(salaryForCes)}/mes × ${totalDays.toFixed(0)} días / 360${hasTransport ? ` (incl. aux. transporte ${fmtCurrency(TRANSPORT_CO)})` : ''}`,
-      'Art. 249 CST',
+  // 1. Cesantías
+  // Art. 99 Ley 50/1990 (régimen nuevo) vs Art. 249 CST (régimen retroactivo) — distinción crítica en antigüedad.
+  // Régimen Ley 50: solo se liquida el año en curso (employer ya depositó años anteriores al fondo).
+  // Régimen retroactivo: se liquida todo el período sobre el último salario.
+  let cesDays, cesLabel, cesLaw;
+  if (cesantiasRegime === 'retroactivo') {
+    cesDays   = totalDays;
+    cesLabel  = 'Cesantías (régimen retroactivo — Art. 249 CST)';
+    cesLaw    = 'Art. 249 CST';
+    warnings.push({
+      concept: 'Régimen retroactivo de cesantías',
+      calc: '',
+      law: 'Art. 249 CST',
+      amount: 0,
+      message: 'Régimen retroactivo activo — las cesantías se liquidan sobre el ÚLTIMO salario × TODOS los años. Verificar que el trabajador no se haya acogido a Ley 50/1990 antes de usar esta modalidad.'
+    });
+  } else {
+    // Ley 50/1990: only days from Jan 1 of exit year to exit date
+    const janFirst = new Date(end.getFullYear(), 0, 1);
+    cesDays  = (end - janFirst) / 86400000;
+    cesLabel = 'Cesantías (Ley 50/1990 — año en curso)';
+    cesLaw   = 'Art. 99 Ley 50/1990';
+  }
+  const transportNote = hasTransport ? ` (incl. aux. transporte ${fmtCurrency(TRANSPORT_CO)})` : '';
+  const cesantias = (salaryForCes * cesDays) / 360;
+  add(cesLabel,
+      `${fmtCurrency(salaryForCes)}/mes × ${Math.round(cesDays)} días / 360${transportNote}`,
+      cesLaw,
       cesantias);
 
-  // 2. Intereses sobre cesantias (12% anual, Ley 52/1975)
-  const intCes = cesantias * 0.12 * (totalDays / 360); // Ley 52/1975: 12% anual sobre saldo de cesantías
+  // 2. Intereses sobre cesantías (12% anual, Ley 52/1975)
+  const intCes = cesantias * 0.12 * (cesDays / 360); // proporcional al período liquidado
   add('Intereses sobre cesantías (12% anual)',
-      `${fmtCurrency(cesantias)} × 12% × ${(totalDays/360).toFixed(2)} años`,
+      `${fmtCurrency(cesantias)} × 12% × ${(cesDays/360).toFixed(2)} años`,
       'Ley 52 de 1975; Art. 99 Ley 50/1990',
       intCes);
 
@@ -1906,7 +1954,7 @@ function calculateColombia(d) {
     add('Otros adeudos pendientes', 'Monto indicado por el trabajador', 'Art. 127 CST', bonuses);
   }
 
-  return { items, total, SDB, SDI: SDB, hasComponents: false };
+  return { items, total, SDB, SDI: SDB, hasComponents: false, warnings };
   } catch(e) {
     console.error('calculateColombia error:', e);
     return null;
@@ -2048,10 +2096,11 @@ function calculate() {
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
   } else if (S.country === 'co') {
-    const vacSalaryInput = parseFloat(document.getElementById('vacSalary').value) || 0;
+    const vacSalaryInput   = parseFloat(document.getElementById('vacSalary').value) || 0;
     const salaryForVacaciones = vacSalaryInput > 0 ? vacSalaryInput : salary;
+    const cesantiasRegime  = (document.querySelector('input[name="cesReg"]:checked') || {}).value || 'ley50';
     result = calculateColombia({
-      salary, salaryForVacaciones, startDate, endDate, termType,
+      salary, salaryForVacaciones, cesantiasRegime, startDate, endDate, termType,
       unusedVac, aguinaldoPaid: S.aguinaldoPaid, bonuses
     });
   } else if (S.country === 've') {
@@ -2140,16 +2189,19 @@ function calculate() {
   // Disputed items: shown outside the total with a prominent warning
   if (result.warnings && result.warnings.length) {
     result.warnings.forEach(w => {
+      const calcLine = w.calc ? `<div style="font-size:11.5px;color:#b45309;margin-bottom:6px">${w.calc} · <strong>${w.law}</strong></div>` : `<div style="font-size:11.5px;color:#b45309;margin-bottom:6px"><strong>${w.law}</strong></div>`;
+      const amountEl = w.amount > 0 ? `<div style="font-size:17px;font-weight:700;color:#92400e;white-space:nowrap;padding-top:2px;flex-shrink:0">${fmtCurrency(w.amount)}</div>` : '';
       rows += `
         <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
             <div style="flex:1">
               <div style="font-weight:700;color:#92400e;font-size:13.5px;margin-bottom:4px">⚠️ ${w.concept}</div>
-              <div style="font-size:11.5px;color:#b45309;margin-bottom:6px">${w.calc} · <strong>${w.law}</strong></div>
+              ${calcLine}
               <div style="font-size:12px;color:#78350f;line-height:1.55">${w.message}</div>
             </div>
-            <div style="font-size:17px;font-weight:700;color:#92400e;white-space:nowrap;padding-top:2px">${fmtCurrency(w.amount)}</div>
+            ${amountEl}
           </div>
+          ${w.amount > 0 ? '<div style="font-size:11px;color:#b45309;margin-top:8px;font-style:italic">Este monto NO está incluido en el total estimado.</div>' : ''}
         </div>`;
     });
   }
@@ -2552,6 +2604,7 @@ function buildPdfDocDef(state, folio, workerName) {
     fracCurrentYear, fracCalYear, startDate, endDate, termType,
     hasTransport: S.country === 'co' && salary <= TRANSPORT_THRESHOLD,
     salaryForVacaciones: S.country === 'co' ? (parseFloat(document.getElementById('vacSalary').value) || salary) : salary,
+    cesantiasRegime: S.country === 'co' ? ((document.querySelector('input[name="cesReg"]:checked') || {}).value || 'ley50') : null,
     hasComponents: result.hasComponents, bonuses, unusedVac,
     workerName: wName, firstName
   };
@@ -3290,14 +3343,21 @@ function getConceptNarrative(country, name, item, ctx) {
   }
 
   if (country === 'co') {
-    if (name === 'Cesantías') {
+    if (name.startsWith('Cesantías')) {
       const salForCes = hasTransport ? salary + TRANSPORT_CO : salary;
+      const regime = ctx.cesantiasRegime || 'ley50';
+      const endDate_ = new Date(endDate + 'T12:00:00');
+      const cesDays_ = regime === 'retroactivo'
+        ? totalDays
+        : (endDate_ - new Date(endDate_.getFullYear(), 0, 1)) / 86400000;
+      const p1retro = 'El artículo 249 del Código Sustantivo del Trabajo (régimen retroactivo, aplicable a trabajadores vinculados antes de 1991) establece que las cesantías se liquidan sobre el <strong>último salario</strong> por la <strong>totalidad del tiempo de servicios</strong>. Este régimen implica que el empleador es directamente responsable de la deuda acumulada por todos los años laborados.';
+      const p1ley50 = 'El artículo 99 de la Ley 50 de 1990 establece que los empleadores deben consignar las cesantías en el fondo individual del trabajador a más tardar el 14 de febrero de cada año, cubriendo el año calendario anterior. En consecuencia, al momento de la liquidación solo se adeuda el período comprendido entre el 1 de enero del año de salida y la fecha de terminación.';
       return {
-        p1: 'El artículo 249 del Código Sustantivo del Trabajo establece el derecho de todo trabajador a recibir cesantías equivalentes a un mes de salario por cada año de servicios, o proporcional por fracción de año. Conforme a la jurisprudencia de la Corte Suprema de Justicia, el auxilio de transporte se incluye en la base de liquidación para trabajadores con salario igual o inferior a dos salarios mínimos mensuales legales vigentes (SMMLV).',
+        p1: regime === 'retroactivo' ? p1retro : p1ley50,
         p2: hasTransport
-          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(TRANSPORT_THRESHOLD)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base de liquidación, resultando en una base de ${fmtCurrency(salForCes)} COP/mes.`
-          : `El salario de ${tn} supera los 2 SMMLV (${fmtCurrency(TRANSPORT_THRESHOLD)} COP), por lo que el auxilio de transporte <strong>no se incluye</strong> en la base de liquidación de cesantías.`,
-        calcLine: `${fmtCurrency(salForCes)}/mes × ${Math.round(totalDays)} días / 360 = ${fmtCurrency(item.amount)}`
+          ? `El salario de ${tn} (${fmtCurrency(salary)} COP) es igual o inferior a 2 SMMLV (${fmtCurrency(TRANSPORT_THRESHOLD)} COP), por lo que el <strong>auxilio de transporte de ${fmtCurrency(TRANSPORT_CO)} COP/mes</strong> se incluye en la base, resultando en ${fmtCurrency(salForCes)} COP/mes. Se liquidan <strong>${Math.round(cesDays_)} días</strong> (${regime === 'retroactivo' ? 'período completo' : 'año en curso'}).`
+          : `El salario de ${tn} supera los 2 SMMLV — el auxilio de transporte no aplica. Base de liquidación: ${fmtCurrency(salForCes)} COP/mes × <strong>${Math.round(cesDays_)} días</strong> (${regime === 'retroactivo' ? 'período completo' : 'año en curso'}).`,
+        calcLine: `${fmtCurrency(salForCes)}/mes × ${Math.round(cesDays_)} días / 360 = ${fmtCurrency(item.amount)}`
       };
     }
     if (name === 'Intereses sobre cesantías (12% anual)') {
