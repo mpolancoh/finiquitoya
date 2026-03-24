@@ -918,7 +918,7 @@
     <div class="field">
       <label class="lbl" for="unusedVac">Días de vacaciones acumuladas sin tomar</label>
       <input type="number" id="unusedVac" class="input" placeholder="0" min="0" step="1" style="max-width:180px">
-      <p class="hint">Días de periodos anteriores que no hayas disfrutado. El periodo actual ya se calcula automáticamente.</p>
+      <p class="hint">Días de períodos anteriores que no hayas disfrutado. El periodo actual ya se calcula automáticamente.</p>
     </div>
 
     <!-- Colombia only: cesantías regime (Art. 99 Ley 50/1990 vs Art. 249 CST retroactivo) -->
@@ -1315,7 +1315,7 @@ const COUNTRY_CONFIG = {
     pricingBasic: '$25 MXN', pricingBasicSub: '~$1.25 USD · Pago único',
     pricingPremium: '$150 MXN', pricingPremiumSub: '~$7.50 USD · Reporte completo',
     payBasicLaw: 'Fundamento legal (LFT)',
-    disclaimer: 'Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de la JFCA. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).',
+    disclaimer: 'Esta es una estimación orientativa basada en la Ley Federal del Trabajo (LFT) de México vigente. Los montos reales pueden variar según convenios colectivos, condiciones de tu contrato o criterios de los Tribunales Laborales o la PROFEDET. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboral certificado o acude a la PROFEDET (servicio gratuito).',
     infoHtml: '<strong>México · LFT 2024:</strong> Calculamos indemnización constitucional (3 meses), 20 días por año, prima de antigüedad, vacaciones proporcionales, prima vacacional y aguinaldo proporcional.',
     headerHtml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)"><rect width="1" height="2" fill="#006847"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE1126"/></svg>México · LFT 2024`,
     termTypes: [
@@ -1340,7 +1340,7 @@ const COUNTRY_CONFIG = {
     name: 'Colombia', currency: 'COP', locale: 'es-CO',
     salaryLabel: 'Salario mensual base (COP)',
     salaryPlaceholder: '2.000.000',
-    salaryHint: 'Tu salario base mensual en pesos colombianos. Si ganas hasta $2.847.000 COP (2 SMMLV 2025), el auxilio de transporte ($174.786) se incluye automáticamente en las cesantías.',
+    salaryHint: 'Tu salario base mensual en pesos colombianos. Si ganas hasta $3.501.810 COP (2 SMMLV 2026), el auxilio de transporte ($249.095) se incluye automáticamente en las cesantías.',
     step2Sub: 'Ingresa los datos de tu relación laboral. Todos los montos en pesos colombianos (COP).',
     step3Sub: 'Ajusta estos datos para afinar el cálculo.',
     aguinaldoLabel: '¿Ya recibiste tu prima de servicios de este semestre?',
@@ -1385,7 +1385,7 @@ const COUNTRY_CONFIG = {
     pricingBasic: '$1.25 USD', pricingBasicSub: 'Pago único',
     pricingPremium: '$7.50 USD', pricingPremiumSub: 'Reporte completo',
     payBasicLaw: 'Fundamento legal (LOTTT)',
-    disclaimer: 'Esta es una estimación orientativa basada en la Ley Orgánica del Trabajo (LOTTT) de Venezuela 2012. Los montos reales pueden variar según el tipo de empresa, contrato colectivo y el método de cálculo aplicado. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboralista.',
+    disclaimer: 'Esta es una estimación orientativa basada en la Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (LOTTT) de Venezuela 2012. Los montos reales pueden variar según el tipo de empresa, contrato colectivo y el método de cálculo aplicado. Este cálculo no constituye asesoría legal; para disputas formales, consulta con un abogado laboralista.',
     infoHtml: '<strong>Venezuela · LOTTT:</strong> Calculamos prestaciones sociales (Art. 142, mayor entre método retroactivo y trimestral), utilidades, vacaciones, bono vacacional e indemnización por despido injustificado.',
     headerHtml: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)"><rect width="3" height=".667" fill="#FFD100"/><rect y=".667" width="3" height=".667" fill="#003DA5"/><rect y="1.333" width="3" height=".667" fill="#CF142B"/><circle cx="1.218" cy="1.047" r="0.055" fill="white"/><circle cx="1.270" cy="0.957" r="0.055" fill="white"/><circle cx="1.350" cy="0.890" r="0.055" fill="white"/><circle cx="1.448" cy="0.854" r="0.055" fill="white"/><circle cx="1.552" cy="0.854" r="0.055" fill="white"/><circle cx="1.650" cy="0.890" r="0.055" fill="white"/><circle cx="1.730" cy="0.957" r="0.055" fill="white"/><circle cx="1.782" cy="1.047" r="0.055" fill="white"/></svg>Venezuela · LOTTT`,
     termTypes: [
@@ -2042,8 +2042,23 @@ function calculateVenezuela(d) {
   const SDI = SDB + alicuotaUtil + alicuotaBonVac; // salario integral diario — recalcula con bonVacDias corregido
 
   const items = [];
+  const warnings = [];
   let total = 0;
   const add = (name, calc, law, amount) => { items.push({ name, calc, law, amount }); total += amount; };
+
+  // ── Inamovilidad laboral ────────────────────────────────────────────────────
+  // Art. 92 LOTTT — indemnización = monto prestaciones sociales (literal d).
+  // Decreto N° 5.070 — G.O. 6.868 (27/12/2024): inamovilidad vigente hasta 31/12/2026.
+  if (termType === 'dismissal' || termType === 'mutual') {
+    warnings.push({
+      concept: 'Inamovilidad laboral vigente',
+      law: 'Decreto N° 5.070 — G.O. 6.868 (27/12/2024)',
+      amount: 0,
+      message: '⚠️ ALERTA: Inamovilidad laboral vigente hasta el 31/12/2026 (Decreto N° 5.070). Todo despido sin autorización previa de la Inspectoría del Trabajo es nulo de pleno derecho. Este cálculo no resuelve la exposición legal si el despido es nulo. Recomendamos verificar la autorización antes de formalizar cualquier acuerdo.',
+      displayOutsideTotal: true,
+      severity: 'critical'
+    });
+  }
 
   // 1. Prestaciones sociales (Art. 142 LOTTT)
   // Art. 142 LOTTT literales a, b, c, d — sistema dual obligatorio.
@@ -2132,7 +2147,7 @@ function calculateVenezuela(d) {
     add('Otros conceptos adeudados', 'Monto indicado por el trabajador', 'Art. 122 LOTTT', bonuses);
   }
 
-  return { items, total, SDB, SDI, hasComponents: true };
+  return { items, total, warnings, SDB, SDI, hasComponents: true };
   } catch(e) {
     console.error('calculateVenezuela error:', e);
     return null;
@@ -2489,7 +2504,7 @@ function submitLawyerForm(e) {
   );
 
   const msgEl = document.getElementById('lawyerFormMsg');
-  msgEl.textContent = '¡Listo! Abriendo tu cliente de correo para enviar la solicitud...';
+  msgEl.textContent = '¡Listo! Abriendo tu cliente de correo para enviar la solicitud…';
   msgEl.className = 'form-msg success';
 
   setTimeout(() => {
@@ -2583,7 +2598,7 @@ function getRightsData(country) {
         text: 'El empleador debe entregar comunicación escrita en la que conste la fecha y, en caso de justa causa, las causales invocadas. La ausencia de carta con causa puede ser utilizada por el trabajador como prueba de despido sin justa causa ante la jurisdicción laboral ordinaria.' },
       { title: 'Derecho a la conciliación laboral gratuita (Ministerio del Trabajo)',
         text: 'El trabajador puede acudir al Ministerio del Trabajo o a los Inspectores de Trabajo para solicitar una conciliación laboral gratuita antes de iniciar cualquier proceso judicial. No se requiere abogado para ser iniciada y el proceso es expedito.' },
-      { title: 'Derecho a acudir a los Juzgados Laborales',
+      { title: 'Derecho a acudir a los Juzgados Laborales del Circuito',
         text: 'Si la conciliación fracasa, el trabajador puede instaurar demanda ante el Juzgado Laboral del Circuito competente. El juez puede ordenar el pago de la indemnización, los salarios y prestaciones adeudados, y sanciones moratorias por retardo.' },
       { title: 'Plazo de prescripción: tres años',
         text: 'El artículo 488 del Código Sustantivo del Trabajo establece que las acciones derivadas del contrato de trabajo prescriben en tres años a partir de que la obligación sea exigible. Es importante actuar dentro de este plazo para no perder el derecho de reclamar.' },
@@ -2599,8 +2614,8 @@ function getRightsData(country) {
         text: 'Antes de acudir al tribunal, el trabajador puede solicitar un procedimiento de conciliación y mediación laboral ante la Inspectoría del Trabajo. Este proceso es gratuito y puede resolver la disputa de forma ágil sin necesidad de litigio formal.' },
       { title: 'Derecho a acudir a los Tribunales Laborales',
         text: 'La Ley Orgánica Procesal del Trabajo (LOPTRA) regula el procedimiento laboral. El trabajador puede presentar demanda ante el Juzgado de Sustanciación, Mediación y Ejecución del Trabajo competente para reclamar los conceptos no pagados.' },
-      { title: 'Prescripción: 10 años para prestaciones, 1 año para otros conceptos',
-        text: 'El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años. Los demás créditos laborales prescriben al año a partir de la terminación. Dada la diferencia de plazos, es fundamental identificar cada concepto y actuar con prontitud.' },
+      { title: 'Prescripción: 10 años para prestaciones, 5 años para otros conceptos',
+        text: 'El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años. Los demás créditos laborales prescriben a los cinco años a partir de la terminación. Dada la diferencia de plazos, es fundamental identificar cada concepto y actuar con prontitud.' },
       { title: 'Derecho a documentación y constancia de trabajo',
         text: 'Al finalizar la relación, el empleador está obligado a entregar constancia de trabajo con cargo, fechas y salario devengado. El trabajador tiene también derecho a copia de los recibos de pago y de los reportes al IVSS (Instituto Venezolano de los Seguros Sociales).' },
     ]
@@ -2620,7 +2635,7 @@ function getDisclaimerText(country, total) {
   const auth = {
     mx: 'la Procuraduría Federal de la Defensa del Trabajo (PROFEDET) ofrece servicios de asesoría y conciliación sin costo en todo el territorio nacional.',
     co: 'el Ministerio del Trabajo ofrece servicios de inspección y conciliación laboral gratuitos en todo el país.',
-    ve: 'el Ministerio del Poder Popular para el Proceso Social de Trabajo ofrece orientación y servicios de inspectoría laboral gratuitos.'
+    ve: 'la Inspectoría del Trabajo ofrece orientación, conciliación y servicios de reclamación individual gratuitos.'
   }[country] || '';
   const items = [
     { label: 'Naturaleza del documento.', text: 'Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.' },
@@ -3582,7 +3597,7 @@ function getRightsHtml(country) {
         text: 'El empleador debe entregar comunicación escrita en la que conste la fecha y, en caso de justa causa, las causales invocadas. La ausencia de carta con causa puede ser utilizada por el trabajador como prueba de despido sin justa causa ante la jurisdicción laboral ordinaria.' },
       { title: 'Derecho a la conciliación laboral gratuita (Ministerio del Trabajo)',
         text: 'El trabajador puede acudir al Ministerio del Trabajo o a los Inspectores de Trabajo para solicitar una conciliación laboral gratuita antes de iniciar cualquier proceso judicial. No se requiere abogado para ser iniciada y el proceso es expedito.' },
-      { title: 'Derecho a acudir a los Juzgados Laborales',
+      { title: 'Derecho a acudir a los Juzgados Laborales del Circuito',
         text: 'Si la conciliación fracasa, el trabajador puede instaurar demanda ante el Juzgado Laboral del Circuito competente. El juez puede ordenar el pago de la indemnización, los salarios y prestaciones adeudados, y sanciones moratorias por retardo.' },
       { title: 'Plazo de prescripción: tres años',
         text: 'El artículo 488 del Código Sustantivo del Trabajo establece que las acciones derivadas del contrato de trabajo prescriben en tres años a partir de que la obligación sea exigible. Es importante actuar dentro de este plazo para no perder el derecho de reclamar.' },
@@ -3598,8 +3613,8 @@ function getRightsHtml(country) {
         text: 'Antes de acudir al tribunal, el trabajador puede solicitar un procedimiento de conciliación y mediación laboral ante la Inspectoría del Trabajo. Este proceso es gratuito y puede resolver la disputa de forma ágil sin necesidad de litigio formal.' },
       { title: 'Derecho a acudir a los Tribunales Laborales',
         text: 'La Ley Orgánica Procesal del Trabajo (LOPTRA) regula el procedimiento laboral. El trabajador puede presentar demanda ante el Juzgado de Sustanciación, Mediación y Ejecución del Trabajo competente para reclamar los conceptos no pagados.' },
-      { title: 'Prescripción: 10 años para prestaciones, 1 año para otros conceptos',
-        text: 'El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años. Los demás créditos laborales prescriben al año a partir de la terminación. Dada la diferencia de plazos, es fundamental identificar cada concepto y actuar con prontitud.' },
+      { title: 'Prescripción: 10 años para prestaciones, 5 años para otros conceptos',
+        text: 'El artículo 51 de la LOTTT establece que las prestaciones sociales prescriben a los diez años. Los demás créditos laborales prescriben a los cinco años a partir de la terminación. Dada la diferencia de plazos, es fundamental identificar cada concepto y actuar con prontitud.' },
       { title: 'Derecho a documentación y constancia de trabajo',
         text: 'Al finalizar la relación, el empleador está obligado a entregar constancia de trabajo con cargo, fechas y salario devengado. El trabajador tiene también derecho a copia de los recibos de pago y de los reportes al IVSS (Instituto Venezolano de los Seguros Sociales).' },
     ]
@@ -3616,7 +3631,7 @@ function getDisclaimerHtml(country, total) {
   const auth = {
     mx: 'la <strong>Procuraduría Federal de la Defensa del Trabajo (PROFEDET)</strong> ofrece servicios de asesoría y conciliación sin costo en todo el territorio nacional.',
     co: 'el <strong>Ministerio del Trabajo</strong> ofrece servicios de inspección y conciliación laboral gratuitos en todo el país.',
-    ve: 'el <strong>Ministerio del Poder Popular para el Proceso Social de Trabajo</strong> ofrece orientación y servicios de inspectoría laboral gratuitos.'
+    ve: 'la <strong>Inspectoría del Trabajo</strong> ofrece orientación, conciliación y servicios de reclamación individual gratuitos.'
   }[country] || '';
   const recParagraph = needsLawyerRec(country, total)
     ? `<p><strong>Recomendación.</strong> Dado el monto de esta liquidación, le recomendamos consultar con un abogado laboral certificado antes de firmar cualquier acuerdo. Para orientación gratuita, ${auth}</p>`
