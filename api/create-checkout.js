@@ -21,17 +21,17 @@ const crypto              = require('crypto');
 
 module.exports = async (req, res) => {
   try {
-  return await _handler(req, res);
+    return await _handler(req, res);
   } catch (err) {
     console.error('UNHANDLED create-checkout error:', err.message, '\nStack:', err.stack);
-    return res.status(500).json({ error: 'Internal server error', detail: err.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 async function _handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (req.headers['content-type'] !== 'application/json') {
+  if (!req.headers['content-type']?.includes('application/json')) {
     return res.status(415).json({ error: 'Content-Type must be application/json' });
   }
 
