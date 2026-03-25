@@ -3843,20 +3843,35 @@ async function shareWhatsApp() {
   }
 }
 
-function saveForInstagram() {
+async function saveForInstagram() {
   if (!FY.pdfState) return;
   const btn = document.querySelector('.btn-share-ig');
   const origHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
   try {
     const canvas = buildShareCanvas();
-    const link = document.createElement('a');
-    link.download = 'mi-liquidacion-tuliquidacion.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('No se pudo crear la imagen');
+    const file = new File([blob], 'mi-liquidacion-tuliquidacion.png', { type: 'image/png' });
+    // iOS/mobile: use Web Share API so user can save or share directly
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Mi liquidación laboral' });
+    } else {
+      // Desktop / Android: trigger download via object URL (more reliable than toDataURL)
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mi-liquidacion-tuliquidacion.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
     trackEvent('share_instagram', { country: S.country });
   } catch (e) {
-    alert('Error al generar imagen: ' + (e && e.message ? e.message : e));
+    if (e && e.name !== 'AbortError') {
+      alert('Error al generar imagen: ' + (e && e.message ? e.message : e));
+    }
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
   }
