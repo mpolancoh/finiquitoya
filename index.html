@@ -1188,7 +1188,7 @@ const FY = {
 
 async function goToStripe(tier, email) {
   // 1. Collect current form inputs
-  const salary    = document.getElementById('salary').value;
+  const salary    = getSalaryVal();  // strips locale formatting (e.g. "15,000" → 15000)
   const startDate = document.getElementById('startDate').value;
   const endDate   = document.getElementById('endDate').value;
   const unusedVac = document.getElementById('unusedVac').value;

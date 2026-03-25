@@ -21,7 +21,7 @@ const CheckoutSchema = z.object({
   country: z.enum(COUNTRIES),
   email:   z.union([z.string().email(), z.literal('')]).optional().default(''),
   inputs: z.object({
-    salary:               z.coerce.number().positive().max(1_000_000_000),
+    salary:               z.preprocess(v => parseFloat(String(v).replace(/,/g, '')), z.number().positive().max(1_000_000_000)),
     startDate:            dateStr,
     endDate:              dateStr,
     termType:             z.enum(TERM_TYPES),
