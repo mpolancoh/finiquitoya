@@ -3782,16 +3782,17 @@ function buildShareCard() {
 async function getShareCanvas() {
   buildShareCard();
   const card = document.getElementById('shareCard');
-  const prevLeft = card.style.left, prevTop = card.style.top, prevVis = card.style.visibility;
-  card.style.left = '0px';
-  card.style.top  = '0px';
-  card.style.visibility = 'hidden';
+  // Use opacity:0 (not visibility:hidden) — html2canvas renders visibility:hidden as blank
+  const prevLeft = card.style.left, prevTop = card.style.top, prevOpacity = card.style.opacity;
+  card.style.left    = '0px';
+  card.style.top     = '0px';
+  card.style.opacity = '0';
   try {
     return await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
   } finally {
-    card.style.left = prevLeft;
-    card.style.top  = prevTop;
-    card.style.visibility = prevVis;
+    card.style.left    = prevLeft;
+    card.style.top     = prevTop;
+    card.style.opacity = prevOpacity;
   }
 }
 
