@@ -6,6 +6,7 @@
 //
 // Body: { email, pdfBase64, tier, country, result, inputs }
 
+const stripe                            = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { sendCustomerEmail }             = require('./lib/email');
 const { SendReportSchema, validate }    = require('./lib/validation');
 const { checkRateLimit, getIP }         = require('./lib/ratelimit');
@@ -14,7 +15,7 @@ const { captureError }                  = require('./lib/sentry');
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (req.headers['content-type'] !== 'application/json') {
+  if (!req.headers['content-type']?.includes('application/json')) {
     return res.status(415).json({ error: 'Content-Type must be application/json' });
   }
 
@@ -29,7 +30,21 @@ module.exports = async (req, res) => {
   const data = validate(res, SendReportSchema, req.body || {});
   if (!data) return;
 
-  const { email, pdfBase64, tier, country, result, inputs } = data;
+  const { email, pdfBase64, tier, country, result, inputs, sid } = data;
+
+  // If the browser provided a Stripe session ID, verify the payment before sending
+  if (sid) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sid);
+      if (session.payment_status !== 'paid') {
+        return res.status(403).json({ error: 'Payment not confirmed' });
+      }
+    } catch (err) {
+      // Stripe lookup failed — log and continue rather than block the user
+      console.error('send-report: stripe session verify failed:', err.message);
+      captureError(err, { route: 'send-report', step: 'verify-sid' });
+    }
+  }
 
   // Limit PDF to 10 MB base64 (~7.5 MB actual)
   if (pdfBase64.length > 10 * 1024 * 1024) {

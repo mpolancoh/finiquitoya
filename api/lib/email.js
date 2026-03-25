@@ -20,12 +20,23 @@ const LAW_LABELS       = {
 const LAW_ARTICLES     = { mx: 'la', co: 'el', ve: 'la' };
 const TERM_TYPE_LABELS = {
   dismissal:    'despido injustificado',
-  resignation:  'renuncia voluntaria',
+  voluntary:    'renuncia voluntaria',    // canonical value from validation schema
+  resignation:  'renuncia voluntaria',    // alias
   justified:    'despido con justa causa',
   mutual:       'terminación por mutuo acuerdo',
   constructive: 'renuncia por causas imputables al empleador'
 };
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Escape HTML special chars in user-supplied strings before embedding in email templates. */
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function getBrevoApi() {
   const client = SibApiV3Sdk.ApiClient.instance;
@@ -107,23 +118,23 @@ function buildEmployerLetter(calcData) {
   const { salary = 0, startDate, endDate, termType, workerName = '' } = inputs;
   const { items = [], total = 0, SDB = 0, SDI = 0 } = result;
 
-  const termLabel  = TERM_TYPE_LABELS[termType]   || termType   || 'separación laboral';
-  const currency   = COUNTRY_CURRENCY[country]    || '';
-  const lawLabel   = LAW_LABELS[country]          || 'la legislación laboral vigente';
-  const duration   = formatDuration(startDate, endDate);
-  const startFmt   = fmtDateLong(startDate);
-  const endFmt     = fmtDateLong(endDate);
+  const termLabel  = esc(TERM_TYPE_LABELS[termType] || termType || 'separación laboral');
+  const currency   = esc(COUNTRY_CURRENCY[country] || '');
+  const lawLabel   = esc(LAW_LABELS[country]       || 'la legislación laboral vigente');
+  const duration   = esc(formatDuration(startDate, endDate));
+  const startFmt   = esc(fmtDateLong(startDate));
+  const endFmt     = esc(fmtDateLong(endDate));
 
-  const salaryFmt  = Number(salary).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const sdbFmt     = Number(SDB).toLocaleString('es-MX',    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const sdiFmt     = Number(SDI).toLocaleString('es-MX',    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const totalFmt   = fmtCurrency(total, country);
+  const salaryFmt  = esc(Number(salary).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const sdbFmt     = esc(Number(SDB).toLocaleString('es-MX',    { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const sdiFmt     = esc(Number(SDI).toLocaleString('es-MX',    { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const totalFmt   = esc(fmtCurrency(total, country));
 
   // Bullet list of concepts
   const conceptBullets = items.map(item => {
-    const amtFmt = Number(item.amount||0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const amtFmt = esc(Number(item.amount||0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     return `<li style="margin-bottom:6px">
-      <strong>${item.name}:</strong> $${amtFmt} &nbsp;—&nbsp; ${item.calc || ''}
+      <strong>${esc(item.name)}:</strong> $${amtFmt} &nbsp;—&nbsp; ${esc(item.calc || '')}
     </li>`;
   }).join('');
 
@@ -187,7 +198,7 @@ function buildEmployerLetter(calcData) {
 
     <p style="margin:0 0 6px 0">Atentamente,</p>
     <br>
-    <p style="margin:0 0 4px 0"><strong>${workerName || '[Tu nombre completo]'}</strong></p>
+    <p style="margin:0 0 4px 0"><strong>${esc(workerName) || '[Tu nombre completo]'}</strong></p>
     <p style="margin:0;font-size:13px;line-height:1.9">
       ${idField}: [Tu número de identificación]<br>
       Teléfono: [Tu teléfono]<br>
@@ -205,10 +216,10 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   const total      = result.total || 0;
   const items      = result.items || [];
   const isPremium  = tier === 'premium';
-  const pdfName    = `reporte_liquidacion_${country}.pdf`;
-  const countryLbl  = COUNTRY_LABELS[country]  || country;
-  const lawLbl      = LAW_LABELS[country]      || '';
-  const lawArticle  = LAW_ARTICLES[country]    || 'la';
+  const pdfName    = `reporte_liquidacion_${esc(country)}.pdf`;
+  const countryLbl  = esc(COUNTRY_LABELS[country]  || country);
+  const lawLbl      = esc(LAW_LABELS[country]      || '');
+  const lawArticle  = esc(LAW_ARTICLES[country]    || 'la');
   const api        = getBrevoApi();
 
   // ── Shared branded header ──────────────────────────────────────────────────
@@ -333,14 +344,14 @@ async function sendAdminNotification({ email, pais, tier, monto, moneda, session
   await api.sendTransacEmail({
     sender:      { name: 'TuLiquidacion', email: 'noreply@finiquitoya.app' },
     to:          [{ email: process.env.ADMIN_EMAIL }],
-    subject:     `💰 Nueva venta: ${tier.toUpperCase()} · ${(pais||'').toUpperCase()} · ${monto} ${moneda}`,
+    subject:     `💰 Nueva venta: ${esc(tier).toUpperCase()} · ${esc(pais||'').toUpperCase()} · ${esc(monto)} ${esc(moneda)}`,
     htmlContent: `
       <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse">
-        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Email</td><td><b>${email}</b></td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#64748b">País</td><td>${(pais||'').toUpperCase()}</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Plan</td><td>${tier}</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Monto</td><td><b>${monto} ${moneda}</b></td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Session</td><td style="font-size:11px;color:#94a3b8">${sessionId||''}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Email</td><td><b>${esc(email)}</b></td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#64748b">País</td><td>${esc(pais||'').toUpperCase()}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Plan</td><td>${esc(tier)}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Monto</td><td><b>${esc(monto)} ${esc(moneda)}</b></td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#64748b">Session</td><td style="font-size:11px;color:#94a3b8">${esc(sessionId||'')}</td></tr>
       </table>
     `
   });

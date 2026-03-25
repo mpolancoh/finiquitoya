@@ -6,7 +6,7 @@ const { z } = require('zod');
 
 const COUNTRIES   = ['mx', 'co', 've'];
 const TIERS       = ['basic', 'premium'];
-const TERM_TYPES  = ['dismissal', 'voluntary', 'mutual', 'justified'];
+const TERM_TYPES  = ['dismissal', 'voluntary', 'resignation', 'mutual', 'justified', 'constructive'];
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
@@ -58,6 +58,7 @@ const SendReportSchema = z.object({
   country:   z.enum(COUNTRIES),
   result:    z.record(z.string(), z.any()).optional().default({}),
   inputs:    z.record(z.string(), z.any()).optional().default({}),
+  sid:       z.string().startsWith('cs_').max(500).optional(), // Stripe session ID for verification
 });
 
 // ── GET /api/verify-session ──────────────────────────────────────────────────

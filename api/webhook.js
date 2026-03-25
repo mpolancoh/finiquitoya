@@ -50,6 +50,13 @@ module.exports = async (req, res) => {
 
   const session = event.data.object;
 
+  // Some payment methods (OXXO, bank transfer) fire checkout.session.completed
+  // with payment_status='processing' before the money clears. Only process 'paid'.
+  if (session.payment_status !== 'paid') {
+    console.log(`Webhook: session ${session.id} payment_status=${session.payment_status} — waiting for payment_intent.succeeded`);
+    return res.json({ received: true });
+  }
+
   // ── 2. Durable idempotency via Redis (SET NX with 24h TTL) ────────────────
   // Prevents double-processing on Stripe retries, across all Lambda instances.
   const idempotencyKey = `idempotency:webhook:${event.id}`;

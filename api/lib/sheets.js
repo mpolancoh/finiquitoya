@@ -20,11 +20,16 @@ function toEasternTimestamp() {
   }).format(new Date()).replace('T', ' ');
 }
 
+// Cache the auth instance — avoids re-parsing the service account JSON on every call
+let _auth;
 function getAuth() {
-  return new google.auth.GoogleAuth({
-    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-    scopes: ['https://www.googleapis.com/auth/spreadsheets']
-  });
+  if (!_auth) {
+    _auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+  }
+  return _auth;
 }
 
 function getSheetsClient() {
@@ -109,29 +114,13 @@ async function completeTransaction(uuid, paymentData) {
       }
     });
   } else {
-    // UUID not found (edge case) — append complete row
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SHEET_ID,
-      range: `${TAB}!A:M`,
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: [[
-          uuid,
-          paymentData.email          || '',
-          toEasternTimestamp(),
-          paymentData.pais           || '',
-          paymentData.tier           || '',
-          paymentData.totalCalculado || '',
-          '',
-          'paid',
-          paymentData.fecha,
-          paymentData.monto,
-          paymentData.moneda,
-          paymentData.sessionId,
-          ''                         // M — NombreTrabajador (unavailable in webhook fallback)
-        ]]
-      }
-    });
+    // UUID not found — this most likely means the Sheets search failed (timeout/network),
+    // NOT that the row is genuinely missing. Appending a new row would create a duplicate
+    // (the pending row is still there). Log to Sentry for investigation and do NOT append.
+    const { captureError } = require('./sentry');
+    const err = new Error(`completeTransaction: UUID ${uuid} not found in sheet — skipping fallback append`);
+    console.error(err.message, { sessionId: paymentData.sessionId });
+    captureError(err, { uuid, sessionId: paymentData.sessionId, step: 'completeTransaction' });
   }
 }
 

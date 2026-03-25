@@ -1220,6 +1220,9 @@ function trackEvent(name, props) {
     history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
 
     if (sid && sid.startsWith('cs_')) {
+      // Store sid so sendEmailReport() can pass it to /api/send-report for verification
+      sessionStorage.setItem('fy_saved_sid', sid);
+
       // Show a brief confirmation overlay while verifying with Stripe
       const overlay = document.createElement('div');
       overlay.id = 'payConfirmOverlay';
@@ -1627,6 +1630,7 @@ async function sendEmailReport() {
   const tier       = sessionStorage.getItem('fy_unlocked') || 'basic';
   const country    = S.country;
   const workerName = sessionStorage.getItem('fy_saved_name') || '';
+  const sid        = sessionStorage.getItem('fy_saved_sid')  || '';
   try {
     const docDef = buildPdfDocDef(FY.pdfState, genFolio(), workerName);
     pdfMake.createPdf(docDef).getBase64(async (base64) => {
@@ -1642,10 +1646,12 @@ async function sendEmailReport() {
               startDate: FY.pdfState.startDate,
               endDate:   FY.pdfState.endDate,
               termType:  FY.pdfState.termType
-            }
+            },
+            ...(sid ? { sid } : {})
           })
         });
         sessionStorage.removeItem('fy_saved_email');
+        sessionStorage.removeItem('fy_saved_sid');
       } catch (e) {
         console.error('send-report failed:', e);
         showToast('No pudimos enviarte el email con el reporte. Puedes descargarlo manualmente con el botón de PDF.', 'warn');
