@@ -197,7 +197,7 @@
     .country-card:not(.disabled):hover { border-color: var(--blue-600); background: var(--blue-50); }
     .country-card.sel     { border-color: var(--blue-600); background: var(--blue-50); }
     .country-card.disabled { opacity: .38; cursor: not-allowed; pointer-events: none; }
-    .country-flag  { width: 52px; height: 34px; display: block; margin: 0 auto 10px; border-radius: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.22); overflow: hidden; }
+    .country-flag  { font-size: 36px; line-height: 1; display: block; margin: 0 auto 8px; text-align: center; }
     .country-name  { font-size: 13px; font-weight: 700; color: var(--slate-800); }
     .soon-badge {
       position: absolute; top: 7px; right: 7px;
@@ -733,71 +733,29 @@
       <label class="lbl">País</label>
       <div class="country-grid">
         <div class="country-card sel" id="cc-mx" onclick="pickCountry('mx',this)">
-          <!-- México: verde, blanco, rojo vertical -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="1"   height="2" fill="#006847"/>
-            <rect x="1" width="1" height="2" fill="#fff"/>
-            <rect x="2" width="1" height="2" fill="#CE1126"/>
-            <ellipse cx="1.5" cy="1" rx="0.28" ry="0.34" fill="#8B5E3C" opacity=".75"/>
-          </svg>
+          <span class="country-flag">🇲🇽</span>
           <div class="country-name">México</div>
         </div>
         <div class="country-card" id="cc-co" onclick="pickCountry('co',this)">
-          <!-- Colombia: amarillo (mitad), azul, rojo -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="3" height="1"    fill="#FCD116"/>
-            <rect y="1"  width="3" height=".5"  fill="#003087"/>
-            <rect y="1.5" width="3" height=".5" fill="#CE1126"/>
-          </svg>
+          <span class="country-flag">🇨🇴</span>
           <div class="country-name">Colombia</div>
         </div>
         <div class="country-card" id="cc-ve" onclick="pickCountry('ve',this)">
-          <!-- Venezuela: amarillo, azul, rojo + 8 estrellas en arco (franja azul) -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="3" height=".667" fill="#FFD100"/>
-            <rect y=".667" width="3" height=".667" fill="#003DA5"/>
-            <rect y="1.333" width="3" height=".667" fill="#CF142B"/>
-            <circle cx="1.218" cy="1.047" r="0.055" fill="white"/>
-            <circle cx="1.270" cy="0.957" r="0.055" fill="white"/>
-            <circle cx="1.350" cy="0.890" r="0.055" fill="white"/>
-            <circle cx="1.448" cy="0.854" r="0.055" fill="white"/>
-            <circle cx="1.552" cy="0.854" r="0.055" fill="white"/>
-            <circle cx="1.650" cy="0.890" r="0.055" fill="white"/>
-            <circle cx="1.730" cy="0.957" r="0.055" fill="white"/>
-            <circle cx="1.782" cy="1.047" r="0.055" fill="white"/>
-          </svg>
+          <span class="country-flag">🇻🇪</span>
           <div class="country-name">Venezuela</div>
         </div>
         <div class="country-card disabled">
-          <!-- Chile: rojo/blanco con cantón azul -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="3" height="1" fill="#D52B1E"/>
-            <rect y="0" width="3" height="1" fill="#fff"/>
-            <rect y="1" width="3" height="1" fill="#D52B1E"/>
-            <rect width="1" height="1" fill="#0039A6"/>
-            <polygon points="0.5,0.18 0.59,0.45 0.85,0.45 0.64,0.62 0.72,0.88 0.5,0.72 0.28,0.88 0.36,0.62 0.15,0.45 0.41,0.45" fill="#fff" transform="scale(0.55) translate(0.4,0.15)"/>
-          </svg>
+          <span class="country-flag">🇨🇱</span>
           <div class="country-name">Chile</div>
           <span class="soon-badge">Próximo</span>
         </div>
         <div class="country-card disabled">
-          <!-- Argentina: celeste/blanco/celeste con sol -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="3" height="2" fill="#fff"/>
-            <rect width="3" height="0.667" fill="#74ACDF"/>
-            <rect y="1.333" width="3" height="0.667" fill="#74ACDF"/>
-            <circle cx="1.5" cy="1" r="0.2" fill="#F6B40E"/>
-          </svg>
+          <span class="country-flag">🇦🇷</span>
           <div class="country-name">Argentina</div>
           <span class="soon-badge">Próximo</span>
         </div>
         <div class="country-card disabled">
-          <!-- Perú: rojo/blanco/rojo vertical -->
-          <svg class="country-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
-            <rect width="3" height="2" fill="#fff"/>
-            <rect width="1" height="2" fill="#D91023"/>
-            <rect x="2" width="1" height="2" fill="#D91023"/>
-          </svg>
+          <span class="country-flag">🇵🇪</span>
           <div class="country-name">Perú</div>
           <span class="soon-badge">Próximo</span>
         </div>
