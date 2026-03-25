@@ -1268,12 +1268,14 @@ async function goToStripe(tier, email) {
     if (data.url) {
       window.location.href = data.url;
     } else {
-      throw new Error(data.error || 'No URL returned');
+      const detail = data.details || data.error || 'No URL returned';
+      console.error('create-checkout 400 details:', detail);
+      throw new Error(detail);
     }
   } catch (err) {
     console.error('create-checkout failed:', err);
     if (btn) { btn.textContent = 'Error. Intenta de nuevo'; btn.disabled = false; }
-    alert('Hubo un problema al iniciar el pago. Por favor intenta de nuevo.');
+    alert('Hubo un problema al iniciar el pago.\n\n' + (err.message || 'Error desconocido') + '\n\nPor favor intenta de nuevo.');
   }
 }
 
