@@ -16,6 +16,9 @@
   <meta name="twitter:description" content="Descubre en 2 minutos cuánto te corresponde por ley al terminar tu relación laboral.">
   <meta name="twitter:image" content="https://finiquitoya.app/og-image.png">
   <link rel="canonical" href="https://finiquitoya.app">
+  <!-- Vercel Web Analytics — privacy-first, no cookies -->
+  <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+  <script defer src="/_vercel/insights/script.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
   <style>
@@ -1165,6 +1168,13 @@ const FY = {
   selectedFiles: []      // file attachments for lawyer form
 };
 
+// ── Vercel Analytics helper ───────────────────────────────────────────────────
+// Fires a custom event. Silently no-ops if the analytics script hasn't loaded.
+// Never include salary, name, or any PII in event props.
+function trackEvent(name, props) {
+  try { if (window.va) window.va('event', { name, data: props || {} }); } catch(e) {}
+}
+
 // Payment is handled via /api/create-checkout → Stripe Checkout Session
 
 // Detect ?unlocked= param after Stripe redirect
@@ -1203,6 +1213,7 @@ const FY = {
           if (data.ok) {
             sessionStorage.setItem('fy_unlocked', data.tier || tier);
             FY.justPaid = true;
+            trackEvent('purchase_completed', { country: pais, plan: data.tier || tier });
           } else {
             // Payment not confirmed — still let them in if sid missing, show warning
             console.warn('Payment verification failed:', data.error);
@@ -1486,6 +1497,7 @@ function showStep(n) {
   document.getElementById('landingHero').classList.toggle('hidden', n !== 1);
   updateProgress(n);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 2) trackEvent('calculator_started', { country: S.country, termination_type: S.termType });
 }
 function updateProgress(active) {
   [1,2,3].forEach(i => {
@@ -2329,6 +2341,10 @@ function calculate() {
   renderLawyerTiers(result.total, cfg);
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Analytics
+  trackEvent('calculator_completed', { country: S.country, termination_type: termType });
+  if (!unlocked) trackEvent('paywall_seen', { country: S.country });
 }
 
 /* ─────────────────────────────────────────────
@@ -3071,6 +3087,7 @@ function generatePDF() {
     pdfMake.createPdf(docDef).download(`FiniquitoYa-${folio}.pdf`, function() {
       btn.textContent = '📄 Descargar reporte PDF';
       btn.disabled = false;
+      trackEvent('pdf_downloaded', { country: S.country });
     });
   } catch(e) {
     console.error('PDF error:', e);

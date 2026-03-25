@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit files with real values
+.env
+.env.local
+.env.production
+.env.development
+.env.*
+# Keep the example file — it documents required vars (no real secrets)
+!.env.example
+
+# Vercel build output
+.vercel/
+
+# Local dev / OS artifacts
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup.html

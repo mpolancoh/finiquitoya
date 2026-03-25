@@ -1,18 +1,20 @@
-// Stripe webhook handler
-// In-memory idempotency store (per serverless instance)
-// TODO: replace with Redis/Upstash for multi-instance safety
-const processedSessions = new Set();
+// POST /api/webhook — Stripe webhook handler
 //
 // On checkout.session.completed:
-//   1. Retrieves calc data from Transacciones sheet using client_reference_id (UUID)
-//   2. Generates PDF with pdfmake
-//   3. Sends PDF as email attachment to customer (+ employer letter for premium)
+//   1. Verifies Stripe signature (rejects fakes)
+//   2. Checks Redis for duplicate event ID (idempotency — safe across cold starts)
+//   3. Retrieves calc data from Transacciones sheet using client_reference_id (UUID)
 //   4. Sends admin notification
 //   5. Updates Transacciones row with payment data (status → "paid")
+//
+// Note: PDF and customer email are sent by the browser via /api/send-report,
+// not by this webhook, to keep Lambda memory usage low.
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const redis   = require('./lib/redis');
 const { getTransactionByUUID, completeTransaction } = require('./lib/sheets');
 const { sendAdminNotification } = require('./lib/email');
+const { captureError }          = require('./lib/sentry');
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -26,7 +28,7 @@ function getRawBody(req) {
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  // ── 1. Verify Stripe signature ───────────────────────────────────────────
+  // ── 1. Verify Stripe signature ─────────────────────────────────────────────
   const rawBody = await getRawBody(req);
   let event;
   try {
@@ -36,7 +38,9 @@ module.exports = async (req, res) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
+    // Log failed verifications — these are potential attack probes
     console.error('Stripe signature verification failed:', err.message);
+    captureError(err, { route: 'webhook', type: 'signature_failure' });
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
 
@@ -44,14 +48,22 @@ module.exports = async (req, res) => {
     return res.json({ received: true });
   }
 
-  const session       = event.data.object;
+  const session = event.data.object;
 
-  // Idempotency: skip if already processed
-  if (processedSessions.has(session.id)) {
-    console.log(`Webhook: session ${session.id} already processed — skipping`);
-    return res.json({ received: true });
+  // ── 2. Durable idempotency via Redis (SET NX with 24h TTL) ────────────────
+  // Prevents double-processing on Stripe retries, across all Lambda instances.
+  const idempotencyKey = `idempotency:webhook:${event.id}`;
+  try {
+    const set = await redis.set(idempotencyKey, '1', { nx: true, ex: 86400 });
+    if (set === null) {
+      // Key already existed — this event was already processed
+      console.log(`Webhook: event ${event.id} already processed — skipping`);
+      return res.json({ received: true });
+    }
+  } catch (err) {
+    // Redis unavailable: log and continue (process the event rather than drop it)
+    console.error('Redis idempotency check failed (processing anyway):', err.message);
   }
-  processedSessions.add(session.id);
 
   const customerEmail = session.customer_details?.email || session.customer_email;
   const monto         = ((session.amount_total || 0) / 100).toFixed(2);
@@ -59,11 +71,14 @@ module.exports = async (req, res) => {
   const fecha         = new Date().toISOString();
   const uuid          = session.client_reference_id;
 
-  // ── 2. Retrieve calc data ────────────────────────────────────────────────
+  // ── 3. Retrieve calc data ─────────────────────────────────────────────────
   let calcData = null;
   if (uuid) {
     try { calcData = await getTransactionByUUID(uuid); }
-    catch (err) { console.error('getTransactionByUUID failed:', err.message); }
+    catch (err) {
+      console.error('getTransactionByUUID failed:', err.message);
+      captureError(err, { route: 'webhook', step: 'getTransactionByUUID' });
+    }
   }
 
   // Fallback for payment-link flow (no UUID)
@@ -82,7 +97,7 @@ module.exports = async (req, res) => {
 
   const { tier = 'basic', country = 'mx', result = {} } = calcData;
 
-  // ── 3. Admin notification + update Sheets row (PDF/customer email sent by browser via /api/send-report)
+  // ── 4. Admin notification + update Sheets row ─────────────────────────────
   const results = await Promise.allSettled([
     sendAdminNotification({ email: customerEmail, pais: country, tier, monto, moneda, sessionId: session.id }),
     uuid
@@ -94,6 +109,7 @@ module.exports = async (req, res) => {
     const labels = ['sendAdminNotification', 'completeTransaction'];
     if (r.status === 'rejected') {
       console.error(`${labels[i]} failed:`, r.reason?.message || r.reason);
+      captureError(r.reason, { route: 'webhook', step: labels[i], country, tier });
     }
   });
 

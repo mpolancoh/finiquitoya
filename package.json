@@ -1,8 +1,12 @@
 {
   "dependencies": {
-    "stripe": "^14.0.0",
-    "sib-api-v3-sdk": "^8.5.0",
+    "@sentry/node": "^10.45.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "googleapis": "^140.0.0",
-    "pdfmake": "^0.2.10"
+    "pdfmake": "^0.2.10",
+    "sib-api-v3-sdk": "^8.5.0",
+    "stripe": "^14.0.0",
+    "zod": "^4.3.6"
   }
 }
