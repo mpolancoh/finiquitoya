@@ -83,8 +83,8 @@ function buildDocDef(calcData) {
       columns: [
         {
           stack: [
-            { text: 'FiniquitoYa', fontSize: 22, bold: true, color: BLUE, margin: [0, 0, 0, 2] },
-            { text: 'finiquitoya.app', fontSize: 10, color: GRAY }
+            { text: 'TuLiquidacion', fontSize: 22, bold: true, color: BLUE, margin: [0, 0, 0, 2] },
+            { text: 'tuliquidacion.app', fontSize: 10, color: GRAY }
           ]
         },
         {
@@ -182,7 +182,7 @@ function buildDocDef(calcData) {
     pageMargins: [40, 40, 40, 60],
     footer: (currentPage, pageCount) => ({
       columns: [
-        { text: 'FiniquitoYa · finiquitoya.app · Estimación orientativa, no constituye asesoría legal.', fontSize: 8, color: GRAY, margin: [40, 0, 0, 0] },
+        { text: 'TuLiquidacion · tuliquidacion.app · Estimación orientativa, no constituye asesoría legal.', fontSize: 8, color: GRAY, margin: [40, 0, 0, 0] },
         { text: `${currentPage} / ${pageCount}`, fontSize: 8, color: GRAY, alignment: 'right', margin: [0, 0, 40, 0] }
       ],
       margin: [0, 10, 0, 0]

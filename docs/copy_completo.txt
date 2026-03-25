@@ -1,5 +1,5 @@
 ═══════════════════════════════════════════════════════════════════
-FINIQUITOYA — COPY COMPLETO DE TODOS LOS TEXTOS DE LA APP
+TULIQUIDACION — COPY COMPLETO DE TODOS LOS TEXTOS DE LA APP
 Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
 ═══════════════════════════════════════════════════════════════════
 
@@ -41,10 +41,10 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
     VE: "Venezuela · LOTTT"
 
   Título de la página (browser tab):
-    "FiniquitoYa: Calcula lo que te deben"
+    "TuLiquidacion: Calcula lo que te deben"
 
   Logo:
-    "FiniquitoYa" (con "Ya" en azul)
+    "TuLiquidacion" (con "Ya" en azul)
 
   Demo banner (solo en modo demo ?demo=1):
     "🛠 Modo Demo activo: paywall desactivado. Accede via ?demo=1"
@@ -404,10 +404,10 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
 13. FOOTER DEL SITIO
 ────────────────────────────────────────────────────────────────────
 
-  Encabezado: "Sobre FiniquitoYa"
+  Encabezado: "Sobre TuLiquidacion"
 
   Párrafo 1:
-    "FiniquitoYa es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
+    "TuLiquidacion es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
     a entender sus derechos y estimar el monto de su liquidación con base en la legislación vigente
     de cada país. Nuestro objetivo es poner información clara y accesible al alcance de cualquier
     persona, de modo que ningún trabajador tenga que enfrentarse solo a la terminación de su
@@ -417,29 +417,29 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
     "Aviso legal.
     Los cálculos generados por esta herramienta son estimaciones de carácter orientativo basadas
     en los datos ingresados por el usuario y en la legislación laboral vigente al momento de la
-    consulta. FiniquitoYa no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
+    consulta. TuLiquidacion no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
     resultado, reporte ni comunicación generada por esta plataforma constituye asesoría jurídica,
     opinión legal ni representación legal, y su uso no crea una relación abogado-cliente. Los
     montos reales pueden variar según convenios colectivos, condiciones específicas del contrato,
     acuerdos previos u otras circunstancias no consideradas en el cálculo. Para orientación gratuita,
     puede acudir a los organismos públicos de defensa del trabajador en su país."
 
-  Copyright: "© FiniquitoYa · finiquitoya.app"
+  Copyright: "© TuLiquidacion · tuliquidacion.app"
 
 
 ────────────────────────────────────────────────────────────────────
 14. EMAIL — PLAN BÁSICO
 ────────────────────────────────────────────────────────────────────
 
-  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+  Remitente: TuLiquidacion <noreply@tuliquidacion.app>
 
   Asunto:
     "Tu desglose de liquidación — [monto] [moneda]"
     Ejemplo: "Tu desglose de liquidación — 45,320.00 MXN"
 
   Encabezado del email:
-    "FiniquitoYa"
-    "finiquitoya.app"
+    "TuLiquidacion"
+    "tuliquidacion.app"
 
   Título del cuerpo:
     "Tu desglose está listo ✓"
@@ -467,7 +467,7 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
     Fila final "TOTAL ESTIMADO" (fondo azul claro, negrita grande)
 
   Footer del email:
-    "FiniquitoYa · finiquitoya.app"
+    "TuLiquidacion · tuliquidacion.app"
     "Este es un mensaje automático. Por favor no respondas directamente a este correo."
     "Esta estimación es orientativa y no constituye asesoría legal."
 
@@ -476,15 +476,15 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
 15. EMAIL — PLAN PREMIUM
 ────────────────────────────────────────────────────────────────────
 
-  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+  Remitente: TuLiquidacion <noreply@tuliquidacion.app>
 
   Asunto:
     "Tu reporte de liquidación — [monto] [moneda]"
     Ejemplo: "Tu reporte de liquidación — 45,320.00 MXN"
 
   Encabezado del email:
-    "FiniquitoYa"
-    "finiquitoya.app"
+    "TuLiquidacion"
+    "tuliquidacion.app"
 
   Título del cuerpo:
     "Gracias por tu compra ✓"
@@ -649,7 +649,7 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
 17. EMAIL — NOTIFICACIÓN AL ADMIN
 ────────────────────────────────────────────────────────────────────
 
-  Remitente: FiniquitoYa <noreply@finiquitoya.app>
+  Remitente: TuLiquidacion <noreply@tuliquidacion.app>
 
   Asunto:
     "💰 Nueva venta: [PLAN] · [PAIS] · [monto] [moneda]"
@@ -668,8 +668,8 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
 ────────────────────────────────────────────────────────────────────
 
   ENCABEZADO (se repite en cada página):
-    Marca: "FiniquitoYa" (con "Ya" en azul)
-    URL: "finiquitoya.app"
+    Marca: "TuLiquidacion" (con "Ya" en azul)
+    URL: "tuliquidacion.app"
     Tipo de documento: "ANÁLISIS DE LIQUIDACIÓN LABORAL"
     Metadatos: "Folio [FY-YYYY-MM-XXXX]  |  [País] · [Ley]  |  [Fecha]"
 
@@ -713,16 +713,16 @@ Extraído directamente del código fuente: finiquitoya.html + api/lib/email.js
     Fila final: "Total estimado de liquidación" (fondo azul oscuro, texto blanco)
 
   PIE DE PÁGINA:
-    Izquierda: "FiniquitoYa · Análisis de Liquidación · Folio [FY-...]"
+    Izquierda: "TuLiquidacion · Análisis de Liquidación · Folio [FY-...]"
     Derecha: "Página X de Y"
 
   AVISO LEGAL DEL PDF (al final, fondo amarillo):
     Título: "AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO"
 
     Párrafo 1 — Naturaleza del documento:
-      "Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y
+      "Este reporte ha sido generado de forma automatizada por TuLiquidacion con fines informativos y
        de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni
-       representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada
+       representación legal. TuLiquidacion no es un despacho jurídico, y ninguna comunicación derivada
        de esta herramienta crea una relación abogado-cliente."
 
     Párrafo 2 — Alcance de los cálculos:

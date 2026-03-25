@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TuLiquidacion – Vista previa del reporte</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #cbd5e1;
+      font-family: "Georgia", "Times New Roman", serif;
+      padding: 48px 24px;
+      color: #1e293b;
+    }
+
+    .page-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-bottom: 20px;
+    }
+
+    .pdf-page {
+      background: #fff;
+      width: 780px;
+      margin: 0 auto 48px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1);
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .pdf-header {
+      background: #1e3a8a;
+      padding: 0;
+    }
+    .pdf-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 40px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .pdf-brand {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -.2px;
+    }
+    .pdf-brand span {
+      color: #93c5fd;
+    }
+    .pdf-brand-url {
+      font-size: 10px;
+      color: rgba(255,255,255,.45);
+      font-weight: 400;
+      margin-top: 2px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .pdf-doc-id {
+      text-align: right;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .pdf-doc-id .doc-type {
+      font-size: 11px;
+      font-weight: 700;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+    .pdf-doc-id .doc-meta {
+      font-size: 10.5px;
+      color: rgba(255,255,255,.55);
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    /* MEMO FIELDS */
+    .pdf-memo-block {
+      padding: 16px 40px 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .memo-field {
+      padding: 0 16px 0 0;
+    }
+    .memo-field:first-child { padding-left: 0; }
+    .memo-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(255,255,255,.4);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-bottom: 3px;
+    }
+    .memo-value {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* ── HERO TOTAL ─────────────────────────── */
+    .pdf-hero {
+      background: #f0f4ff;
+      border-bottom: 2px solid #1e3a8a;
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pdf-hero-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-bottom: 6px;
+    }
+    .pdf-hero-total {
+      font-size: 46px;
+      font-weight: 300;
+      color: #1e3a8a;
+      letter-spacing: -1.5px;
+      line-height: 1;
+      font-family: Georgia, serif;
+    }
+    .pdf-hero-total sup {
+      font-size: 16px;
+      font-weight: 400;
+      vertical-align: super;
+      letter-spacing: 0;
+    }
+    .pdf-hero-total .currency-code {
+      font-size: 14px;
+      font-weight: 600;
+      color: #3b82f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: .05em;
+      margin-left: 6px;
+    }
+    .pdf-hero-sub {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-top: 5px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .pdf-hero-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: flex-end;
+    }
+    .chip {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid #dbeafe;
+      border-radius: 3px;
+      padding: 3px 10px;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #334155;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      white-space: nowrap;
+    }
+    .chip.accent {
+      background: #1e3a8a;
+      color: #fff;
+      border-color: #1e3a8a;
+      font-weight: 600;
+    }
+
+    /* ── BODY ───────────────────────────────── */
+    .pdf-body {
+      padding: 36px 40px;
+    }
+
+    /* SECTION */
+    .section { margin-bottom: 36px; }
+    .section:last-child { margin-bottom: 0; }
+
+    .section-heading {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9px;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #1e3a8a;
+      margin-bottom: 18px;
+    }
+
+    /* DATA GRID */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .data-cell {
+      padding: 10px 14px;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .data-cell:nth-child(3n) { border-right: none; }
+    .data-cell:nth-last-child(-n+3) { border-bottom: none; }
+    .data-cell-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 2px;
+    }
+    .data-cell-value {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .data-cell-value.blue { color: #1d4ed8; }
+
+    /* CONCEPT BLOCKS */
+    .concept-block {
+      margin-bottom: 22px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .concept-block:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .concept-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 16px;
+    }
+    .concept-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1e293b;
+      flex: 1;
+    }
+    .concept-law-tag {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #1d4ed8;
+      background: #dbeafe;
+      border-radius: 3px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: .03em;
+    }
+    .concept-body {
+      font-size: 12px;
+      line-height: 1.75;
+      color: #475569;
+    }
+    .concept-body p {
+      margin-bottom: 8px;
+    }
+    .concept-body p:last-child { margin-bottom: 0; }
+    .concept-body strong {
+      color: #1e293b;
+      font-weight: 600;
+    }
+    .concept-body .calc-line {
+      display: inline-block;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 4px 4px 0;
+      padding: 5px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
+      font-size: 11px;
+      color: #334155;
+      margin-top: 4px;
+    }
+
+    /* RIGHTS LIST */
+    .rights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .right-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .right-num {
+      width: 20px; height: 20px; min-width: 20px;
+      background: #1e3a8a;
+      color: #fff;
+      border-radius: 2px;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-top: 1px;
+    }
+    .right-text {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #475569;
+    }
+    .right-text strong {
+      display: block;
+      color: #1e293b;
+      font-size: 12.5px;
+      margin-bottom: 1px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* BREAKDOWN TABLE */
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 11.5px;
+      border: 1px solid #e2e8f0;
+    }
+    .breakdown-table thead tr {
+      background: #1e3a8a;
+    }
+    .breakdown-table thead th {
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-align: left;
+    }
+    .breakdown-table thead th:last-child { text-align: right; }
+    .breakdown-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+    .breakdown-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .breakdown-table td { padding: 10px 14px; vertical-align: middle; }
+    .td-concept { font-weight: 600; color: #1e293b; }
+    .td-formula { font-size: 10.5px; color: #64748b; font-family: monospace; margin-top: 1px; }
+    .td-law-tag {
+      display: inline-block;
+      font-size: 9px; font-weight: 700; color: #1d4ed8; background: #dbeafe;
+      border-radius: 2px; padding: 1px 5px;
+    }
+    .td-amount {
+      text-align: right;
+      font-weight: 700;
+      color: #1e293b;
+      white-space: nowrap;
+      font-size: 12.5px;
+    }
+    .total-row { background: #1e3a8a !important; border-bottom: none !important; }
+    .total-row td { padding: 13px 14px; }
+    .total-row .td-concept { color: #fff; font-size: 13px; }
+    .total-row .td-amount { color: #fff; font-size: 16px; }
+
+    /* DISCLAIMER */
+    .pdf-disclaimer {
+      background: #fefce8;
+      border-top: 2px solid #ca8a04;
+      padding: 20px 40px;
+    }
+    .pdf-disclaimer-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #92400e;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 8px;
+    }
+    .pdf-disclaimer-text {
+      font-size: 10px;
+      color: #78350f;
+      line-height: 1.65;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .pdf-disclaimer-text p { margin-bottom: 6px; }
+    .pdf-disclaimer-text p:last-child { margin-bottom: 0; }
+
+    /* FOOTER */
+    .pdf-footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pdf-footer-left {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+    .pdf-footer-right {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .page-break-indicator {
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9px;
+      color: #94a3b8;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 12px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-label">Vista previa del reporte &mdash; Formato PDF Premium</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 1 -->
+<div class="pdf-page">
+
+  <!-- HEADER -->
+  <div class="pdf-header">
+    <div class="pdf-header-top">
+      <div>
+        <div class="pdf-brand">Finiquito<span>Ya</span></div>
+        <div class="pdf-brand-url">tuliquidacion.app</div>
+      </div>
+      <div class="pdf-doc-id">
+        <div class="doc-type">Analisis de Liquidacion Laboral</div>
+        <div class="doc-meta">
+          Folio FY-2026-03-4821 &nbsp;|&nbsp; 22 de marzo de 2026<br>
+          Mexico &nbsp;|&nbsp; Ley Federal del Trabajo 2024
+        </div>
+      </div>
+    </div>
+    <div class="pdf-memo-block">
+      <div class="memo-field">
+        <div class="memo-label">Pais / Marco legal</div>
+        <div class="memo-value">Mexico · LFT 2024</div>
+      </div>
+      <div class="memo-field">
+        <div class="memo-label">Tipo de terminacion</div>
+        <div class="memo-value">Despido injustificado</div>
+      </div>
+      <div class="memo-field">
+        <div class="memo-label">Periodo laboral</div>
+        <div class="memo-value">15 ene 2023 — 22 mar 2026</div>
+      </div>
+      <div class="memo-field">
+        <div class="memo-label">Antiguedad</div>
+        <div class="memo-value">3 anos, 2 meses</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="pdf-hero">
+    <div>
+      <div class="pdf-hero-label">Total estimado de liquidacion</div>
+      <div class="pdf-hero-total"><sup>$</sup>113,562 <span class="currency-code">MXN</span></div>
+      <div class="pdf-hero-sub">Ciento trece mil quinientos sesenta y dos pesos 00/100 M.N. &nbsp;·&nbsp; Estimacion orientativa</div>
+    </div>
+    <div class="pdf-hero-chips">
+      <div class="chip accent">Despido injustificado</div>
+      <div class="chip">Salario base: $15,000 / mes</div>
+      <div class="chip">Sal. integrado: $17,500 / mes</div>
+      <div class="chip">3 anos, 2 meses de servicio</div>
+    </div>
+  </div>
+
+  <div class="pdf-body">
+
+    <!-- DATOS DEL CASO -->
+    <div class="section">
+      <div class="section-heading">I. Datos del caso</div>
+      <div class="data-grid">
+        <div class="data-cell">
+          <div class="data-cell-label">Pais y ley aplicable</div>
+          <div class="data-cell-value">Mexico · LFT 2024</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">Salario mensual base</div>
+          <div class="data-cell-value blue">$15,000 MXN</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">Salario diario base (SDB)</div>
+          <div class="data-cell-value blue">$500.00 MXN / dia</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">Fecha de ingreso</div>
+          <div class="data-cell-value">15 de enero de 2023</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">Fecha de terminacion</div>
+          <div class="data-cell-value">22 de marzo de 2026</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">Salario diario integrado (SDI)</div>
+          <div class="data-cell-value blue">$583.33 MXN / dia</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALISIS POR CONCEPTO -->
+    <div class="section">
+      <div class="section-heading">II. Analisis por concepto</div>
+
+      <!-- 1. Indemnizacion constitucional -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">1. Indemnizacion constitucional (tres meses de salario)</div>
+          <div class="concept-law-tag">Art. 123 Const. XXII · LFT Art. 50</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 123, fraccion XXII de la Constitucion Politica de los Estados Unidos Mexicanos establece que todo trabajador tiene derecho a ser indemnizado con el equivalente a tres meses de salario cuando el patrón rescinda el contrato sin causa justificada. Este derecho es irrenunciable y no puede ser disminuido por convenio o contrato colectivo. El articulo 50 de la Ley Federal del Trabajo reproduce y reglamenta este mandato constitucional para las relaciones laborales por tiempo indeterminado.</p>
+          <p>En este caso, la terminacion fue clasificada como despido injustificado, lo que activa de forma inmediata esta prestacion en su monto completo. Para su calculo se utiliza el <strong>salario diario integrado (SDI)</strong>, que incorpora el salario base mas los componentes variables declarados (bonos, comisiones, vales).</p>
+          <div class="calc-line">90 dias x $583.33 SDI = $52,500.00 MXN</div>
+        </div>
+      </div>
+
+      <!-- 2. 20 dias por año -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">2. Veinte dias de salario por ano de servicio</div>
+          <div class="concept-law-tag">LFT Art. 50, fracc. I</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 50, fraccion I de la LFT establece que, ademas de la indemnizacion constitucional de tres meses, el trabajador tiene derecho a veinte dias de salario integrado por cada ano de servicios prestados. Esta prestacion es acumulativa y proporcional: no requiere que el trabajador complete anos completos, sino que se calcula sobre la totalidad del tiempo efectivamente laborado, incluyendo la fraccion del ultimo periodo.</p>
+          <p>Con <strong>3.18 anos de servicio</strong> (desde el 15 de enero de 2023 hasta el 22 de marzo de 2026), el calculo se realiza sobre el tiempo total en forma decimal para reflejar con precision los meses y dias trabajados en el periodo incompleto.</p>
+          <div class="calc-line">20 dias x $583.33 SDI x 3.18 anos = $37,139.00 MXN</div>
+        </div>
+      </div>
+
+      <!-- 3. Prima de antiguedad -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">3. Prima de antiguedad</div>
+          <div class="concept-law-tag">LFT Art. 162</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 162 de la LFT dispone que los trabajadores de planta tienen derecho a una prima de antiguedad equivalente a doce dias de salario por cada ano de servicios. En los casos de despido injustificado, esta prestacion se genera independientemente de la antiguedad acumulada. La misma disposicion establece un tope: el salario que sirve de base para calcularla no puede exceder el doble del salario minimo general vigente.</p>
+          <p>En este caso, el SDI del trabajador ($583.33/dia) supera el doble del salario minimo diario ($248.93 x 2 = $497.86), por lo que se aplica el tope legal. El calculo se realiza con la tasa limitada de <strong>$497.86 por dia</strong> sobre los 3.18 anos de servicio.</p>
+          <div class="calc-line">12 dias x $497.86 (tope SDI) x 3.18 anos = $18,999.00 MXN</div>
+        </div>
+      </div>
+
+      <!-- 4. Vacaciones proporcionales -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">4. Vacaciones proporcionales (ano en curso)</div>
+          <div class="concept-law-tag">LFT Art. 76 · Art. 79</div>
+        </div>
+        <div class="concept-body">
+          <p>Conforme a los articulos 76 y 79 de la LFT, el trabajador tiene derecho a un periodo de vacaciones pagado que aumenta segun su antiguedad. Con tres anos de servicio cumplidos, le corresponden al menos <strong>16 dias por ano</strong>. El articulo 79 establece expresamente que si la relacion laboral termina antes de cumplirse el ano, el trabajador recibira la parte proporcional de vacaciones correspondiente a los dias trabajados en ese periodo incompleto.</p>
+          <p>Al cierre de la relacion laboral (22 de marzo de 2026), el trabajador habia cumplido su tercer aniversario el 15 de enero de 2026 y habia laborado 67 dias del cuarto periodo vacacional, representando el <strong>18.36% del ano</strong>. Las vacaciones proporcionales se calculan con el salario diario base (SDB), no el integrado.</p>
+          <div class="calc-line">16 dias/ano x 18.36% x $500.00 SDB = $1,469.00 MXN</div>
+        </div>
+      </div>
+
+      <!-- 5. Prima vacacional -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">5. Prima vacacional</div>
+          <div class="concept-law-tag">LFT Art. 80</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 80 de la LFT otorga a los trabajadores una prima de al menos el 25% sobre el importe de las vacaciones. Esta prima se genera sobre la totalidad de los dias de vacaciones, incluyendo tanto los dias proporcionales del periodo en curso como, en su caso, los dias de vacaciones acumuladas no gozadas. Su proposito es garantizar que el periodo de descanso sea economicamente efectivo para el trabajador.</p>
+          <div class="calc-line">25% de $1,469.00 (total vacaciones) = $367.25 MXN</div>
+        </div>
+      </div>
+
+      <!-- 6. Aguinaldo proporcional -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">6. Aguinaldo proporcional</div>
+          <div class="concept-law-tag">LFT Art. 87</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 87 de la LFT establece el derecho de los trabajadores a recibir un aguinaldo anual equivalente a, por lo menos, 15 dias de salario, pagadero antes del dia 20 de diciembre. La misma disposicion senala que quienes no hayan cumplido el ano de servicios tendran derecho al pago proporcional al tiempo laborado. Esta proporcionalidad aplica igualmente cuando el trabajador es despedido antes de que concluya el ejercicio calendario.</p>
+          <p>Al 22 de marzo de 2026, el trabajador habia laborado <strong>81 dias del ejercicio 2026</strong> (del 1 de enero al 22 de marzo), lo que equivale al 22.19% del ano. El aguinaldo se calcula sobre el salario diario base.</p>
+          <div class="calc-line">15 dias x $500.00 SDB x 22.19% = $1,664.25 MXN</div>
+        </div>
+      </div>
+
+      <!-- 7. Bonos -->
+      <div class="concept-block">
+        <div class="concept-header">
+          <div class="concept-title">7. Bonos y comisiones pendientes de pago</div>
+          <div class="concept-law-tag">LFT Art. 84</div>
+        </div>
+        <div class="concept-body">
+          <p>El articulo 84 de la LFT define el salario como la cantidad que el patron paga al trabajador por su trabajo, incluyendo primas, comisiones, prestaciones en especie y cualquier otra cantidad o prestacion que se entregue al trabajador por su trabajo. Los bonos, comisiones y cualquier contraprestacion acordada que no haya sido liquidada al momento de la terminacion constituyen un adeudo exigible del patron hacia el trabajador, independientemente de la causa de terminacion.</p>
+          <p>El monto de <strong>$3,000 MXN</strong> fue declarado directamente por el trabajador como concepto pendiente de pago. Se incluye en el presente calculo por asi haberlo indicado el usuario, pero dependera de la documentacion de respaldo disponible para su exigibilidad.</p>
+          <div class="calc-line">Monto declarado por el trabajador = $3,000.00 MXN</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="pdf-footer">
+    <div class="pdf-footer-left">TuLiquidacion · Analisis de Liquidacion · Folio FY-2026-03-4821</div>
+    <div class="pdf-footer-right">Pagina 1 de 3</div>
+  </div>
+</div>
+
+<div class="page-break-indicator">pagina 2</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 2 -->
+<div class="pdf-page">
+
+  <div class="pdf-header">
+    <div class="pdf-header-top">
+      <div>
+        <div class="pdf-brand">Finiquito<span>Ya</span></div>
+        <div class="pdf-brand-url">tuliquidacion.app</div>
+      </div>
+      <div class="pdf-doc-id">
+        <div class="doc-type">Analisis de Liquidacion Laboral</div>
+        <div class="doc-meta">Folio FY-2026-03-4821 &nbsp;|&nbsp; Mexico · LFT 2024 &nbsp;|&nbsp; 22 de marzo de 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pdf-body">
+
+    <!-- DERECHOS DEL TRABAJADOR -->
+    <div class="section">
+      <div class="section-heading">III. Derechos del trabajador ante la terminacion</div>
+      <div class="rights-list">
+
+        <div class="right-item">
+          <div class="right-num">1</div>
+          <div class="right-text">
+            <strong>Derecho a recibir el pago de forma inmediata</strong>
+            El articulo 89 de la LFT establece que el salario debe pagarse directamente al trabajador. En casos de terminacion, la jurisprudencia laboral ha interpretado que el patron debe liquidar los conceptos adeudados en el momento de la separacion o a la brevedad posible. El retraso injustificado en el pago puede generar salarios caidos adicionales a cargo del patron.
+          </div>
+        </div>
+
+        <div class="right-item">
+          <div class="right-num">2</div>
+          <div class="right-text">
+            <strong>Derecho a recibir aviso de rescision por escrito</strong>
+            El articulo 47 de la LFT exige que el patron que rescinda la relacion laboral entregue al trabajador un aviso escrito en el que precise la fecha y causa de la rescision. La falta de este aviso puede ser invocada por el trabajador como evidencia de despido injustificado ante la autoridad laboral.
+          </div>
+        </div>
+
+        <div class="right-item">
+          <div class="right-num">3</div>
+          <div class="right-text">
+            <strong>Derecho a la conciliacion prejudicial gratuita (PROFEDET / CFCRL)</strong>
+            Antes de acudir a un tribunal, la Ley Federal del Trabajo y la Ley Organica del Poder Judicial de la Federacion permiten al trabajador presentar su caso ante el Centro Federal de Conciliacion y Registro Laboral (CFCRL) o ante la PROFEDET, ambos servicios completamente gratuitos. Este proceso puede resolver la disputa en semanas sin necesidad de litigio formal.
+          </div>
+        </div>
+
+        <div class="right-item">
+          <div class="right-num">4</div>
+          <div class="right-text">
+            <strong>Derecho a acudir a los Tribunales Laborales</strong>
+            Si la conciliacion fracasa, el trabajador puede presentar una demanda ante los Tribunales Laborales (antes Juntas de Conciliacion y Arbitraje). En caso de despido injustificado comprobado, el trabajador puede optar entre la reinstalacion en su puesto o el pago de la indemnizacion calculada, ademas de los salarios caidos generados desde la fecha del despido.
+          </div>
+        </div>
+
+        <div class="right-item">
+          <div class="right-num">5</div>
+          <div class="right-text">
+            <strong>Plazo de prescripcion: un ano</strong>
+            El articulo 516 de la LFT establece que las acciones de trabajo prescriben en un ano a partir del dia siguiente a la fecha de la separacion. Es fundamental no dejar transcurrir este plazo: una vez vencido, el trabajador pierde el derecho legal de reclamar los conceptos adeudados ante la autoridad laboral.
+          </div>
+        </div>
+
+        <div class="right-item">
+          <div class="right-num">6</div>
+          <div class="right-text">
+            <strong>Derecho a conservar y solicitar documentacion</strong>
+            El trabajador tiene derecho a solicitar copias de su contrato individual de trabajo, recibos de nomina, constancias de semanas cotizadas ante el IMSS y cualquier documento firmado durante la relacion laboral. Estos documentos son prueba clave en cualquier proceso de conciliacion o litigio. El patron tiene la obligacion de entregar constancia de trabajo al termino de la relacion.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CUADRO DE LIQUIDACION -->
+    <div class="section">
+      <div class="section-heading">IV. Cuadro de liquidacion</div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th style="width:42%">Concepto</th>
+            <th style="width:28%">Formula aplicada</th>
+            <th style="width:16%">Fundamento</th>
+            <th style="width:14%">Monto (MXN)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="td-concept">Indemnizacion constitucional (3 meses)</div>
+            </td>
+            <td><div class="td-formula">90 dias x $583.33 SDI</div></td>
+            <td><span class="td-law-tag">Art. 123; LFT Art. 50</span></td>
+            <td class="td-amount">$52,500.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">20 dias de salario por ano trabajado</div>
+            </td>
+            <td><div class="td-formula">20 x $583.33 x 3.18 anos</div></td>
+            <td><span class="td-law-tag">LFT Art. 50 fracc. I</span></td>
+            <td class="td-amount">$37,139.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">Prima de antiguedad</div>
+            </td>
+            <td><div class="td-formula">12 x $497.86 (tope) x 3.18 anos</div></td>
+            <td><span class="td-law-tag">LFT Art. 162</span></td>
+            <td class="td-amount">$18,999.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">Vacaciones proporcionales (ano en curso)</div>
+            </td>
+            <td><div class="td-formula">16 dias x 18.36% x $500.00 SDB</div></td>
+            <td><span class="td-law-tag">LFT Art. 76, 79</span></td>
+            <td class="td-amount">$1,469.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">Prima vacacional</div>
+            </td>
+            <td><div class="td-formula">25% de $1,469.00</div></td>
+            <td><span class="td-law-tag">LFT Art. 80</span></td>
+            <td class="td-amount">$367.25</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">Aguinaldo proporcional</div>
+            </td>
+            <td><div class="td-formula">15 dias x $500.00 x 22.19% del ano</div></td>
+            <td><span class="td-law-tag">LFT Art. 87</span></td>
+            <td class="td-amount">$1,664.25</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="td-concept">Bonos / comisiones pendientes</div>
+            </td>
+            <td><div class="td-formula">Monto declarado por el trabajador</div></td>
+            <td><span class="td-law-tag">LFT Art. 84</span></td>
+            <td class="td-amount">$3,000.00</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="3"><div class="td-concept">Total estimado de liquidacion</div></td>
+            <td><div class="td-amount">$115,138.50</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="pdf-disclaimer">
+    <div class="pdf-disclaimer-title">Aviso legal importante — Lea antes de utilizar este documento</div>
+    <div class="pdf-disclaimer-text">
+      <p><strong>Naturaleza del documento.</strong> Este reporte ha sido generado de forma automatizada por TuLiquidacion con fines informativos y de orientacion general exclusivamente. No constituye asesoria juridica, opinion legal, representacion legal, ni ejercicio de la abogacia en ninguna de sus formas. TuLiquidacion no es un despacho juridico ni una firma de abogados, y ninguna comunicacion derivada del uso de esta herramienta crea una relacion abogado-cliente.</p>
+      <p><strong>Alcance de los calculos.</strong> Las estimaciones presentadas se basan en la legislacion vigente al momento de la generacion del documento y en los datos proporcionados por el usuario. No consideran convenios colectivos de trabajo, cláusulas contractuales especificas, acuerdos previos entre las partes, resoluciones judiciales aplicables, criterios interpretativos de autoridades laborales o jurisdiccionales, ni circunstancias particulares no declaradas. Los montos reales pueden diferir significativamente de los aqui presentados.</p>
+      <p><strong>Recomendacion.</strong> Para obtener asesoria legal especifica sobre su situacion particular, consulte con un abogado laboral certificado. Si requiere orientacion gratuita, la Procuraduria Federal de la Defensa del Trabajo (PROFEDET) ofrece servicios de asesoria y conciliacion sin costo en todo el territorio nacional.</p>
+    </div>
+  </div>
+
+  <div class="pdf-footer">
+    <div class="pdf-footer-left">TuLiquidacion · Analisis de Liquidacion · Folio FY-2026-03-4821</div>
+    <div class="pdf-footer-right">Pagina 2 de 2</div>
+  </div>
+
+</div>
+
+</body>
+</html>

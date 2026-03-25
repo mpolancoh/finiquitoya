@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FiniquitoYa: Calcula lo que te deben</title>
+  <title>TuLiquidacion: Calcula lo que te deben</title>
   <meta name="description" content="Calcula gratis tu liquidación o finiquito laboral. Ingresa tus datos y obtén un estimado de lo que te corresponde por ley según el tipo de terminación. Sin registro, en 2 minutos.">
-  <meta property="og:title" content="FiniquitoYa — Calcula tu liquidación gratis">
+  <meta property="og:title" content="TuLiquidacion — Calcula tu liquidación gratis">
   <meta property="og:description" content="Descubre en 2 minutos cuánto te corresponde por ley al terminar tu relación laboral.">
-  <meta property="og:image" content="https://finiquitoya.app/og-image.png">
-  <meta property="og:url" content="https://finiquitoya.app">
+  <meta property="og:image" content="https://tuliquidacion.app/og-image.png">
+  <meta property="og:url" content="https://tuliquidacion.app">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_LA">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="FiniquitoYa — Calcula tu liquidación gratis">
+  <meta name="twitter:title" content="TuLiquidacion — Calcula tu liquidación gratis">
   <meta name="twitter:description" content="Descubre en 2 minutos cuánto te corresponde por ley al terminar tu relación laboral.">
-  <meta name="twitter:image" content="https://finiquitoya.app/og-image.png">
-  <link rel="canonical" href="https://finiquitoya.app">
+  <meta name="twitter:image" content="https://tuliquidacion.app/og-image.png">
+  <link rel="canonical" href="https://tuliquidacion.app">
   <!-- Vercel Web Analytics — privacy-first, no cookies -->
   <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -683,7 +683,7 @@
 <header class="page-header">
   <a class="logo" onclick="recalculate(); return false;" href="#">
     <div class="logo-mark">F</div>
-    <span class="logo-text">Finiquito<span>Ya</span></span>
+    <span class="logo-text">Tu<span>Liquidacion</span></span>
   </a>
   <span class="header-badge" id="headerBadge">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" style="width:18px;height:12px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.2)">
@@ -2500,10 +2500,10 @@ function submitLawyerForm(e) {
   const termType  = tt ? tt.value : '';
 
   const subject = encodeURIComponent(
-    `FiniquitoYa - Consulta laboral ${cfg.name} (${fmtCurrency(total)} ${cfg.currency}) - ${nombre}`
+    `TuLiquidacion - Consulta laboral ${cfg.name} (${fmtCurrency(total)} ${cfg.currency}) - ${nombre}`
   );
   const mailBody = encodeURIComponent(
-    `Solicitud de asesoría laboral a través de FiniquitoYa\n\n` +
+    `Solicitud de asesoría laboral a través de TuLiquidacion\n\n` +
     `Trabajador: ${nombre}\n` +
     `Correo: ${email}\n` +
     `País: ${cfg.name}\n` +
@@ -2516,7 +2516,7 @@ function submitLawyerForm(e) {
     (FY.selectedFiles && FY.selectedFiles.length
       ? `Archivos adjuntos mencionados: ${FY.selectedFiles.map(f=>f.name).join(', ')}\n\n`
       : '') +
-    `FiniquitoYa`
+    `TuLiquidacion`
   );
 
   const msgEl = document.getElementById('lawyerFormMsg');
@@ -2654,7 +2654,7 @@ function getDisclaimerText(country, total) {
     ve: 'la Inspectoría del Trabajo ofrece orientación, conciliación y servicios de reclamación individual gratuitos.'
   }[country] || '';
   const items = [
-    { label: 'Naturaleza del documento.', text: 'Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.' },
+    { label: 'Naturaleza del documento.', text: 'Este reporte ha sido generado de forma automatizada por TuLiquidacion con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. TuLiquidacion no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.' },
     { label: 'Alcance de los cálculos.', text: 'Las estimaciones se basan en la legislación vigente al momento de la generación y en los datos proporcionados por el usuario. No consideran convenios colectivos, cláusulas contractuales específicas, acuerdos previos, resoluciones judiciales, ni circunstancias no declaradas. Los montos reales pueden diferir significativamente.' },
   ];
   if (needsLawyerRec(country, total)) {
@@ -2987,7 +2987,7 @@ function buildPdfDocDef(state, folio, workerName) {
     footer: (currentPage, pageCount) => ({
       margin: [40, 8, 40, 0],
       columns: [
-        { text: `FiniquitoYa · Análisis de Liquidación · Folio ${folio}`, fontSize: 8, color: SLATE4 },
+        { text: `TuLiquidacion · Análisis de Liquidación · Folio ${folio}`, fontSize: 8, color: SLATE4 },
         { text: `Página ${currentPage} de ${pageCount}`, fontSize: 8, color: '#cbd5e1',
           alignment: 'right', bold: true }
       ]
@@ -3084,7 +3084,7 @@ function generatePDF() {
                      sessionStorage.getItem('fy_saved_name') || '';
   try {
     const docDef = buildPdfDocDef(FY.pdfState, folio, workerName);
-    pdfMake.createPdf(docDef).download(`FiniquitoYa-${folio}.pdf`, function() {
+    pdfMake.createPdf(docDef).download(`TuLiquidacion-${folio}.pdf`, function() {
       btn.textContent = '📄 Descargar reporte PDF';
       btn.disabled = false;
       trackEvent('pdf_downloaded', { country: S.country });
@@ -3184,8 +3184,8 @@ function buildPdfHtml(state, folio) {
     <div class="pdf-hdr">
       <div class="pdf-hdr-top">
         <div>
-          <div class="pdf-brand">Finiquito<span>Ya</span></div>
-          <div class="pdf-brand-url">finiquitoya.vercel.app</div>
+          <div class="pdf-brand">Tu<span>Liquidacion</span></div>
+          <div class="pdf-brand-url">tuliquidacion.app</div>
         </div>
         <div class="pdf-doc-id">
           <div class="doc-type">Análisis de Liquidación Laboral</div>
@@ -3277,8 +3277,8 @@ body{font-family:Georgia,"Times New Roman",serif;color:#1e293b;background:#fff;m
     <div class="pdf-hdr">
       <div class="pdf-hdr-top">
         <div>
-          <div class="pdf-brand">Finiquito<span>Ya</span></div>
-          <div class="pdf-brand-url">finiquitoya.vercel.app</div>
+          <div class="pdf-brand">Tu<span>Liquidacion</span></div>
+          <div class="pdf-brand-url">tuliquidacion.app</div>
         </div>
         <div class="pdf-doc-id">
           <div class="doc-type">Análisis de Liquidación Laboral</div>
@@ -3311,7 +3311,7 @@ body{font-family:Georgia,"Times New Roman",serif;color:#1e293b;background:#fff;m
       </div>
     </div>
     <div class="pdf-ftr">
-      <div class="pdf-ftr-l">FiniquitoYa · Análisis de Liquidación · Folio ${folio}</div>
+      <div class="pdf-ftr-l">TuLiquidacion · Análisis de Liquidación · Folio ${folio}</div>
       <div class="pdf-ftr-r">Página 1 de 2</div>
     </div>
   </div>
@@ -3341,7 +3341,7 @@ body{font-family:Georgia,"Times New Roman",serif;color:#1e293b;background:#fff;m
     </div>
     ${getDisclaimerHtml(S.country, result.total)}
     <div class="pdf-ftr">
-      <div class="pdf-ftr-l">FiniquitoYa · Análisis de Liquidación · Folio ${folio}</div>
+      <div class="pdf-ftr-l">TuLiquidacion · Análisis de Liquidación · Folio ${folio}</div>
       <div class="pdf-ftr-r">Página 2 de 2</div>
     </div>
   </div>`;
@@ -3664,7 +3664,7 @@ function getDisclaimerHtml(country, total) {
   <div class="pdf-disc">
     <div class="pdf-disc-ttl">Aviso legal importante — Lea antes de utilizar este documento</div>
     <div class="pdf-disc-txt">
-      <p><strong>Naturaleza del documento.</strong> Este reporte ha sido generado de forma automatizada por FiniquitoYa con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. FiniquitoYa no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.</p>
+      <p><strong>Naturaleza del documento.</strong> Este reporte ha sido generado de forma automatizada por TuLiquidacion con fines informativos y de orientación general exclusivamente. No constituye asesoría jurídica, opinión legal ni representación legal. TuLiquidacion no es un despacho jurídico, y ninguna comunicación derivada de esta herramienta crea una relación abogado-cliente.</p>
       <p><strong>Alcance de los cálculos.</strong> Las estimaciones se basan en la legislación vigente al momento de la generación y en los datos proporcionados por el usuario. No consideran convenios colectivos, cláusulas contractuales específicas, acuerdos previos, resoluciones judiciales, ni circunstancias no declaradas. Los montos reales pueden diferir significativamente.</p>
       ${recParagraph}
     </div>
@@ -3685,9 +3685,9 @@ function recalculate() {
 <!-- ── SITE FOOTER ─────────────────────────────────────────────────────────── -->
 <footer style="background:#f1f5f9;border-top:1px solid #e2e8f0;padding:40px 24px 32px;margin-top:48px">
   <div style="max-width:640px;margin:0 auto">
-    <p style="font-size:13px;font-weight:600;color:#475569;margin:0 0 10px 0">Sobre FiniquitoYa</p>
+    <p style="font-size:13px;font-weight:600;color:#475569;margin:0 0 10px 0">Sobre TuLiquidacion</p>
     <p style="font-size:12px;color:#64748b;line-height:1.8;margin:0 0 16px 0">
-      FiniquitoYa es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
+      TuLiquidacion es una herramienta de orientación laboral diseñada para ayudar a los trabajadores
       a entender sus derechos y estimar el monto de su liquidación con base en la legislación vigente
       de cada país. Nuestro objetivo es poner información clara y accesible al alcance de cualquier
       persona, de modo que ningún trabajador tenga que enfrentarse solo a la terminación de su
@@ -3697,7 +3697,7 @@ function recalculate() {
       <strong style="color:#475569">Aviso legal.</strong>
       Los cálculos generados por esta herramienta son estimaciones de carácter orientativo basadas
       en los datos ingresados por el usuario y en la legislación laboral vigente al momento de la
-      consulta. FiniquitoYa no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
+      consulta. TuLiquidacion no es un despacho jurídico ni presta servicios de asesoría legal. Ningún
       resultado, reporte ni comunicación generada por esta plataforma constituye asesoría jurídica,
       opinión legal ni representación legal, y su uso no crea una relación abogado-cliente. Los
       montos reales pueden variar según convenios colectivos, condiciones específicas del contrato,
@@ -3707,7 +3707,7 @@ function recalculate() {
     <p style="font-size:12px;color:#64748b;margin:0 0 12px 0">
       ¿Preguntas o problemas? Escríbenos a <a href="mailto:soporte@finiquitoya.app" style="color:#1d4ed8;text-decoration:none">soporte@finiquitoya.app</a>
     </p>
-    <p style="font-size:11px;color:#94a3b8;margin:0">© FiniquitoYa · finiquitoya.app</p>
+    <p style="font-size:11px;color:#94a3b8;margin:0">© TuLiquidacion · tuliquidacion.app</p>
   </div>
 </footer>
 

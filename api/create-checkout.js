@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
   // Build success/cancel URLs from the originating host so Stripe redirects back
   // to whichever URL the user is on (prod or preview deployment)
   const protocol   = req.headers['x-forwarded-proto'] || 'https';
-  const host       = req.headers['x-forwarded-host'] || req.headers.host || 'finiquitoya.app';
+  const host       = req.headers['x-forwarded-host'] || req.headers.host || 'tuliquidacion.app';
   const baseUrl    = process.env.APP_URL || `${protocol}://${host}`;
   const successUrl = `${baseUrl}/?unlocked=${tier}&pais=${country}&sid={CHECKOUT_SESSION_ID}`;
   const cancelUrl  = `${baseUrl}/`;
@@ -79,7 +79,7 @@ module.exports = async (req, res) => {
           currency:     config.currency,
           unit_amount:  config.prices[tier],
           product_data: {
-            name:        `FiniquitoYa ${config.labels[tier]}`,
+            name:        `TuLiquidacion ${config.labels[tier]}`,
             description: `Reporte de liquidación para ${config.name}`,
           }
         },

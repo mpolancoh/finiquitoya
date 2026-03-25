@@ -9,7 +9,7 @@ const COUNTRY_CONFIG = {
       basic:   2500,   // centavos → $25 MXN
       premium: 15000   // centavos → $150 MXN
     },
-    successUrl: 'https://finiquitoya.app',
+    successUrl: 'https://tuliquidacion.app',
     labels: {
       basic: 'Desglose Básico',
       premium: 'Reporte PDF Completo'
@@ -22,7 +22,7 @@ const COUNTRY_CONFIG = {
       basic:   500000,   // centavos → $5,000 COP
       premium: 3000000   // centavos → $30,000 COP
     },
-    successUrl: 'https://finiquitoya.app',
+    successUrl: 'https://tuliquidacion.app',
     labels: {
       basic: 'Desglose Básico',
       premium: 'Reporte PDF Completo'
@@ -35,7 +35,7 @@ const COUNTRY_CONFIG = {
       basic:   125,   // centavos → $1.25 USD
       premium: 750    // centavos → $7.50 USD
     },
-    successUrl: 'https://finiquitoya.app',
+    successUrl: 'https://tuliquidacion.app',
     labels: {
       basic: 'Desglose Básico',
       premium: 'Reporte PDF Completo'

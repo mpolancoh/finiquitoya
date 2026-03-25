@@ -215,15 +215,15 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   // ── Shared branded header ──────────────────────────────────────────────────
   const brandHeader = `
     <div style="background:#1d4ed8;padding:22px 32px;border-radius:8px 8px 0 0">
-      <p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:sans-serif">FiniquitoYa</p>
-      <p style="margin:4px 0 0 0;font-size:12px;color:#93c5fd;font-family:sans-serif">finiquitoya.app</p>
+      <p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:sans-serif">TuLiquidacion</p>
+      <p style="margin:4px 0 0 0;font-size:12px;color:#93c5fd;font-family:sans-serif">tuliquidacion.app</p>
     </div>
   `;
 
   const emailFooter = `
     <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0"/>
     <p style="font-size:11px;color:#94a3b8;margin:0;font-family:sans-serif">
-      FiniquitoYa · finiquitoya.app<br>
+      TuLiquidacion · tuliquidacion.app<br>
       Mensaje automático — por favor no respondas a este correo.<br>
       Esta estimación es orientativa y no constituye asesoría legal.
     </p>
@@ -311,7 +311,7 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
   }
 
   const emailBody = {
-    sender:      { name: 'FiniquitoYa', email: 'noreply@finiquitoya.app' },
+    sender:      { name: 'TuLiquidacion', email: 'noreply@finiquitoya.app' },
     to:          [{ email: toEmail }],
     subject,
     htmlContent
@@ -330,7 +330,7 @@ async function sendAdminNotification({ email, pais, tier, monto, moneda, session
   if (!process.env.BREVO_API_KEY || !process.env.ADMIN_EMAIL) return;
   const api = getBrevoApi();
   await api.sendTransacEmail({
-    sender:      { name: 'FiniquitoYa', email: 'noreply@finiquitoya.app' },
+    sender:      { name: 'TuLiquidacion', email: 'noreply@finiquitoya.app' },
     to:          [{ email: process.env.ADMIN_EMAIL }],
     subject:     `💰 Nueva venta: ${tier.toUpperCase()} · ${(pais||'').toUpperCase()} · ${monto} ${moneda}`,
     htmlContent: `

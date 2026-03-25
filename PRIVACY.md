@@ -1,8 +1,8 @@
-# FiniquitoYa — Data Privacy & Retention Policy
+# TuLiquidacion — Data Privacy & Retention Policy
 
 _Last updated: March 2026_
 
-This document describes what data FiniquitoYa collects, where it is stored,
+This document describes what data TuLiquidacion collects, where it is stored,
 how long it is retained, and the rights of users in Mexico, Colombia, and Venezuela.
 
 ---
@@ -26,7 +26,7 @@ how long it is retained, and the rights of users in Mexico, Colombia, and Venezu
 
 ### Google Sheets (transaction log)
 Every paid transaction is recorded in a private Google Sheets spreadsheet accessible
-only to FiniquitoYa administrators. Each row contains: UUID, email, creation date,
+only to TuLiquidacion administrators. Each row contains: UUID, email, creation date,
 country, tier, total amount calculated, full calculation JSON, payment status, payment
 date, amount paid, currency, Stripe session ID, and worker name.
 
@@ -74,7 +74,7 @@ Users in Mexico have the right to:
 
 To exercise these rights, contact: privacy@finiquitoya.app
 
-FiniquitoYa commits to maintaining an _Aviso de Privacidad_ accessible from the
+TuLiquidacion commits to maintaining an _Aviso de Privacidad_ accessible from the
 app footer, as required by Art. 15–17 LFPDPPP.
 
 ### Colombia — Ley 1581/2012 (Habeas Data)
