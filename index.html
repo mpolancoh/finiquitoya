@@ -1578,10 +1578,11 @@ async function sendEmailReport() {
             email, pdfBase64: base64, tier, country,
             result: FY.pdfState.result || {},
             inputs: {
-              salary:    FY.pdfState.salary,
-              startDate: FY.pdfState.startDate,
-              endDate:   FY.pdfState.endDate,
-              termType:  FY.pdfState.termType
+              salary:     FY.pdfState.salary,
+              startDate:  FY.pdfState.startDate,
+              endDate:    FY.pdfState.endDate,
+              termType:   FY.pdfState.termType,
+              workerName: workerName
             },
             ...(sid ? { sid } : {})
           })
@@ -2314,48 +2315,57 @@ function closeModal(id) {
   document.body.style.overflow = '';
 }
 
-function submitLawyerForm(e) {
+async function submitLawyerForm(e) {
   e.preventDefault();
-  const cfg = COUNTRY_CONFIG[S.country];
+  const cfg     = COUNTRY_CONFIG[S.country];
   const nombre  = document.getElementById('lf_nombre').value.trim();
   const email   = document.getElementById('lf_email').value.trim();
   const empresa = document.getElementById('lf_empresa').value.trim();
   const desc    = document.getElementById('lf_desc').value.trim();
   const total   = FY.lawyerTotal || 0;
-
-  const salary    = getSalaryVal();
+  const salary  = getSalaryVal();
   const startDate = document.getElementById('startDate').value;
   const endDate   = document.getElementById('endDate').value;
   const tt        = document.querySelector('input[name="tt"]:checked');
   const termType  = tt ? tt.value : '';
 
-  const subject = encodeURIComponent(
-    `TuLiquidacion - Consulta laboral ${cfg.name} (${fmtCurrency(total)} ${cfg.currency}) - ${nombre}`
-  );
-  const mailBody = encodeURIComponent(
-    `Solicitud de asesoría laboral a través de TuLiquidacion\n\n` +
-    `Trabajador: ${nombre}\n` +
-    `Correo: ${email}\n` +
-    `País: ${cfg.name}\n` +
-    `Empleador: ${empresa}\n` +
-    `Tipo de terminación: ${termType}\n` +
-    `Salario mensual: ${fmtCurrency(salary)} ${cfg.currency}\n` +
-    `Inicio: ${startDate} · Fin: ${endDate}\n` +
-    `Estimado de liquidación: ${fmtCurrency(total)} ${cfg.currency}\n\n` +
-    `Descripción:\n${desc}\n\n` +
-    (FY.selectedFiles && FY.selectedFiles.length
-      ? `Archivos adjuntos mencionados: ${FY.selectedFiles.map(f=>f.name).join(', ')}\n\n`
-      : '') +
-    `TuLiquidacion`
-  );
+  const msgEl  = document.getElementById('lawyerFormMsg');
+  const btnEl  = document.querySelector('#lawyerForm button[type="submit"]');
+  msgEl.textContent = 'Enviando solicitud...';
+  msgEl.className   = 'form-msg';
+  msgEl.classList.remove('hidden');
+  if (btnEl) btnEl.disabled = true;
 
-  const msgEl = document.getElementById('lawyerFormMsg');
-  msgEl.textContent = '¡Listo! Abriendo tu cliente de correo para enviar la solicitud...';
-  msgEl.className = 'form-msg success';
-
-  setTimeout(() => {
-    window.location.href = `mailto:abogado@finiquitoya.com?subject=${subject}&body=${mailBody}`;
-  }, 800);
+  try {
+    const res  = await fetch('/api/contact-lawyer', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, email, empresa, desc,
+        country:   S.country,
+        salary,
+        startDate, endDate, termType,
+        total,
+        files: (FY.selectedFiles || []).map(f => f.name)
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      msgEl.textContent = '✅ ¡Solicitud enviada! Un especialista te contactará pronto a tu correo.';
+      msgEl.className   = 'form-msg success';
+      document.getElementById('lawyerForm').reset();
+      FY.selectedFiles = [];
+      renderFileList();
+      setTimeout(() => closeModal('lawyerModal'), 4000);
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (err) {
+    console.error('contact-lawyer failed:', err);
+    msgEl.textContent = 'Hubo un error al enviar tu solicitud. Por favor intenta de nuevo o escríbenos a soporte@finiquitoya.app';
+    msgEl.className   = 'form-msg error';
+    if (btnEl) btnEl.disabled = false;
+  }
 }
 
 function handleFileSelect(e) {
@@ -2863,9 +2873,10 @@ function buildPdfDocDef(state, folio, workerName) {
       ...rightsContent,
       { text: '', margin: [0, 0, 0, 8] },
 
-      // Disclaimer
+      // Disclaimer — always starts on its own page so it never gets cut
       {
         margin: [-40, 0, -40, 0],
+        pageBreak: 'before',
         table: { widths: ['*'], body: [[{
           stack: [
             { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',

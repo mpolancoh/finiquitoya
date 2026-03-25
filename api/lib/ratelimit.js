@@ -8,11 +8,13 @@ const redis = require('./redis');
 
 const limiters = {
   // POST /api/create-checkout — starts a Stripe session
-  checkout:      new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '60 s'), prefix: 'rl:checkout' }),
+  checkout:      new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '60 s'),   prefix: 'rl:checkout' }),
   // POST /api/send-report — triggers email + PDF processing
-  sendReport:    new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5,  '60 s'), prefix: 'rl:report'   }),
+  sendReport:    new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5,  '60 s'),   prefix: 'rl:report'   }),
   // GET /api/verify-session — Stripe session lookup
-  verifySession: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '60 s'), prefix: 'rl:verify'   }),
+  verifySession: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '60 s'),   prefix: 'rl:verify'   }),
+  // POST /api/contact-lawyer — lawyer inquiry form (max 3 per hour to prevent spam)
+  contactLawyer: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3,  '3600 s'), prefix: 'rl:lawyer'   }),
 };
 
 /**

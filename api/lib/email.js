@@ -357,4 +357,98 @@ async function sendAdminNotification({ email, pais, tier, monto, moneda, session
   });
 }
 
-module.exports = { sendCustomerEmail, sendAdminNotification };
+// ── Lawyer inquiry ────────────────────────────────────────────────────────────
+// Sends two emails:
+//   1. To LAWYER_EMAIL (the specialist) — full case details
+//   2. To the user — confirmation receipt
+
+async function sendLawyerInquiry({ nombre, email, empresa, desc, country, salary, startDate, endDate, termType, total, files }) {
+  if (!process.env.BREVO_API_KEY) return;
+
+  const api         = getBrevoApi();
+  const lawyerEmail = process.env.LAWYER_EMAIL || process.env.ADMIN_EMAIL;
+  if (!lawyerEmail) return;
+
+  const currency  = esc(COUNTRY_CURRENCY[country] || '');
+  const countryLbl = esc(COUNTRY_LABELS[country]  || country);
+  const termLbl    = esc(TERM_TYPE_LABELS[termType] || termType || '—');
+  const totalFmt   = Number(total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const salaryFmt  = Number(salary || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fileList   = files && files.length ? files.join(', ') : '—';
+
+  // 1. Email to the specialist
+  await api.sendTransacEmail({
+    sender:      { name: 'TuLiquidacion', email: 'noreply@finiquitoya.app' },
+    to:          [{ email: lawyerEmail }],
+    subject:     `⚖️ Nueva consulta laboral · ${countryLbl} · ${esc(nombre)}`,
+    htmlContent: `
+      <div style="max-width:600px;margin:0 auto;font-family:sans-serif;color:#1e293b">
+        <div style="background:#1d4ed8;padding:18px 28px;border-radius:8px 8px 0 0">
+          <p style="margin:0;font-size:20px;font-weight:800;color:#fff">
+            <span style="color:#bfdbfe">Tu</span>Liquidacion — Nueva consulta laboral
+          </p>
+        </div>
+        <div style="padding:24px 28px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
+            <tr><td style="padding:6px 0;color:#64748b;width:160px">Nombre</td><td><strong>${esc(nombre)}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Correo</td><td><a href="mailto:${esc(email)}" style="color:#1d4ed8">${esc(email)}</a></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">País</td><td>${countryLbl}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Empleador</td><td>${esc(empresa) || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Tipo terminación</td><td>${termLbl}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Salario mensual</td><td>$${salaryFmt} ${currency}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Inicio / Fin</td><td>${esc(startDate) || '—'} → ${esc(endDate) || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Liquidación estimada</td><td><strong style="color:#16a34a">$${totalFmt} ${currency}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Archivos mencionados</td><td style="font-size:12px;color:#64748b">${esc(fileList)}</td></tr>
+          </table>
+          <div style="background:#f8fafc;border-left:3px solid #1d4ed8;padding:14px 18px;border-radius:4px">
+            <p style="margin:0 0 6px 0;font-size:12px;font-weight:700;color:#1e3a8a;text-transform:uppercase;letter-spacing:.05em">Descripción del caso</p>
+            <p style="margin:0;font-size:14px;line-height:1.7;white-space:pre-wrap">${esc(desc)}</p>
+          </div>
+          <p style="margin:20px 0 0 0;font-size:12px;color:#94a3b8">
+            Solicitud recibida a través de tuliquidacion.app
+          </p>
+        </div>
+      </div>
+    `
+  });
+
+  // 2. Confirmation email to the user
+  await api.sendTransacEmail({
+    sender:      { name: 'TuLiquidacion', email: 'noreply@finiquitoya.app' },
+    to:          [{ email }],
+    subject:     `Recibimos tu solicitud de asesoría laboral`,
+    htmlContent: `
+      <div style="max-width:600px;margin:0 auto;font-family:sans-serif;color:#1e293b">
+        <div style="background:#ffffff;padding:22px 32px;border-radius:8px 8px 0 0;border-bottom:3px solid #1d4ed8">
+          <p style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.5px">
+            <span style="color:#111827">Tu</span><span style="color:#1d4ed8">Liquidacion</span>
+          </p>
+          <p style="margin:4px 0 0 0;font-size:12px;color:#64748b">tuliquidacion.app</p>
+        </div>
+        <div style="padding:28px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+          <h2 style="font-size:18px;margin:0 0 12px 0;color:#1e3a8a">Hola ${esc(nombre)}, recibimos tu solicitud ✓</h2>
+          <p style="font-size:14px;line-height:1.7;margin:0 0 16px 0">
+            Un especialista en derecho laboral de <strong>${countryLbl}</strong> revisará tu caso y
+            te contactará a este correo a la brevedad.
+          </p>
+          <div style="background:#eff6ff;border-left:4px solid #1d4ed8;border-radius:4px;padding:14px 18px;margin:0 0 20px 0">
+            <p style="margin:0;font-size:12px;color:#1e40af;font-weight:600">LIQUIDACIÓN ESTIMADA EN TU CASO</p>
+            <p style="margin:6px 0 0 0;font-size:22px;font-weight:900;color:#1e3a8a">$${totalFmt} ${currency}</p>
+          </div>
+          <p style="font-size:13px;color:#64748b;line-height:1.6;margin:0 0 8px 0">
+            Si tienes documentos adicionales que quieras compartir (contrato, cartas, recibos de nómina),
+            puedes responder directamente a este correo adjuntándolos.
+          </p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+          <p style="font-size:11px;color:#94a3b8;margin:0">
+            TuLiquidacion · tuliquidacion.app<br>
+            Mensaje automático — este correo fue enviado porque solicitaste asesoría laboral.<br>
+            Esta estimación es orientativa y no constituye asesoría legal.
+          </p>
+        </div>
+      </div>
+    `
+  });
+}
+
+module.exports = { sendCustomerEmail, sendAdminNotification, sendLawyerInquiry };
