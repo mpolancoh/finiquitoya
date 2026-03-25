@@ -40,7 +40,7 @@ const CheckoutSchema = z.object({
   }).superRefine((val, ctx) => {
     if (val.startDate && val.endDate && val.endDate < val.startDate) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'endDate must be after startDate',
         path: ['endDate'],
       });
@@ -77,7 +77,9 @@ const VerifySessionSchema = z.object({
 function validate(res, schema, data) {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const message = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+    // zod v4 uses .issues; zod v4.x may expose them under .error.issues or .error.errors
+    const issues = result.error?.issues ?? result.error?.errors ?? [];
+    const message = issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') || String(result.error);
     res.status(400).json({ error: 'Validation failed', details: message });
     return null;
   }
