@@ -3458,85 +3458,213 @@ function recalculate() {
 
 function buildShareCanvas() {
   if (!FY.pdfState) return null;
-  const { result, termType } = FY.pdfState;
+  const { salary, startDate, endDate, termType, result } = FY.pdfState;
   const cfg = COUNTRY_CONFIG[S.country];
   const termLabels = {};
   cfg.termTypes.forEach(t => { termLabels[t.value] = t.name; });
-  const termLabel    = termLabels[termType] || termType;
-  const currency     = cfg.currency;
-  const totalFmt     = `${currency} $${Number(result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const unlockedTier = sessionStorage.getItem('fy_unlocked') || '';
-  const unlocked     = unlockedTier === 'basic' || unlockedTier === 'premium';
-  const items        = (unlocked && result.items) ? result.items.slice(0, 6) : [];
+  const termLabel = termLabels[termType] || termType;
+  const currency  = cfg.currency;
 
-  const W = 800, PAD = 48;
-  const SH_HDR  = 80,  SH_CTY = 48, SH_TOT = 100;
-  const SH_BHD  = items.length ? 36 : 0;
-  const SH_ITEM = 40,  SH_BTT = items.length ? 48 : 0;
-  const SH_FTR  = 48;
-  const H = SH_HDR + SH_CTY + SH_TOT + SH_BHD + items.length * SH_ITEM + SH_BTT + SH_FTR;
+  const fmtAmt = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalFmt = `${currency} ${fmtAmt(result.total)}`;
+
+  // Tenure
+  const tdDays = Math.floor((new Date(endDate) - new Date(startDate)) / 86400000);
+  const yrs = Math.floor(tdDays / 365), mos = Math.floor((tdDays % 365) / 30);
+  const tenure = (yrs ? yrs + (yrs === 1 ? ' año' : ' años') : '') +
+                 (mos ? (yrs ? ', ' : '') + mos + (mos === 1 ? ' mes' : ' meses') : '') || '< 1 mes';
+
+  const unlockedTier = sessionStorage.getItem('fy_unlocked') || '';
+  const unlocked = unlockedTier === 'basic' || unlockedTier === 'premium';
+  const items = (unlocked && result.items) ? result.items.slice(0, 7) : [];
+
+  const chips = [
+    `📅 ${tenure}`,
+    `💵 $${Number(salary).toLocaleString('es-MX', { maximumFractionDigits: 0 })}/mes`,
+    `📋 ${termLabel}`,
+    `🌎 ${cfg.name}`,
+  ];
+
+  // ── Layout ──────────────────────────────────
+  const W = 800;
+  const OP = 24;              // outer page margin
+  const CX = OP, CW = W - OP * 2;  // card x / width
+  const CP = 28;              // card inner padding
+  const R  = 16;              // card corner radius
+
+  // Measure chips to handle wrapping
+  const tmpCv = document.createElement('canvas');
+  const tmpCtx = tmpCv.getContext('2d');
+  tmpCtx.font = '500 14px Arial';
+  const CHIP_PX = 12, CHIP_H = 30, CHIP_GAP = 8;
+  let chipRows = [[]], rowX = 0;
+  chips.forEach(chip => {
+    const cw = tmpCtx.measureText(chip).width + CHIP_PX * 2;
+    if (rowX > 0 && rowX + cw + CHIP_GAP > CW - CP * 2) { chipRows.push([]); rowX = 0; }
+    chipRows[chipRows.length - 1].push({ text: chip, w: cw });
+    rowX += cw + CHIP_GAP;
+  });
+  const CHIPS_H = chipRows.length * (CHIP_H + CHIP_GAP) + 20;
+
+  const HDR_H      = 68;
+  const HERO_H     = 148;
+  const ITEM_H     = 44;
+  const TOT_ROW_H  = items.length ? 50 : 0;
+  const FTR_H      = 52;
+  const CARD_H = HDR_H + HERO_H + CHIPS_H + items.length * ITEM_H + TOT_ROW_H + FTR_H;
+  const H = CARD_H + OP * 2;
 
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  ctx.textBaseline = 'alphabetic';
-  let y = 0;
 
-  const fill  = (c, h)                   => { ctx.fillStyle = c; ctx.fillRect(0, y, W, h); };
-  const hline = (c = '#e2e8f0', lw = 1) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.restore(); };
-  const txt   = (s, x, dy, f, c, a = 'left') => { ctx.save(); ctx.font = f; ctx.fillStyle = c; ctx.textAlign = a; ctx.fillText(s, x, y + dy); ctx.restore(); };
+  const rrect = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); } else { ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); } };
 
-  // Header (navy)
-  fill('#1e3a8a', SH_HDR);
-  ctx.font = '900 42px Arial';
+  // Page background
+  ctx.fillStyle = '#e8edf2';
+  ctx.fillRect(0, 0, W, H);
+
+  // Card shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.12)';
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = '#ffffff';
+  rrect(CX, OP, CW, CARD_H, R);
+  ctx.fill();
+  ctx.restore();
+
+  // Card border
+  ctx.save();
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1.5;
+  rrect(CX, OP, CW, CARD_H, R);
+  ctx.stroke();
+  ctx.restore();
+
+  // Clip all content to card shape
+  ctx.save();
+  rrect(CX, OP, CW, CARD_H, R);
+  ctx.clip();
+
+  let y = OP;
+
+  // ── HEADER ──────────────────────────────────
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(CX, y, CW, HDR_H);
+
+  ctx.font = '800 26px Arial';
   const tuW = ctx.measureText('Tu').width;
-  txt('Tu',          PAD,       52, '900 42px Arial', '#ffffff');
-  txt('Liquidacion', PAD + tuW, 52, '900 42px Arial', '#93c5fd');
-  txt('tuliquidacion.app', PAD, 72, '400 18px Arial', '#bfdbfe');
-  y += SH_HDR;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#0f172a';
+  ctx.fillText('Tu', CX + CP, y + HDR_H / 2);
+  ctx.fillStyle = '#2563eb';
+  ctx.fillText('Liquidacion', CX + CP + tuW, y + HDR_H / 2);
+  ctx.font = '400 14px Arial';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'right';
+  ctx.fillText('tuliquidacion.app', CX + CW - CP, y + HDR_H / 2);
+  ctx.textAlign = 'left';
 
-  // Country / term type
-  fill('#f8fafc', SH_CTY);
-  txt(`${cfg.name}  ·  ${termLabel}`, PAD, 30, '400 24px Arial', '#475569');
-  y += SH_CTY; hline('#e2e8f0');
+  y += HDR_H;
+  ctx.fillStyle = '#f1f5f9'; ctx.fillRect(CX, y, CW, 1);
 
-  // Total
-  fill('#ffffff', SH_TOT);
-  txt('TOTAL ESTIMADO', W / 2, 28, '700 18px Arial', '#94a3b8', 'center');
-  let tFont = '900 58px Arial';
-  ctx.font = tFont; if (ctx.measureText(totalFmt).width > W - PAD * 2) tFont = '900 44px Arial';
-  ctx.font = tFont; if (ctx.measureText(totalFmt).width > W - PAD * 2) tFont = '900 34px Arial';
-  txt(totalFmt, W / 2, 84, tFont, '#16a34a', 'center');
-  y += SH_TOT; hline('#f1f5f9');
+  // ── HERO ────────────────────────────────────
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(CX, y, CW, HERO_H);
 
-  // Breakdown (paid users only)
-  if (items.length > 0) {
-    fill('#ffffff', SH_BHD);
-    txt('DESGLOSE', PAD, 24, '700 18px Arial', '#94a3b8');
-    y += SH_BHD;
-    items.forEach((item, i) => {
-      fill(i % 2 === 0 ? '#ffffff' : '#f8fafc', SH_ITEM);
-      const a = '$' + Number(item.amount).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      txt(item.name, PAD,     27, '400 22px Arial', '#334155');
-      txt(a,         W - PAD, 27, '700 22px Arial', '#1e293b', 'right');
-      y += SH_ITEM; hline('#f1f5f9');
+  // 💰 emoji in green circle
+  const cx = CX + CW / 2;
+  ctx.save();
+  ctx.fillStyle = '#dcfce7';
+  ctx.beginPath(); ctx.arc(cx, y + 36, 26, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.font = '22px Arial';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('💰', cx, y + 36);
+
+  ctx.font = '700 11px Arial';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('ESTIMADO TOTAL DE TU LIQUIDACIÓN', cx, y + 82);
+
+  let tf = '900 52px Arial';
+  ctx.font = tf; if (ctx.measureText(totalFmt).width > CW - 80) tf = '900 42px Arial';
+  ctx.font = tf; if (ctx.measureText(totalFmt).width > CW - 80) tf = '900 34px Arial';
+  ctx.font = tf;
+  ctx.fillStyle = '#16a34a';
+  ctx.fillText(totalFmt, cx, y + 136);
+  ctx.textAlign = 'left';
+
+  y += HERO_H;
+  ctx.fillStyle = '#e2e8f0'; ctx.fillRect(CX, y, CW, 1);
+
+  // ── CHIPS ───────────────────────────────────
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(CX, y, CW, CHIPS_H);
+  ctx.font = '500 14px Arial';
+  let chipY = y + 10;
+  chipRows.forEach(row => {
+    let chipX = CX + CP;
+    row.forEach(({ text, w: cw }) => {
+      ctx.fillStyle = '#ffffff';
+      rrect(chipX, chipY, cw, CHIP_H, 15); ctx.fill();
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+      rrect(chipX, chipY, cw, CHIP_H, 15); ctx.stroke();
+      ctx.fillStyle = '#334155';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, chipX + CHIP_PX, chipY + CHIP_H / 2);
+      chipX += cw + CHIP_GAP;
     });
-    fill('#eff6ff', SH_BTT); hline('#dbeafe', 2);
-    txt('Total estimado', PAD,     30, '700 24px Arial', '#1e3a8a');
-    txt(totalFmt,         W - PAD, 30, '900 24px Arial', '#1e3a8a', 'right');
-    y += SH_BTT;
+    chipY += CHIP_H + CHIP_GAP;
+  });
+  ctx.textBaseline = 'alphabetic';
+  y += CHIPS_H;
+
+  // ── BREAKDOWN ───────────────────────────────
+  if (items.length > 0) {
+    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(CX, y, CW, 1);
+    items.forEach((item, i) => {
+      ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+      ctx.fillRect(CX, y, CW, ITEM_H);
+      ctx.font = '400 15px Arial'; ctx.fillStyle = '#475569';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.name, CX + CP, y + ITEM_H / 2);
+      ctx.font = '600 15px Arial'; ctx.fillStyle = '#1e293b';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmtAmt(item.amount), CX + CW - CP, y + ITEM_H / 2);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#f1f5f9'; ctx.fillRect(CX, y + ITEM_H - 1, CW, 1);
+      y += ITEM_H;
+    });
+    // Total row
+    ctx.fillStyle = '#eff6ff'; ctx.fillRect(CX, y, CW, TOT_ROW_H);
+    ctx.fillStyle = '#bfdbfe'; ctx.fillRect(CX, y, CW, 2);
+    ctx.font = '700 16px Arial'; ctx.fillStyle = '#1e3a8a';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Total estimado', CX + CP, y + TOT_ROW_H / 2);
+    ctx.font = '800 16px Arial'; ctx.fillStyle = '#16a34a';
+    ctx.textAlign = 'right';
+    ctx.fillText(totalFmt, CX + CW - CP, y + TOT_ROW_H / 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    y += TOT_ROW_H;
   }
 
-  // Footer
-  fill('#f8fafc', SH_FTR); hline('#e2e8f0', 2);
+  // ── FOOTER ──────────────────────────────────
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(CX, y, CW, FTR_H);
+  ctx.fillStyle = '#e2e8f0'; ctx.fillRect(CX, y, CW, 1);
   const pre = 'Calcula el tuyo gratis en ';
   const dom = 'tuliquidacion.app';
-  ctx.font = '400 20px Arial'; const preW = ctx.measureText(pre).width;
-  ctx.font = '700 20px Arial'; const domW = ctx.measureText(dom).width;
-  const fx = (W - preW - domW) / 2;
-  txt(pre, fx,        30, '400 20px Arial', '#64748b');
-  txt(dom, fx + preW, 30, '700 20px Arial', '#1d4ed8');
+  ctx.font = '400 15px Arial'; const preW = ctx.measureText(pre).width;
+  ctx.font = '700 15px Arial'; const domW = ctx.measureText(dom).width;
+  const fx = CX + (CW - preW - domW) / 2;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#64748b'; ctx.font = '400 15px Arial';
+  ctx.fillText(pre, fx, y + FTR_H / 2);
+  ctx.fillStyle = '#2563eb'; ctx.font = '700 15px Arial';
+  ctx.fillText(dom, fx + preW, y + FTR_H / 2);
 
+  ctx.restore(); // end card clip
   return cv;
 }
 
