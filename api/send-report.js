@@ -7,10 +7,10 @@
 // Body: { email, pdfBase64, tier, country, result, inputs }
 
 const stripe                            = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { sendCustomerEmail }             = require('./lib/email');
-const { SendReportSchema, validate }    = require('./lib/validation');
-const { checkRateLimit, getIP }         = require('./lib/ratelimit');
-const { captureError }                  = require('./lib/sentry');
+const { sendCustomerEmail }             = require('./_lib/email');
+const { SendReportSchema, validate }    = require('./_lib/validation');
+const { checkRateLimit, getIP }         = require('./_lib/ratelimit');
+const { captureError }                  = require('./_lib/sentry');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();

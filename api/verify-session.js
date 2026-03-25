@@ -2,10 +2,10 @@
 // Verifies a Stripe Checkout Session is paid and returns { ok, tier, country }
 
 const stripe                            = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const redis                             = require('./lib/redis');
-const { VerifySessionSchema, validate } = require('./lib/validation');
-const { checkRateLimit, getIP }         = require('./lib/ratelimit');
-const { captureError }                  = require('./lib/sentry');
+const redis                             = require('./_lib/redis');
+const { VerifySessionSchema, validate } = require('./_lib/validation');
+const { checkRateLimit, getIP }         = require('./_lib/ratelimit');
+const { captureError }                  = require('./_lib/sentry');
 
 module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).end();

@@ -12,11 +12,11 @@
 // }
 
 const stripe              = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { COUNTRY_CONFIG }  = require('./lib/config');
-const { createTransaction } = require('./lib/sheets');
-const { CheckoutSchema, validate } = require('./lib/validation');
-const { checkRateLimit, getIP }    = require('./lib/ratelimit');
-const { captureError }    = require('./lib/sentry');
+const { COUNTRY_CONFIG }  = require('./_lib/config');
+const { createTransaction } = require('./_lib/sheets');
+const { CheckoutSchema, validate } = require('./_lib/validation');
+const { checkRateLimit, getIP }    = require('./_lib/ratelimit');
+const { captureError }    = require('./_lib/sentry');
 const crypto              = require('crypto');
 
 module.exports = async (req, res) => {

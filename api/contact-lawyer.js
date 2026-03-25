@@ -6,9 +6,9 @@
 //
 // Body: { nombre, email, empresa, desc, country, salary, startDate, endDate, termType, total, files }
 
-const { sendCustomerEmail, sendLawyerInquiry } = require('./lib/email');
-const { checkRateLimit, getIP }                = require('./lib/ratelimit');
-const { captureError }                         = require('./lib/sentry');
+const { sendCustomerEmail, sendLawyerInquiry } = require('./_lib/email');
+const { checkRateLimit, getIP }                = require('./_lib/ratelimit');
+const { captureError }                         = require('./_lib/sentry');
 const { z }                                    = require('zod');
 
 const ContactLawyerSchema = z.object({

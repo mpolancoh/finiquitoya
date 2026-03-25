@@ -11,10 +11,10 @@
 // not by this webhook, to keep Lambda memory usage low.
 
 const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const redis   = require('./lib/redis');
-const { getTransactionByUUID, completeTransaction } = require('./lib/sheets');
-const { sendAdminNotification } = require('./lib/email');
-const { captureError }          = require('./lib/sentry');
+const redis   = require('./_lib/redis');
+const { getTransactionByUUID, completeTransaction } = require('./_lib/sheets');
+const { sendAdminNotification } = require('./_lib/email');
+const { captureError }          = require('./_lib/sentry');
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {

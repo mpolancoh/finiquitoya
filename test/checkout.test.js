@@ -10,7 +10,7 @@
 //
 // These run entirely locally — no server, no network calls needed.
 
-const { CheckoutSchema, SendReportSchema, VerifySessionSchema } = require('../api/lib/validation');
+const { CheckoutSchema, SendReportSchema, VerifySessionSchema } = require('../api/_lib/validation');
 
 let passed = 0;
 let failed = 0;
