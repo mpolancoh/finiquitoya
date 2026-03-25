@@ -46,7 +46,7 @@ const CheckoutSchema = z.object({
       });
     }
   }),
-  result: z.record(z.any()).optional().default({}),
+  result: z.record(z.string(), z.any()).optional().default({}),
 });
 
 // ── POST /api/send-report ────────────────────────────────────────────────────
@@ -56,8 +56,8 @@ const SendReportSchema = z.object({
   pdfBase64: z.string().min(100),   // must be non-trivially long
   tier:      z.enum(TIERS),
   country:   z.enum(COUNTRIES),
-  result:    z.record(z.any()).optional().default({}),
-  inputs:    z.record(z.any()).optional().default({}),
+  result:    z.record(z.string(), z.any()).optional().default({}),
+  inputs:    z.record(z.string(), z.any()).optional().default({}),
 });
 
 // ── GET /api/verify-session ──────────────────────────────────────────────────
