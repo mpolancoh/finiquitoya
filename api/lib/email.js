@@ -104,7 +104,7 @@ function buildBreakdownTable(items, total, country) {
 
 function buildEmployerLetter(calcData) {
   const { country = 'mx', inputs = {}, result = {} } = calcData;
-  const { salary = 0, startDate, endDate, termType } = inputs;
+  const { salary = 0, startDate, endDate, termType, workerName = '' } = inputs;
   const { items = [], total = 0, SDB = 0, SDI = 0 } = result;
 
   const termLabel  = TERM_TYPE_LABELS[termType]   || termType   || 'separación laboral';
@@ -159,9 +159,8 @@ function buildEmployerLetter(calcData) {
     <p style="margin:0 0 16px 0">${greeting} [Nombre del destinatario]:</p>
 
     <p style="margin:0 0 16px 0">
-      Por medio de la presente, yo, <strong>[Tu nombre completo]</strong>, me dirijo a ustedes con el
-      fin de solicitar formalmente el pago de la liquidación que me corresponde por ley, derivada de
-      la conclusión de mi relación laboral con esta empresa.
+      Me dirijo a ustedes con el fin de solicitar formalmente el pago de la liquidación que me
+      corresponde por ley, derivada de la conclusión de mi relación laboral con esta empresa.
     </p>
 
     <p style="margin:0 0 16px 0">
@@ -188,7 +187,7 @@ function buildEmployerLetter(calcData) {
 
     <p style="margin:0 0 6px 0">Atentamente,</p>
     <br>
-    <p style="margin:0 0 4px 0"><strong>[Tu nombre completo]</strong></p>
+    <p style="margin:0 0 4px 0"><strong>${workerName || '[Tu nombre completo]'}</strong></p>
     <p style="margin:0;font-size:13px;line-height:1.9">
       ${idField}: [Tu número de identificación]<br>
       Teléfono: [Tu teléfono]<br>
@@ -214,9 +213,11 @@ async function sendCustomerEmail(toEmail, calcData, pdfBuffer) {
 
   // ── Shared branded header ──────────────────────────────────────────────────
   const brandHeader = `
-    <div style="background:#1d4ed8;padding:22px 32px;border-radius:8px 8px 0 0">
-      <p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:sans-serif">TuLiquidacion</p>
-      <p style="margin:4px 0 0 0;font-size:12px;color:#93c5fd;font-family:sans-serif">tuliquidacion.app</p>
+    <div style="background:#ffffff;padding:22px 32px;border-radius:8px 8px 0 0;border-bottom:3px solid #1d4ed8">
+      <p style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.5px;font-family:sans-serif">
+        <span style="color:#111827">Tu</span><span style="color:#1d4ed8">Liquidacion</span>
+      </p>
+      <p style="margin:4px 0 0 0;font-size:12px;color:#64748b;font-family:sans-serif">tuliquidacion.app</p>
     </div>
   `;
 

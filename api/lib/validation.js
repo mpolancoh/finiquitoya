@@ -80,7 +80,6 @@ function validate(res, schema, data) {
     // zod v4 uses .issues; zod v4.x may expose them under .error.issues or .error.errors
     const issues = result.error?.issues ?? result.error?.errors ?? [];
     const message = issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') || String(result.error);
-    console.error('VALIDATION_FAIL:', message);
     res.status(400).json({ error: 'Validation failed', details: message });
     return null;
   }

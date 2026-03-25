@@ -2758,8 +2758,8 @@ function buildPdfDocDef(state, folio, workerName) {
     table: { widths: ['*', '*'], body: [[
       {
         stack: [
-          { text: [{ text: 'Finiquito', bold: true, color: WHITE, fontSize: 14 },
-                   { text: 'Ya', bold: true, color: '#93c5fd', fontSize: 14 }], margin: [0,0,0,2] },
+          { text: [{ text: 'Tu', bold: true, color: WHITE, fontSize: 14 },
+                   { text: 'Liquidacion', bold: true, color: '#93c5fd', fontSize: 14 }], margin: [0,0,0,2] },
           { text: 'Análisis de Liquidación Laboral', fontSize: 7.5, color: '#8baed4' }
         ],
         fillColor: NAVY
@@ -3047,10 +3047,11 @@ function buildPdfDocDef(state, folio, workerName) {
       ...rightsContent,
       { text: '', margin: [0, 0, 0, 8] },
 
-      // Disclaimer — dontBreakRows keeps the single-row table on one page (works at placement time,
-      // unaffected by the negative-margin width-expansion that broke unbreakable: true)
+      // Disclaimer — pageBreak:'before' guarantees it always starts on its own page,
+      // avoiding the split that dontBreakRows couldn't prevent with negative-margin tables.
       {
         margin: [-40, 0, -40, 0],
+        pageBreak: 'before',
         table: { widths: ['*'], dontBreakRows: true, body: [[{
           stack: [
             { text: 'AVISO LEGAL IMPORTANTE — LEA ANTES DE UTILIZAR ESTE DOCUMENTO',
