@@ -18,6 +18,7 @@
   <link rel="canonical" href="https://tuliquidacion.app">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
       --blue-700:  #1d4ed8;
@@ -315,6 +316,21 @@
       border-radius: 20px; padding: 4px 12px;
       font-size: 12px; font-weight: 700; margin-top: 10px;
     }
+
+    /* SHARE BAR */
+    .share-bar-label { font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#94a3b8; margin:0 0 10px 0; }
+    .share-btns { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+    .btn-share {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:9px 18px; border-radius:20px; border:none;
+      font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-share:hover  { opacity:.85; transform:translateY(-1px); }
+    .btn-share:active { transform:scale(.97); }
+    .btn-share:disabled { opacity:.6; cursor:default; transform:none; }
+    .btn-share-wa { background:#25D366; color:#fff; }
+    .btn-share-ig { background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color:#fff; }
 
     /* SUMMARY CHIPS */
     .summary-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -959,6 +975,21 @@
         <p class="hero-amount" id="heroTotal"></p>
         <p class="hero-context" id="heroContext"></p>
         <span class="hero-free-badge">✓ Monto total gratuito</span>
+      </div>
+
+      <!-- Share bar -->
+      <div id="shareBar" style="display:none;text-align:center;padding:0 0 20px 0">
+        <p class="share-bar-label">Comparte tu estimado</p>
+        <div class="share-btns">
+          <button class="btn-share btn-share-wa" onclick="shareWhatsApp()">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
+          <button class="btn-share btn-share-ig" onclick="saveForInstagram()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15" style="flex-shrink:0"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+            Guardar imagen
+          </button>
+        </div>
       </div>
 
       <div class="summary-chips" id="summaryChips"></div>
@@ -2114,6 +2145,10 @@ function calculate() {
 
   // Store state for PDF generation
   FY.pdfState = { salary, comps, startDate, endDate, termType, bonuses, unusedVac, result };
+
+  // Show share bar now that we have results
+  const shareBar = document.getElementById('shareBar');
+  if (shareBar) shareBar.style.display = '';
 
   // Lawyer tiers
   renderLawyerTiers(result.total, cfg);
@@ -3419,6 +3454,134 @@ function recalculate() {
   document.getElementById('landingHero').classList.remove('hidden');
   showStep(1);
 }
+
+// ── Share feature ──────────────────────────────────────────────────────────────
+
+function buildShareCard() {
+  if (!FY.pdfState) return;
+  const { result, termType } = FY.pdfState;
+  const cfg = COUNTRY_CONFIG[S.country];
+  const termLabels = {};
+  cfg.termTypes.forEach(t => { termLabels[t.value] = t.name; });
+  const termLabel    = termLabels[termType] || termType;
+  const currency     = cfg.currency;
+  const countryEmoji = { mx: '🇲🇽', co: '🇨🇴', ve: '🇻🇪' }[S.country] || '🌎';
+  const totalFmt     = Number(result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const unlockedTier = sessionStorage.getItem('fy_unlocked') || '';
+  const unlocked     = unlockedTier === 'basic' || unlockedTier === 'premium';
+
+  let itemRowsHtml = '';
+  if (unlocked && result.items && result.items.length) {
+    result.items.slice(0, 6).forEach((item, i) => {
+      const amtFmt = Number(item.amount).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      itemRowsHtml += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 24px;background:${i%2===0?'#fff':'#f8fafc'};border-bottom:1px solid #f1f5f9">
+          <span style="font-size:12px;color:#334155">${item.name}</span>
+          <span style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap">$${amtFmt}</span>
+        </div>`;
+    });
+  }
+
+  const breakdownSection = unlocked && itemRowsHtml ? `
+    <div style="padding:8px 24px 4px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8">Desglose</div>
+    </div>
+    ${itemRowsHtml}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 24px;background:#eff6ff;border-bottom:1px solid #dbeafe">
+      <span style="font-size:13px;font-weight:700;color:#1e3a8a">Total estimado</span>
+      <span style="font-size:13px;font-weight:900;color:#1e3a8a;white-space:nowrap">${currency} $${totalFmt}</span>
+    </div>` : '';
+
+  document.getElementById('shareCard').innerHTML = `
+    <div style="background:#1e3a8a;padding:16px 24px">
+      <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;line-height:1">
+        <span style="color:#ffffff">Tu</span><span style="color:#93c5fd">Liquidacion</span>
+      </div>
+      <div style="font-size:10px;color:#bfdbfe;margin-top:3px">tuliquidacion.app</div>
+    </div>
+    <div style="background:#f8fafc;padding:10px 24px;border-bottom:1px solid #e2e8f0">
+      <div style="font-size:13px;color:#475569">${countryEmoji}&nbsp;${cfg.name}&nbsp;&nbsp;·&nbsp;&nbsp;${termLabel}</div>
+    </div>
+    <div style="padding:22px 24px;text-align:center;border-bottom:1px solid #f1f5f9">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">TOTAL ESTIMADO</div>
+      <div style="font-size:40px;font-weight:900;color:#16a34a;letter-spacing:-1.5px;line-height:1">${currency}&nbsp;$${totalFmt}</div>
+    </div>
+    ${breakdownSection}
+    <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center">
+      <div style="font-size:11px;color:#64748b">Calcula el tuyo gratis en <strong style="color:#1d4ed8">tuliquidacion.app</strong></div>
+    </div>
+  `;
+}
+
+async function getShareCanvas() {
+  buildShareCard();
+  const card = document.getElementById('shareCard');
+  const prevLeft = card.style.left, prevTop = card.style.top, prevVis = card.style.visibility;
+  card.style.left = '0px';
+  card.style.top  = '0px';
+  card.style.visibility = 'hidden';
+  try {
+    return await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+  } finally {
+    card.style.left = prevLeft;
+    card.style.top  = prevTop;
+    card.style.visibility = prevVis;
+  }
+}
+
+async function shareWhatsApp() {
+  if (!FY.pdfState) return;
+  const btn = document.querySelector('.btn-share-wa');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+  const cfg = COUNTRY_CONFIG[S.country];
+  const totalFmt = Number(FY.pdfState.result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const text = `💼 Calculé mi liquidación con TuLiquidacion: $${totalFmt} ${cfg.currency}.\nCalcula la tuya gratis en tuliquidacion.app`;
+  try {
+    const canvas = await getShareCanvas();
+    await new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        try {
+          const file = new File([blob], 'mi-liquidacion.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+          } else if (navigator.share) {
+            await navigator.share({ text });
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+          }
+        } catch (e) {
+          if (e.name !== 'AbortError') window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }
+        resolve();
+      }, 'image/png');
+    });
+  } catch (e) {
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+    trackEvent('share_whatsapp', { country: S.country });
+  }
+}
+
+async function saveForInstagram() {
+  if (!FY.pdfState) return;
+  const btn = document.querySelector('.btn-share-ig');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+  try {
+    const canvas = await getShareCanvas();
+    const link = document.createElement('a');
+    link.download = 'mi-liquidacion-tuliquidacion.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    trackEvent('share_instagram', { country: S.country });
+  } catch (e) {
+    alert('No se pudo generar la imagen. Intenta de nuevo.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+  }
+}
 </script>
 <div id="pdf-print-area"></div>
 
@@ -3450,6 +3613,9 @@ function recalculate() {
     <p style="font-size:11px;color:#94a3b8;margin:0">© TuLiquidacion · tuliquidacion.app</p>
   </div>
 </footer>
+
+<!-- Hidden share card — rendered off-screen for html2canvas capture -->
+<div id="shareCard" style="position:fixed;left:-9999px;top:0;width:400px;font-family:Arial,Helvetica,sans-serif;background:#ffffff;overflow:hidden;border-radius:12px;box-shadow:none"></div>
 
 </body>
 </html>
