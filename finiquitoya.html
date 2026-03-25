@@ -21,7 +21,6 @@
   <script defer src="/_vercel/insights/script.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
       --blue-700:  #1d4ed8;
@@ -3723,76 +3722,90 @@ function recalculate() {
 
 // ── Share feature ──────────────────────────────────────────────────────────────
 
-function buildShareCard() {
-  if (!FY.pdfState) return;
+// ── Share feature — Canvas 2D (no external dependency) ────────────────────────
+
+function buildShareCanvas() {
+  if (!FY.pdfState) return null;
   const { result, termType } = FY.pdfState;
   const cfg = COUNTRY_CONFIG[S.country];
   const termLabels = {};
   cfg.termTypes.forEach(t => { termLabels[t.value] = t.name; });
-  const termLabel   = termLabels[termType] || termType;
-  const currency    = cfg.currency;
-  const countryEmoji = { mx: '🇲🇽', co: '🇨🇴', ve: '🇻🇪' }[S.country] || '🌎';
-  const totalFmt    = Number(result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const termLabel    = termLabels[termType] || termType;
+  const currency     = cfg.currency;
+  const totalFmt     = `${currency} $${Number(result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const unlockedTier = sessionStorage.getItem('fy_unlocked') || '';
-  const unlocked    = unlockedTier === 'basic' || unlockedTier === 'premium';
+  const unlocked     = unlockedTier === 'basic' || unlockedTier === 'premium';
+  const items        = (unlocked && result.items) ? result.items.slice(0, 6) : [];
 
-  let itemRowsHtml = '';
-  if (unlocked && result.items && result.items.length) {
-    result.items.slice(0, 6).forEach((item, i) => {
-      const amtFmt = Number(item.amount).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      itemRowsHtml += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 24px;background:${i%2===0?'#fff':'#f8fafc'};border-bottom:1px solid #f1f5f9">
-          <span style="font-size:12px;color:#334155">${item.name}</span>
-          <span style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap">$${amtFmt}</span>
-        </div>`;
+  const W = 800, PAD = 48;
+  const SH_HDR  = 80,  SH_CTY = 48, SH_TOT = 100;
+  const SH_BHD  = items.length ? 36 : 0;
+  const SH_ITEM = 40,  SH_BTT = items.length ? 48 : 0;
+  const SH_FTR  = 48;
+  const H = SH_HDR + SH_CTY + SH_TOT + SH_BHD + items.length * SH_ITEM + SH_BTT + SH_FTR;
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.textBaseline = 'alphabetic';
+  let y = 0;
+
+  const fill  = (c, h)                   => { ctx.fillStyle = c; ctx.fillRect(0, y, W, h); };
+  const hline = (c = '#e2e8f0', lw = 1) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.restore(); };
+  const txt   = (s, x, dy, f, c, a = 'left') => { ctx.save(); ctx.font = f; ctx.fillStyle = c; ctx.textAlign = a; ctx.fillText(s, x, y + dy); ctx.restore(); };
+
+  // Header (navy)
+  fill('#1e3a8a', SH_HDR);
+  ctx.font = '900 42px Arial';
+  const tuW = ctx.measureText('Tu').width;
+  txt('Tu',          PAD,       52, '900 42px Arial', '#ffffff');
+  txt('Liquidacion', PAD + tuW, 52, '900 42px Arial', '#93c5fd');
+  txt('tuliquidacion.app', PAD, 72, '400 18px Arial', '#bfdbfe');
+  y += SH_HDR;
+
+  // Country / term type
+  fill('#f8fafc', SH_CTY);
+  txt(`${cfg.name}  ·  ${termLabel}`, PAD, 30, '400 24px Arial', '#475569');
+  y += SH_CTY; hline('#e2e8f0');
+
+  // Total
+  fill('#ffffff', SH_TOT);
+  txt('TOTAL ESTIMADO', W / 2, 28, '700 18px Arial', '#94a3b8', 'center');
+  let tFont = '900 58px Arial';
+  ctx.font = tFont; if (ctx.measureText(totalFmt).width > W - PAD * 2) tFont = '900 44px Arial';
+  ctx.font = tFont; if (ctx.measureText(totalFmt).width > W - PAD * 2) tFont = '900 34px Arial';
+  txt(totalFmt, W / 2, 84, tFont, '#16a34a', 'center');
+  y += SH_TOT; hline('#f1f5f9');
+
+  // Breakdown (paid users only)
+  if (items.length > 0) {
+    fill('#ffffff', SH_BHD);
+    txt('DESGLOSE', PAD, 24, '700 18px Arial', '#94a3b8');
+    y += SH_BHD;
+    items.forEach((item, i) => {
+      fill(i % 2 === 0 ? '#ffffff' : '#f8fafc', SH_ITEM);
+      const a = '$' + Number(item.amount).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      txt(item.name, PAD,     27, '400 22px Arial', '#334155');
+      txt(a,         W - PAD, 27, '700 22px Arial', '#1e293b', 'right');
+      y += SH_ITEM; hline('#f1f5f9');
     });
+    fill('#eff6ff', SH_BTT); hline('#dbeafe', 2);
+    txt('Total estimado', PAD,     30, '700 24px Arial', '#1e3a8a');
+    txt(totalFmt,         W - PAD, 30, '900 24px Arial', '#1e3a8a', 'right');
+    y += SH_BTT;
   }
 
-  const breakdownSection = unlocked && itemRowsHtml ? `
-    <div style="padding:8px 24px 4px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8">Desglose</div>
-    </div>
-    ${itemRowsHtml}
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 24px;background:#eff6ff;border-bottom:1px solid #dbeafe">
-      <span style="font-size:13px;font-weight:700;color:#1e3a8a">Total estimado</span>
-      <span style="font-size:13px;font-weight:900;color:#1e3a8a;white-space:nowrap">${currency} $${totalFmt}</span>
-    </div>` : '';
+  // Footer
+  fill('#f8fafc', SH_FTR); hline('#e2e8f0', 2);
+  const pre = 'Calcula el tuyo gratis en ';
+  const dom = 'tuliquidacion.app';
+  ctx.font = '400 20px Arial'; const preW = ctx.measureText(pre).width;
+  ctx.font = '700 20px Arial'; const domW = ctx.measureText(dom).width;
+  const fx = (W - preW - domW) / 2;
+  txt(pre, fx,        30, '400 20px Arial', '#64748b');
+  txt(dom, fx + preW, 30, '700 20px Arial', '#1d4ed8');
 
-  document.getElementById('shareCard').innerHTML = `
-    <div style="background:#1e3a8a;padding:16px 24px">
-      <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;line-height:1">
-        <span style="color:#ffffff">Tu</span><span style="color:#93c5fd">Liquidacion</span>
-      </div>
-      <div style="font-size:10px;color:#bfdbfe;margin-top:3px">tuliquidacion.app</div>
-    </div>
-    <div style="background:#f8fafc;padding:10px 24px;border-bottom:1px solid #e2e8f0">
-      <div style="font-size:13px;color:#475569">${countryEmoji}&nbsp;${cfg.name}&nbsp;&nbsp;·&nbsp;&nbsp;${termLabel}</div>
-    </div>
-    <div style="padding:22px 24px;text-align:center;border-bottom:1px solid #f1f5f9">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">TOTAL ESTIMADO</div>
-      <div style="font-size:40px;font-weight:900;color:#16a34a;letter-spacing:-1.5px;line-height:1">${currency}&nbsp;$${totalFmt}</div>
-    </div>
-    ${breakdownSection}
-    <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center">
-      <div style="font-size:11px;color:#64748b">Calcula el tuyo gratis en <strong style="color:#1d4ed8">tuliquidacion.app</strong></div>
-    </div>
-  `;
-}
-
-async function getShareCanvas() {
-  buildShareCard();
-  const source = document.getElementById('shareCard');
-  // Clone into a temporary absolutely-positioned div — position:fixed with negative left
-  // causes blank captures in html2canvas; a fresh absolute clone at top:0 is reliable.
-  const clone = document.createElement('div');
-  clone.style.cssText = 'position:absolute;left:0;top:0;width:400px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;border-radius:12px;font-family:Arial,Helvetica,sans-serif;background:#ffffff';
-  clone.innerHTML = source.innerHTML;
-  document.body.appendChild(clone);
-  try {
-    return await html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-  } finally {
-    document.body.removeChild(clone);
-  }
+  return cv;
 }
 
 async function shareWhatsApp() {
@@ -3804,7 +3817,7 @@ async function shareWhatsApp() {
   const totalFmt = Number(FY.pdfState.result.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const text = `💼 Calculé mi liquidación con TuLiquidacion: $${totalFmt} ${cfg.currency}.\nCalcula la tuya gratis en tuliquidacion.app`;
   try {
-    const canvas = await getShareCanvas();
+    const canvas = buildShareCanvas();
     await new Promise((resolve) => {
       canvas.toBlob(async (blob) => {
         try {
@@ -3830,20 +3843,20 @@ async function shareWhatsApp() {
   }
 }
 
-async function saveForInstagram() {
+function saveForInstagram() {
   if (!FY.pdfState) return;
   const btn = document.querySelector('.btn-share-ig');
   const origHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
   try {
-    const canvas = await getShareCanvas();
+    const canvas = buildShareCanvas();
     const link = document.createElement('a');
     link.download = 'mi-liquidacion-tuliquidacion.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
     trackEvent('share_instagram', { country: S.country });
   } catch (e) {
-    alert('No se pudo generar la imagen. Intenta de nuevo.');
+    alert('Error al generar imagen: ' + (e && e.message ? e.message : e));
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
   }
@@ -3880,8 +3893,6 @@ async function saveForInstagram() {
   </div>
 </footer>
 
-<!-- Hidden share card — rendered off-screen for html2canvas capture -->
-<div id="shareCard" style="position:fixed;left:-9999px;top:0;width:400px;font-family:Arial,Helvetica,sans-serif;background:#ffffff;overflow:hidden;border-radius:12px;box-shadow:none"></div>
 
 </body>
 </html>
