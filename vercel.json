@@ -4,6 +4,7 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/mx", "destination": "/mx/index.html" },
     { "source": "/co", "destination": "/co/index.html" },
+    { "source": "/co/ley-2466", "destination": "/co/ley-2466/index.html" },
     { "source": "/ve", "destination": "/ve/index.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
