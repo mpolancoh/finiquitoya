@@ -1509,6 +1509,15 @@ function onRadioChange(input) {
 // endDate left blank — user fills in their actual last day
 applyCountryConfig(); // initialize component labels for default country (mx)
 
+// Auto-select country from landing page URL param (?pais=mx|co|ve)
+(function() {
+  const p = new URLSearchParams(window.location.search).get('pais');
+  if (p && ['mx','co','ve'].includes(p) && p !== S.country) {
+    const card = document.getElementById('cc-' + p);
+    if (card) pickCountry(p, card);
+  }
+})();
+
 // Restore state after returning from Stripe payment
 function restoreAndAutoCalc() {
   // Trigger if we just came back from Stripe (?unlocked= detected) OR if we already have unlock + saved state

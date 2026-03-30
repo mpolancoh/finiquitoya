@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Liquidación Laboral México 2026 — Gratis | TuLiquidacion</title>
+  <meta name="description" content="Calcula gratis tu liquidación laboral en México 2026. Indemnización constitucional, 20 días por año, prima de antigüedad, vacaciones y aguinaldo proporcional según la LFT. Resultado en 2 minutos.">
+  <link rel="canonical" href="https://tuliquidacion.app/mx">
+  <meta property="og:title" content="Calculadora de Liquidación México 2026 — Gratis">
+  <meta property="og:description" content="¿Cuánto te corresponde si te despiden o renuncias en México? Calcula gratis según la LFT en 2 minutos.">
+  <meta property="og:url" content="https://tuliquidacion.app/mx">
+  <meta property="og:image" content="https://tuliquidacion.app/og-image.png">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_MX">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Cuánto me corresponde si me despiden sin causa en México?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Si te despiden injustificadamente en México tienes derecho a: 3 meses de salario como indemnización constitucional, 20 días de salario por cada año trabajado, prima de antigüedad (12 días por año), vacaciones proporcionales no gozadas, prima vacacional (25% de las vacaciones) y aguinaldo proporcional. Todo calculado con el salario diario integrado según el Art. 84 LFT."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué me dan si renuncio voluntariamente en México?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Si renuncias voluntariamente en México no tienes derecho a la indemnización de 3 meses ni a los 20 días por año. Sí te corresponden: prima de antigüedad (12 días por año, solo si tienes más de 15 años de antigüedad), vacaciones proporcionales, prima vacacional y aguinaldo proporcional al tiempo trabajado."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué es el salario diario integrado y por qué importa?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "El salario diario integrado (SDI) es la base real de cálculo de tu liquidación. Incluye tu salario base más las partes proporcionales de prestaciones como aguinaldo (15 días mínimo), prima vacacional (25% de vacaciones) y cualquier otro pago regular (bonos, vales, comisiones). Un salario de $15,000 MXN mensual suele tener un SDI 10-15% mayor que el salario base."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cuánto tiempo tiene la empresa para pagarme la liquidación?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "La Ley Federal del Trabajo no establece un plazo fijo, pero la práctica general es que el pago debe realizarse el mismo día de la separación o dentro de los días inmediatos siguientes. Si la empresa se niega a pagar, puedes presentar una demanda ante la Junta Federal de Conciliación y Arbitraje (JFCA) o acudir a la PROFEDET de forma gratuita."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué es la prima de antigüedad en México?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "La prima de antigüedad es un pago de 12 días de salario por cada año trabajado, con un tope de 2 veces el salario mínimo diario. Se paga en despido injustificado, renuncia voluntaria después de 15 años de servicio, o por retiro forzado. Está prevista en el Art. 162 de la LFT."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root {
+      --blue-700: #1d4ed8; --blue-600: #2563eb; --blue-50: #eff6ff; --blue-100: #dbeafe;
+      --green-600: #16a34a; --green-50: #f0fdf4;
+      --slate-900: #0f172a; --slate-800: #1e293b; --slate-700: #334155;
+      --slate-500: #64748b; --slate-400: #94a3b8; --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0; --slate-100: #f1f5f9; --slate-50: #f8fafc;
+      --white: #ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: var(--slate-50); color: var(--slate-800); -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue-600); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* HEADER */
+    .header { background: var(--white); border-bottom: 1px solid var(--slate-200); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .logo-mark { width: 32px; height: 32px; background: var(--blue-600); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 16px; }
+    .logo-text { font-size: 18px; font-weight: 800; color: var(--slate-900); letter-spacing: -.5px; }
+    .logo-text span { color: var(--blue-600); }
+    .header-link { font-size: 13px; font-weight: 600; color: var(--slate-500); background: var(--slate-100); padding: 6px 14px; border-radius: 20px; text-decoration: none; }
+    .header-link:hover { background: var(--blue-50); color: var(--blue-600); text-decoration: none; }
+
+    /* LAYOUT */
+    .main { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
+
+    /* HERO */
+    .hero { text-align: center; margin-bottom: 48px; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-50); color: var(--blue-600); font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; letter-spacing: .3px; }
+    .hero h1 { font-size: clamp(26px, 5vw, 38px); font-weight: 900; color: var(--slate-900); letter-spacing: -.7px; line-height: 1.15; margin-bottom: 16px; }
+    .hero h1 span { color: var(--blue-600); }
+    .hero-sub { font-size: 16px; color: var(--slate-500); line-height: 1.65; max-width: 540px; margin: 0 auto 28px; }
+    .cta-btn { display: inline-block; background: var(--blue-600); color: white; font-size: 16px; font-weight: 700; padding: 14px 32px; border-radius: 10px; text-decoration: none; transition: background .15s, transform .1s; box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+    .cta-btn:hover { background: var(--blue-700); text-decoration: none; transform: translateY(-1px); }
+    .hero-trust { margin-top: 14px; font-size: 12px; color: var(--slate-400); }
+
+    /* SECTION */
+    .section { margin-bottom: 48px; }
+    .section-title { font-size: 20px; font-weight: 800; color: var(--slate-900); letter-spacing: -.3px; margin-bottom: 6px; }
+    .section-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 20px; line-height: 1.6; }
+
+    /* CONCEPT CARDS */
+    .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .concept-card { background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px 18px; }
+    .concept-name { font-size: 13px; font-weight: 700; color: var(--slate-800); margin-bottom: 4px; }
+    .concept-law { font-size: 11px; color: var(--blue-600); font-weight: 600; margin-bottom: 6px; }
+    .concept-desc { font-size: 12px; color: var(--slate-500); line-height: 1.5; }
+
+    /* LAW BOX */
+    .law-box { background: var(--blue-50); border-left: 4px solid var(--blue-600); border-radius: 0 8px 8px 0; padding: 18px 22px; margin-bottom: 48px; }
+    .law-box p { font-size: 14px; color: var(--slate-700); line-height: 1.7; }
+    .law-box strong { color: var(--blue-700); }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 10px; }
+    .faq-item { background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; overflow: hidden; }
+    .faq-q { width: 100%; text-align: left; background: none; border: none; padding: 16px 20px; font-size: 14px; font-weight: 700; color: var(--slate-800); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .faq-q:hover { background: var(--slate-50); }
+    .faq-icon { font-size: 18px; color: var(--slate-400); flex-shrink: 0; transition: transform .2s; }
+    .faq-a { display: none; padding: 0 20px 16px; font-size: 13px; color: var(--slate-600); line-height: 1.7; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+    /* CTA BOTTOM */
+    .cta-bottom { background: var(--blue-600); border-radius: 14px; padding: 36px 32px; text-align: center; color: white; margin-bottom: 48px; }
+    .cta-bottom h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .cta-bottom p { font-size: 14px; opacity: .85; margin-bottom: 22px; }
+    .cta-btn-white { display: inline-block; background: white; color: var(--blue-600); font-size: 15px; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; }
+    .cta-btn-white:hover { background: var(--blue-50); text-decoration: none; }
+
+    /* FOOTER */
+    .footer { text-align: center; font-size: 12px; color: var(--slate-400); padding-top: 24px; border-top: 1px solid var(--slate-200); line-height: 1.8; }
+    .footer a { color: var(--slate-400); }
+
+    @media (max-width: 480px) {
+      .concept-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">
+    <div class="logo-mark">T</div>
+    <div class="logo-text">Tu<span>Liquidacion</span></div>
+  </a>
+  <a href="/?pais=mx" class="header-link">Calcular ahora →</a>
+</header>
+
+<main class="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">🇲🇽 México · Ley Federal del Trabajo</div>
+    <h1>Calculadora de <span>Liquidación Laboral</span> en México 2026</h1>
+    <p class="hero-sub">¿Cuánto te corresponde si te corren o renuncias? Calcula tu indemnización, vacaciones, aguinaldo y todos los conceptos de la LFT — gratis, en 2 minutos.</p>
+    <a href="/?pais=mx" class="cta-btn">Calcular mi liquidación gratis →</a>
+    <p class="hero-trust">Sin registro · Resultado inmediato · Basado en la LFT 2024</p>
+  </section>
+
+  <!-- CONCEPTOS -->
+  <section class="section">
+    <h2 class="section-title">¿Qué conceptos incluye tu liquidación en México?</h2>
+    <p class="section-sub">Según la Ley Federal del Trabajo, al terminar tu relación laboral te corresponden los siguientes conceptos:</p>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-name">Indemnización constitucional</div>
+        <div class="concept-law">Art. 123 CPEUM · Art. 50 LFT</div>
+        <div class="concept-desc">3 meses de salario diario integrado. Solo aplica en despido injustificado.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-name">20 días por año trabajado</div>
+        <div class="concept-law">Art. 50 LFT</div>
+        <div class="concept-desc">20 días de salario integrado por cada año de servicio. Solo en despido injustificado.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-name">Prima de antigüedad</div>
+        <div class="concept-law">Art. 162 LFT</div>
+        <div class="concept-desc">12 días de salario por año trabajado, con tope de 2 salarios mínimos diarios.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-name">Vacaciones proporcionales</div>
+        <div class="concept-law">Art. 76 LFT</div>
+        <div class="concept-desc">Los días de vacaciones que no gozaste, pagados al salario diario.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-name">Prima vacacional</div>
+        <div class="concept-law">Art. 80 LFT</div>
+        <div class="concept-desc">25% adicional sobre el valor de las vacaciones proporcionales.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-name">Aguinaldo proporcional</div>
+        <div class="concept-law">Art. 87 LFT</div>
+        <div class="concept-desc">La parte del aguinaldo (mínimo 15 días) correspondiente al tiempo trabajado en el año.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LAW BOX -->
+  <div class="law-box">
+    <p>La <strong>Ley Federal del Trabajo (LFT)</strong> establece que todo trabajador tiene derecho a recibir su liquidación al momento de la separación. El cálculo se basa en el <strong>salario diario integrado (SDI)</strong>, que incluye tu salario base más las partes proporcionales de prestaciones regulares como bonos, vales y comisiones (Art. 84 LFT). Si tienes dudas sobre tu liquidación, puedes acudir a la <strong>PROFEDET</strong> de forma gratuita.</p>
+  </div>
+
+  <!-- FAQ -->
+  <section class="section">
+    <h2 class="section-title">Preguntas frecuentes sobre liquidación en México</h2>
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          ¿Cuánto me corresponde si me despiden sin causa?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">Si te despiden injustificadamente tienes derecho a: 3 meses de salario (indemnización constitucional), 20 días por año trabajado, prima de antigüedad (12 días/año), vacaciones proporcionales no gozadas, prima vacacional (25%) y aguinaldo proporcional. Todo se calcula con el salario diario integrado.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          ¿Qué me pagan si renuncio voluntariamente?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">Si renuncias voluntariamente no tienes derecho a la indemnización de 3 meses ni a los 20 días por año. Sí te corresponden vacaciones proporcionales, prima vacacional, aguinaldo proporcional y prima de antigüedad si tienes más de 15 años de antigüedad.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          ¿Qué es el salario diario integrado (SDI)?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">El SDI es la base real de tu liquidación. Incluye tu salario base diario más las alícuotas de aguinaldo, prima vacacional y cualquier pago regular (bonos, vales, comisiones). Un salario de $15,000 MXN mensual suele tener un SDI 10–15% mayor que el salario base.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          ¿Cuánto tiempo tiene la empresa para pagarme?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">La LFT no establece un plazo fijo, pero la práctica es que el pago debe ser el mismo día de la separación o en los días inmediatos siguientes. Si la empresa no paga, puedes demandar ante la JFCA o acudir a la PROFEDET gratuitamente.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          ¿Qué pasa si firmo una renuncia y en realidad me corrieron?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">Firmar una renuncia cuando en realidad fue un despido es una práctica que la LFT busca combatir. Puedes impugnar la renuncia ante la JFCA si puedes demostrar que fue bajo presión o coacción. Te recomendamos consultar con un abogado laboral antes de firmar cualquier documento.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA BOTTOM -->
+  <div class="cta-bottom">
+    <h2>Calcula lo que te deben en 2 minutos</h2>
+    <p>Sin registro. Sin letra pequeña. Basado en la LFT 2024.</p>
+    <a href="/?pais=mx" class="cta-btn-white">Calcular mi liquidación gratis →</a>
+  </div>
+
+  <!-- INTERNAL LINKS -->
+  <section class="section">
+    <h2 class="section-title">También calculamos en otros países</h2>
+    <p class="section-sub">TuLiquidacion cubre la legislación laboral de tres países de Latinoamérica.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a href="/co" style="background:var(--white);border:1px solid var(--slate-200);border-radius:8px;padding:12px 18px;font-size:13px;font-weight:600;color:var(--slate-700);text-decoration:none">🇨🇴 Liquidación Colombia</a>
+      <a href="/ve" style="background:var(--white);border:1px solid var(--slate-200);border-radius:8px;padding:12px 18px;font-size:13px;font-weight:600;color:var(--slate-700);text-decoration:none">🇻🇪 Prestaciones Venezuela</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>TuLiquidacion · <a href="/">tuliquidacion.app</a> · <a href="/terminos.html">Términos</a></p>
+  <p style="margin-top:6px">Esta calculadora es orientativa y no constituye asesoría legal. Para disputas formales consulta con un abogado laboral o la PROFEDET.</p>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>
